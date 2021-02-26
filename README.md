@@ -1,4 +1,5 @@
-# HISourceFinder
+# Source finding/ object segmentation in HI 3D data cubes
+![alt text](data_picture.png "3D HI data cube")
 ## Project Description
 Astronomical surveys map the skies without a specific target, resulting in images containing manyastronomical objects. As the technology used to create these surveys improves with projects likethe SKA, an unprecedented amount of data will become available. Besides the time that itwould require, manually detecting sources in data-sets of this volume would be unfeasible due tothe low intensities of many sources, increasing their proximity to the level of noise. Hence the needfor fast and accurate techniques to detect and locate sources in astronomical survey data.
 
