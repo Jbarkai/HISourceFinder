@@ -3,22 +3,25 @@ from astropy.utils.data import get_pkg_data_filename
 from spectral_cube import SpectralCube
 from astropy.utils.data import download_file
 from astropy import units as u
+from astropy import wcs
 
 
 def load_data():
-    noise_data = fits.getdata('data/U6805.lmap.fits')
+    # Get Noise
+    noise_data = fits.open('data/U6805.lmap.fits')
+    noise_data[0].header['CTYPE3'] = 'FREQ'
+    noise_data[0].header['CUNIT3'] = 'Hz'
+    rest_freq = noise_data[0].header['FREQR']*u.Hz
+    noise_cube = SpectralCube.read(noise_data)
+    noise_data.close()
+    # Get HI data
     hi_datafile = download_file(
-        'http://data.astropy.org/tutorials/FITS-cubes/reduced_TAN_C14.fits',
-        cache=True, show_progress=True)
+    'http://data.astropy.org/tutorials/FITS-cubes/reduced_TAN_C14.fits',
+    cache=True, show_progress=True)
     hi_data = fits.open(hi_datafile)  # Open the FITS file for reading
-    cube = SpectralCube.read(hi_data)  # Initiate a SpectralCube
+    hi_cube = SpectralCube.read(hi_data)  # Initiate a SpectralCube
     hi_data.close()  # Close the FITS file - we already read it in and don't need it anymore!
-
-    moment_0 = cube.with_spectral_unit(u.km/u.s).moment(order=0)  # Zero-th moment
-    moment_1 = cube.with_spectral_unit(u.km/u.s).moment(order=1)  # First moment
-    hi_column_density = moment_0 * 1.82 * 10**18 / (u.cm * u.cm) * u.s / u.K / u.km
-    
-    return noise_data, moment_0, moment_1, hi_column_density
+    return noise_cube, hi_cube, rest_freq
     
 # If you want to take a subcube
 # _, b, _ = cube.world[0, :, 0]  #extract latitude world coordinates from cube
