@@ -12,13 +12,13 @@ def create_fake_cube(noise_file, set_wcs=None):
     print("Loading %s..."%noise_file)
     noise_cube = Cube(noise_file, set_wcs)
     noise_cube.load_cube()
+    empty_cube = noise_cube.cube_data - noise_cube.cube_data
     # # Remove existing sources
     # noise_cube.create_mask()
     # noise_cube.cube_data = noise_cube.cube_data - noise_cube.masked
     # Choose a random sample of mock galaxies
     print("Adding Galaxies...")
     files = [filename for filename in listdir('data') if "model" in filename]
-    gal_locs =[]
     for filename in files:
         print("Adding Galaxy %s "%filename, files.index(filename)+1, "out of %s"%len(files))
         gal_cube = Cube("data/"+filename)
@@ -33,6 +33,7 @@ def create_fake_cube(noise_file, set_wcs=None):
         sj = int(uniform(0, noise_cube.cube_data.shape[2]-mj))
         sk = int(uniform(0, noise_cube.cube_data.shape[0]-mk))
         in_loc = noise_cube.cube_data[sk:sk+mk, si:si+mi, sj:sj+mj]
+        empt_loc = empty_cube[sk:sk+mk, si:si+mi, sj:sj+mj]
         noise_cube.cube_data[sk:sk+mk, si:si+mi, sj:sj+mj] = gal_cube.masked + in_loc
-        gal_locs.append([[sk, si, sj], [mk, mi, mj]])
-    return gal_locs, noise_cube
+        empty_cube[sk:sk+mk, si:si+mi, sj:sj+mj] = gal_cube.masked + empt_loc
+    return noise_cube, empty_cube
