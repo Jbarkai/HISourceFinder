@@ -26,16 +26,32 @@ class Cube:
         self.cube_data = hi_data[0].data
         hi_data.close()
 
-    def smooth_cube(self, telescope_resolution=15*u.arcsecond, shrink=False, shrink_xy=[50, 50]):
+    def rescale_cube(self, dim=(512, 512)):
+        # Resize image
+        img_stack_sm = np.zeros((self.cube_data.shape[0], dim[0], dim[1]))
+        for idx in range(len(self.cube_data)):
+            img = self.cube_data[idx, :, :]
+            img_sm = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+            img_stack_sm[idx, :, :] = img_sm
+        self.cube_data = img_stack_sm
+
+    def smooth_cube(self, telescope_resolution=15*u.arcsecond):
         # calculate the sigma in pixels.
         # Smooth using Gaussian with sigma = tel_res/pixel_size in each direction
-        sigma1 = telescope_resolution.to('deg').value/self.header['CDELT1']
-        sigma2 = telescope_resolution.to('deg').value/self.header['CDELT2']
-        sigma3 = telescope_resolution.to('deg').value/self.header['CDELT3']
+        ts = telescope_resolution.to('deg').value
+        sigma1 = ts/self.header['CDELT1']
+        sigma2 = ts/self.header['CDELT2']
+        sigma3 = ts/self.header['CDELT3']
         convolved_image = ndi.gaussian_filter(self.cube_data, sigma=(sigma1, sigma2, sigma3), order=0)
-        if shrink:
-            convolved_image = cv2.resize(convolved_image, dsize=(50, 50), interpolation=cv2.INTER_CUBIC)
         self.cube_data = convolved_image
+
+    def crop_cube(self, scale=1):
+        # Crop around galaxy
+        true_points = np.argwhere(self.cube_data > np.mean(self.cube_data))
+        c1 = true_points.min(axis=0)
+        c2 = true_points.max(axis=0)
+        cropped = self.cube_data[:, c1[1]:c2[1]+1, c1[2]:c2[2]+1]
+        self.cube_data = cropped
 
     def create_mask(self, scale=1):
         # Find Sources
