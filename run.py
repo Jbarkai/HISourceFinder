@@ -1,6 +1,7 @@
 from make_cubes import create_fake_cube
 from astropy.io import fits
 from os import listdir
+import gc
 
 
 def main():
