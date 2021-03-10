@@ -14,6 +14,7 @@ def create_fake_cube(noise_file, set_wcs=None, reproject=True, scale=1, ctype=Fa
     noise_cube.load_cube(ctype=ctype)
     # Take subset for resources for now
     # subcube = noise_cube.cube_data[:, 800:1312, 800:1312]
+    subcube = noise_cube.cube_data
     # Delete noise cube to free up memory
     del(noise_cube)
     gc.collect()
