@@ -33,7 +33,7 @@ class Cube:
         for idx in range(len(self.cube_data)):
             img = self.cube_data[idx, :, :]
             print(img.shape)
-            img_sm = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+            img_sm = cv2.resize(img, (dim[0], dim[1]), interpolation=cv2.INTER_CUBIC)
             print(img_sm.shape)
             img_stack_sm[idx, :, :] = img_sm
         self.cube_data = img_stack_sm
