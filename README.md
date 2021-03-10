@@ -1,6 +1,5 @@
 # 3D HI Source Finder
-![alt text](data_picture.png "3D HI data cube")
-Credit: D. Punzo et al. (2015)
+<img src="https://github.com/Jbarkai/HISourceFinder/blob/master/cover_pic.png" width="48">
 
 A comparison of object segmentation techniques for optimal source finding in HI 3D data cubes.
 Corresponding Author: Jordan A. Barkai, University of Groningen
@@ -25,6 +24,3 @@ Create the simulated cubes by inserting 200-400 random mock galaxies randomly in
 ```
 python3 run.py
 ```
-
-### References:
-D. Punzo, J. M. van der Hulst, J. B. T. M. Roerdink, T. A. Oosterloo, M. Ramatsoku, andM. A. W. Verheijen. The role of 3-d interactive visualization in blind surveys of hi in galaxies,2015
