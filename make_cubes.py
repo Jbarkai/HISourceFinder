@@ -7,7 +7,7 @@ from cube import Cube
 from random import uniform
 
 
-def create_fake_cube(noise_file, no_gals, set_wcs=None, reproject=False, scale=1, ctype=False):
+def create_fake_cube(noise_file, set_wcs=None, reproject=False, scale=1, ctype=False):
     # Load noise cube
     noise_cube = Cube(noise_file, set_wcs)
     noise_cube.load_cube(ctype=ctype)
