@@ -1,5 +1,7 @@
 # 3D HI Source Finder
-<img src="https://github.com/Jbarkai/HISourceFinder/blob/master/cover_pic.png" width="48">
+<p align="center">
+  <img src="https://github.com/Jbarkai/HISourceFinder/blob/master/cover_pic.png" width="500" />
+</p>
 
 A comparison of object segmentation techniques for optimal source finding in HI 3D data cubes.
 Corresponding Author: Jordan A. Barkai, University of Groningen
