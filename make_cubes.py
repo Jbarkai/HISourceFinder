@@ -55,4 +55,4 @@ def insert_gal(i, no_gals, filename, cube_data, empty_cube, dim, reproject=True,
     del(gal_data)
     gc.collect()
 
-    print("\r" + str(i*100/no_gals), end="%")
+    print("\r" + str(int(i*100/no_gals)), end="%")
