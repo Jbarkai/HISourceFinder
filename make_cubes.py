@@ -26,10 +26,10 @@ def create_fake_cube(noise_file, set_wcs=None, reproject=True, scale=1, ctype=Fa
     # Choose a random sample of mock galaxies
     no_gals = int(uniform(200, 500))
     gals = sample(listdir('data/mock_gals'), no_gals)
-    [insert_gal("data/mock_gals/"+f, subcube, empty_cube, dim, reproject, scale) for f in gals]
+    [insert_gal(i, no_gals,"data/mock_gals/"+f, subcube, empty_cube, dim, reproject, scale) for i, f in enumerate(gals)]
     return subcube, empty_cube
 
-def insert_gal(filename, cube_data, empty_cube, dim, reproject=True, scale=1):
+def insert_gal(i, no_gals, filename, cube_data, empty_cube, dim, reproject=True, scale=1):
     gal_cube = Cube(filename)
     gal_cube.load_cube(ctype=True)
     # gal_cube.cube_data = gal_cube.cube_data[90:110, :, :]
@@ -54,3 +54,5 @@ def insert_gal(filename, cube_data, empty_cube, dim, reproject=True, scale=1):
     del(gal_mask)
     del(gal_data)
     gc.collect()
+
+    print("\r" + str(i*100/no_gals), end="%")
