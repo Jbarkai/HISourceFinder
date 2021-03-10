@@ -53,9 +53,9 @@ class Cube:
         cropped = self.cube_data[:, c1[1]:c2[1]+1, c1[2]:c2[2]+1]
         self.cube_data = cropped
 
-    def create_mask(self, scale=1):
+    def create_mask(self):
         # Find Sources
-        self.masked = (self.cube_data > np.mean(self.cube_data) + np.std(self.cube_data)).astype(int)*scale
+        self.masked = (self.cube_data > np.mean(self.cube_data) + np.std(self.cube_data)).astype(int)*self.cube_data
 
     def plot_slice(self, slice_i=10, sliced=True):
         # Get ds9 map
