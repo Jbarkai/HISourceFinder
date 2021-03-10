@@ -17,6 +17,11 @@ def main():
         # output the masks of the new cubes
         hdu = fits.PrimaryHDU(mask_cube)
         hdu.writeto('data/training/maskcube_%s.fits'%i)
+        # Free up memory
+        del(hdu)
+        del(new_cube)
+        del(mask_cube)
+        gc.collect()
         print("Cube %s Done!"%i)
     print("Done!")
     return 0

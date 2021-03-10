@@ -15,5 +15,16 @@ The challenge lies in the lack of clarity in the boundaries of sources, with man
 
 In this project we will explore the various existing methods, including the traditional statistical approaches as well as machine learning techniques in attempt to create a pipeline to optimally mask and label the sources in 3D neutral hydrogen (HI) data cubes.
 
+
+## Usage
+Install the required packages.
+```
+pip3 install -r requirements
+```
+Create the simulated cubes by inserting 200-400 random mock galaxies randomly into each mosaiced cube.
+```
+python3 run.py
+```
+
 ### References:
 D. Punzo, J. M. van der Hulst, J. B. T. M. Roerdink, T. A. Oosterloo, M. Ramatsoku, andM. A. W. Verheijen. The role of 3-d interactive visualization in blind surveys of hi in galaxies,2015
