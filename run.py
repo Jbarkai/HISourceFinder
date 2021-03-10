@@ -12,7 +12,7 @@ def main():
         # new_cube, mask_cube = create_fake_cube(noise_file, set_wcs='B1950')
         # new_cube.plot_slice(slice_i=si, sliced=False)
         # output new cubes
-        hdu = fits.PrimaryHDU(new_cube.cube_data)
+        hdu = fits.PrimaryHDU(new_cube)
         hdu.writeto('data/training/mockcube_%s.fits'%i)
         # output the masks of the new cubes
         hdu = fits.PrimaryHDU(mask_cube)
