@@ -29,9 +29,12 @@ class Cube:
     def rescale_cube(self, dim=(512, 512)):
         # Resize image
         img_stack_sm = np.zeros((self.cube_data.shape[0], dim[0], dim[1]))
+        print(img_stack_sm.shape)
         for idx in range(len(self.cube_data)):
             img = self.cube_data[idx, :, :]
+            print(img.shape)
             img_sm = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+            print(img_sm.shape)
             img_stack_sm[idx, :, :] = img_sm
         self.cube_data = img_stack_sm
 
