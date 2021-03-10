@@ -1,13 +1,14 @@
 from make_cubes import create_fake_cube
 from astropy.io import fits
+from os import listdir
 
 
 def main():
-    noise_file = 'data/1245mosC.derip.fits'
-    no_cubes = 10
-    for i in range(no_cubes):
+    # Decide number of galaxies per cube
+    no_cubes = len(listdir("data/mosaics"))
+    for i, mosaic in enumerate(listdir("data/mosaics")):
         print("Making cube %s "%i, "out of %s..."%no_cubes)
-        new_cube, mask_cube = create_fake_cube(noise_file)
+        new_cube, mask_cube = create_fake_cube("data/mosaics/" + mosaic)
         # new_cube, mask_cube = create_fake_cube(noise_file, set_wcs='B1950')
         # new_cube.plot_slice(slice_i=si, sliced=False)
         # output new cubes

@@ -1,13 +1,13 @@
 
 from os import listdir
-from random import sample
+from random import sample, uniform
 import numpy as np
 from astropy import units as u
 from cube import Cube
 from random import uniform
 
 
-def create_fake_cube(noise_file, set_wcs=None, reproject=False, scale=1, ctype=False):
+def create_fake_cube(noise_file, no_gals, set_wcs=None, reproject=False, scale=1, ctype=False):
     # Load noise cube
     noise_cube = Cube(noise_file, set_wcs)
     noise_cube.load_cube(ctype=ctype)
@@ -19,12 +19,13 @@ def create_fake_cube(noise_file, set_wcs=None, reproject=False, scale=1, ctype=F
     # noise_cube.create_mask()
     # noise_cube.cube_data = noise_cube.cube_data - noise_cube.masked
     # Choose a random sample of mock galaxies
-    # print("Adding Galaxy %s "%filename, files.index(filename)+1, "out of %s"%len(files))
-    [insert_gal(f, noise_cube.cube_data, empty_cube, dim, reproject, scale) for f in listdir('data/mock_gals')]
+    no_gals = int(uniform(200, 400))
+    gals = sample(listdir('data/mock_gals'), no_gals)
+    [insert_gal("data/mock_gals/"+f, noise_cube.cube_data, empty_cube, dim, reproject, scale) for f in gals]
     return noise_cube, empty_cube
 
 def insert_gal(filename, cube_data, empty_cube, dim, reproject=True, scale=1):
-    gal_cube = Cube("data/mock_gals/"+filename)
+    gal_cube = Cube(filename)
     gal_cube.load_cube(ctype=True)
     # gal_cube.cube_data = gal_cube.cube_data[90:110, :, :]
     if reproject:
