@@ -24,7 +24,7 @@ class Cube:
         """
         self.filename = filename
         self.set_wcs = set_wcs
-        self.wcs = WCS(key=self.set_wcs)
+        self.wcs = set_wcs
         self.header = {}
         self.cube_data = []
         self.masked = []

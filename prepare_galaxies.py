@@ -8,7 +8,7 @@ from astropy.io import fits
 from cube import Cube
 
 
-def prep_gal(i, no_gals, filename, dim, cdelts, reproject=True, out_dir='mock_gals/smoothed'):
+def prep_gal(i, no_gals, filename, dim, cdelts, reproject=True, out_dir='data/mock_gals/smoothed'):
     """Load, rescalem smooth and output mock galaxies
 
     Args:
@@ -32,7 +32,7 @@ def prep_gal(i, no_gals, filename, dim, cdelts, reproject=True, out_dir='mock_ga
     # gal_cube.create_mask()
     # output new cubes
     hdu = fits.PrimaryHDU(gal_cube.cube_data)
-    hdu.writeto(out_dir + '/smoothed_%s'%filename)
+    hdu.writeto(out_dir + '/smoothed_%s'%filename.split("/")[-1])
     print("\r" + str(int(i*100/no_gals)) + "% smoothed", end="")
     # return gal_data #, gal_mask
     return True
@@ -55,9 +55,10 @@ def main(gal_dir, out_dir, dim):
     # subcube = noise_cube.cube_data[:, 800:1312, 800:1312]
     # Prepare the galaxy cubes
     print("Smoothing all the galaxy cubes...")
+    gals = [i for i in listdir(gal_dir)if ".fits" in i]
     success = [prep_gal(
         i, len(listdir(gal_dir)), gal_dir + "/"+f, dim,(cdelt1, cdelt2, cdelt3), out_dir
-        ) for i, f in enumerate(listdir(gal_dir))]
+        ) for i, f in enumerate(gals)]
     print("Success! ", success)
 
 if __name__ == "__main__":
