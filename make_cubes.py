@@ -14,47 +14,49 @@ def create_fake_cube(noise_file, gal_dir='data/mock_gals', set_wcs=None, reproje
     noise_cube = Cube(noise_file, set_wcs)
     noise_cube.load_cube(ctype=ctype)
     # Take subset for resources for now
-    subcube = noise_cube.cube_data[:, 800:1312, 800:1312]
-    # subcube = noise_cube.cube_data
+    # subcube = noise_cube.cube_data[:, 800:1312, 800:1312]
+    cube_header = noise_cube.header
+    cube_data = noise_cube.cube_data
     # Delete noise cube to free up memory
     del(noise_cube)
     gc.collect()
-    dim = subcube.shape[1:]
-    empty_cube = np.zeros(subcube.shape)
+    dim = (512, 512)
+    empty_cube = np.zeros(cube_data.shape)
     # # Remove existing sources
     # noise_cube.create_mask()
     # noise_cube.cube_data = noise_cube.cube_data - noise_cube.masked
     # Choose a random sample of mock galaxies
     no_gals = int(uniform(200, 500))
     gals = sample(listdir(gal_dir), no_gals)
-    [insert_gal(i, no_gals, gal_dir + "/"+f, subcube, empty_cube, dim, reproject, scale) for i, f in enumerate(gals)]
-    return subcube, empty_cube
+    smoothed_gals = [prep_gal(
+        i, no_gals, gal_dir + "/"+f, dim, cube_header
+        ) for i, f in enumerate(gals)]
+    [insert_gal(i, no_gals, g, cube_data, empty_cube, dim) for i, g in enumerate(smoothed_gals)]
+    return cube_data, empty_cube
 
-def insert_gal(i, no_gals, filename, cube_data, empty_cube, dim, reproject=True, scale=1):
+def prep_gal(i, no_gals, filename, dim, cube_header, reproject=True):
     gal_cube = Cube(filename)
-    gal_cube.load_cube(ctype=True)
+    gal_cube.load_cube(ctype=True, scale=True) # Convert Westerbork Units (W.U) to Jy/Beam
     # gal_cube.cube_data = gal_cube.cube_data[90:110, :, :]
     if reproject:
         gal_cube.rescale_cube(dim=dim)
-        gal_cube.smooth_cube()
-    gal_cube.crop_cube(scale=scale)
+        gal_cube.smooth_cube(cube_header)
+    # gal_cube.crop_cube(scale=scale)
     gal_cube.create_mask()
     gal_data = gal_cube.cube_data
-    gal_mask = gal_cube.masked
-    # Delete galaxy cube to free up memory
-    del(gal_cube)
-    gc.collect()
+    # gal_mask = gal_cube.masked
+
+    print("\r" + str(int(i*100/no_gals)) + "% smoothed", end="")
+    return gal_data #, gal_mask
+
+
+def insert_gal(i, no_gals, gal_data, cube_data, empty_cube, dim):
     # Randomly place galaxy in x and y direction and fill whole z
-    mk, mi, mj = gal_data.shape
-    si = int(uniform(0, cube_data.shape[1]-mi))
-    sj = int(uniform(0, cube_data.shape[2]-mj))
-    sk = int(uniform(0, cube_data.shape[0]-mk))
-    cube_data[sk:sk+mk, si:si+mi, sj:sj+mj] += gal_data
-    empty_cube[sk:sk+mk, si:si+mi, sj:sj+mj] += gal_mask
-    # Delete galaxy array to free up memory
-    del(gal_mask)
-    del(gal_data)
-    gc.collect()
+    si = int(uniform(0, cube_data.shape[1]-dim[0]))
+    sj = int(uniform(0, cube_data.shape[2]-dim[1]))
+    sk = int(uniform(0, cube_data.shape[0]-gal_data.shape[0]))
+    cube_data[sk:sk+gal_data.shape[0], si:dim[0]+si, sj:dim[1]+sj] += gal_data*1e1
+    empty_cube[sk:sk+gal_data.shape[0], si:dim[0]+si, sj:dim[1]+sj] += gal_data*1e1
 
     print("\r" + str(int(i*100/no_gals)), end="%")
 
