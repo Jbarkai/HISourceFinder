@@ -29,16 +29,33 @@ pip3 install -r requirements
 ```
 
 ## Usage
-Create the simulated cubes by inserting 200-500 random mock galaxies randomly into each mosaiced cube.
+Rescale and smooth each mock galaxy and output the new cubes to `data/mock_gals/smoothed/`:
 ```bash
-usage: create_training_data.py.py [-h] mos_dir gal_dir out_dir
+usage: prepare_galaxies.py [-h] gal_dir out_dir dim
 
-Source Finding
+Rescale and smooth mock galaxies
+
+positional arguments:
+  gal_dir     The directory of the mock galaxy cubes
+  out_dir     The output directory of the smoothed synthetic cubes
+  dim         The dimensions to rescale the galaxies to
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+
+Create the simulated cubes by inserting 200-500 random snoothed mock galaxies randomly into a random mosaiced cube.
+```bash
+usage: make_cubes.py [-h] mos_dir gal_dir out_dir dim no_cubes
+
+Insert mock galaxies into HI cubes
 
 positional arguments:
   mos_dir     The directory of the noise cubes to insert the mock galaxies into
   gal_dir     The directory of the mock galaxy cubes
   out_dir     The output directory of the synthetic cubes
+  dim         The dimensions to rescale the galaxies to
+  no_cubes    The number of synthetic training cubes to produce
 
 optional arguments:
   -h, --help  show this help message and exit
