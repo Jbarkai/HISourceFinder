@@ -15,12 +15,29 @@ The challenge lies in the lack of clarity in the boundaries of sources, with man
 In this project we will explore the various existing methods, including the traditional statistical approaches as well as machine learning techniques in attempt to create a pipeline to optimally mask and label the sources in 3D neutral hydrogen (HI) data cubes.
 
 
-## Usage
-Install the required packages.
+## Setup
+Clone repository.
+```bash
+git clone https://github.com/Jbarkai/HISourceFinder.git
 ```
+Install the required packages.
+```bash
+cd HISourceFinder
 pip3 install -r requirements
 ```
-Create the simulated cubes by inserting 200-400 random mock galaxies randomly into each mosaiced cube.
-```
-python3 run.py
+
+## Usage
+Create the simulated cubes by inserting 200-500 random mock galaxies randomly into each mosaiced cube.
+```bash
+usage: create_training_data.py.py [-h] mos_dir gal_dir out_dir
+
+Source Finding
+
+positional arguments:
+  mos_dir     The directory of the noise cubes to insert the mock galaxies into
+  gal_dir     The directory of the mock galaxy cubes
+  out_dir     The output directory of the synthetic cubes
+
+optional arguments:
+  -h, --help  show this help message and exit
 ```
