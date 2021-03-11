@@ -62,11 +62,11 @@ def main(gal_dir, out_dir, dim):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Rescale and smooth mock galaxies")
-    parser.add_argument('gal_dir', type=str, default='data/mock_gals',
+    parser.add_argument('gal_dir', type=str, const=1, default='data/mock_gals',
      help='The directory of the mock galaxy cubes')
-    parser.add_argument('out_dir', type=str, default="data/mock_gals/smoothed",
+    parser.add_argument('out_dir', type=str, const=1, default="data/mock_gals/smoothed",
      help='The output directory of the smoothed synthetic cubes')
-    parser.add_argument('dim', type=tuple, default=(512, 512),
+    parser.add_argument('dim', type=tuple, const=1, default=(512, 512),
      help='The dimensions to rescale the galaxies to')
     args = parser.parse_args()
 
