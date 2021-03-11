@@ -92,15 +92,15 @@ def main(no_cubes, mos_dir, gal_dir, out_dir, dim):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Insert mock galaxies into HI cubes")
-    parser.add_argument('mos_dir', type=str, const=1, default="data/mosaics",
+    parser.add_argument('mos_dir', type=str, nargs='?', default="data/mosaics",
      help='The directory of the noise cubes to insert the mock galaxies into')
-    parser.add_argument('gal_dir', type=str, const=1, default='data/mock_gals/smoothed',
+    parser.add_argument('gal_dir', type=str, nargs='?', default='data/mock_gals/smoothed',
      help='The directory of the mock galaxy cubes')
-    parser.add_argument('out_dir', type=str, const=1, default="data/training",
+    parser.add_argument('out_dir', type=str, nargs='?', default="data/training",
      help='The output directory of the synthetic cubes')
-    parser.add_argument('dim', type=tuple, const=1, default=(512, 512),
+    parser.add_argument('dim', type=tuple, nargs='?', default=(512, 512),
      help='The dimensions to rescale the galaxies to')
-    parser.add_argument('no_cubes', type=int, const=1, default=100,
+    parser.add_argument('no_cubes', type=int, nargs='?', default=100,
      help='The number of synthetic training cubes to produce')
     args = parser.parse_args()
 
