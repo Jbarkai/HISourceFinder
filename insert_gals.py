@@ -2,7 +2,7 @@
 """
 Prepare and insert a mock galaxy into a noise cube
 """
-from random import sample, uniform
+from random import sample, randint
 import numpy as np
 from scipy.ndimage import zoom
 from astropy.convolution import convolve, Gaussian2DKernel
@@ -61,27 +61,34 @@ def regrid_cube(gal_cube, noise_cube, gal_data, orig_d=50*u.Mpc, h_0=70*u.km/(u.
     Return:
         The regrided/resampled cube data
     """
-    # Find max frequency
     rest_freq = gal_cube.header['FREQ0']*u.Hz
+    # Find the width of the current galaxy cube
+    gal_redshift = (rest_freq/gal_cube.spectral_axis)-1
+    gal_d_pos = (gal_redshift*const.c/h_0).to(u.Mpc)
+    gal_width = max(gal_d_pos)- min(gal_d_pos)
+    # Find max frequency
     max_freq = (rest_freq/(1+orig_d*h_0/const.c)).to(u.Hz)
     idx_range = np.where(noise_cube.spectral_axis < max_freq)
-    # Find insert channel below max freq and which fits cube
+    # Find insert channel below max freq
     freq_pos = noise_cube.spectral_axis[idx_range]
     redshift = (rest_freq/freq_pos)-1
     d_pos = (redshift*const.c/h_0).to(u.Mpc)
-    freq_fac = d_pos/orig_d
-    truth = (((freq_fac*gal_cube.shape[0]) + idx_range[0]).value) < noise_cube.shape[0]
-    new_idx_range = list(np.where(truth)[0])
-    # Randomly pick channel within this subset
-    z_pos = sample(new_idx_range, 1)[0]
+    # Randomly pick channel within this subset which fits in noise cube
+    new_idx_range = np.where(np.where(
+        noise_cube.spectral_axis < max_freq
+        )[0] + gal_cube.shape[0] < noise_cube.shape[0])[0]
+    z_pos = randint(0, new_idx_range[-1])
+    new_width = max(d_pos[z_pos:z_pos+gal_data.shape[0]]) - min(d_pos[z_pos:z_pos+gal_data.shape[0]])
+    width_frac = new_width/gal_width
+    # Get pixel size ratio
     x_fac = noise_cube.header['CDELT1']/gal_cube.header['CDELT1']
     y_fac = noise_cube.header['CDELT2']/gal_cube.header['CDELT2']
     # Regrid cube to new distance and pixel sizes
-    resampled = zoom(gal_data, (float(freq_fac[z_pos]), x_fac, y_fac))
+    resampled = zoom(gal_data, (float(width_frac), x_fac, y_fac))
     return z_pos, resampled
 
 
-def insert_gal(gal_data, noise_data, empty_cube, z_pos):
+def insert_gal(gal_data, noise_data, empty_cube, z_pos, verbose=False):
     """Inserts galaxy randomly into given cube
 
     Args:
@@ -94,8 +101,10 @@ def insert_gal(gal_data, noise_data, empty_cube, z_pos):
         The return value. True for success, False otherwise.
     """
     # Randomly place galaxy in x and y direction and fill whole z
-    x_pos = int(uniform(0, noise_data.shape[1]-gal_data.shape[1]))
-    y_pos = int(uniform(0, noise_data.shape[2]-gal_data.shape[2]))
+    x_pos = randint(0, noise_data.shape[1]-gal_data.shape[1])
+    y_pos = randint(0, noise_data.shape[2]-gal_data.shape[2])
+    if verbose:
+        print(x_pos, y_pos)
     noise_data[
         z_pos:gal_data.shape[0]+z_pos,
         x_pos:gal_data.shape[1]+x_pos,
@@ -109,10 +118,12 @@ def insert_gal(gal_data, noise_data, empty_cube, z_pos):
     return True
 
 
-def add_to_cube(filename, noise_cube, noise_data, empty_cube):
+def add_to_cube(i, no_gals, filename, noise_cube, noise_data, empty_cube):
     """Load, smooth, regrid and insert mock galaxies
 
     Args:
+        i (int): Cube index
+        no_cubes (int): Total number of cubes
         filename (str): The file name of the mock galaxy
         noise_cube (SpectralCube): Noise cube to insert galaxy into
         noise_data (numpy.array): 3D array of noise cube to insert it to
@@ -131,4 +142,5 @@ def add_to_cube(filename, noise_cube, noise_data, empty_cube):
     # Regrid cube
     z_pos, resampled = regrid_cube(gal_cube, noise_cube, smoothed_gal, orig_d, h_0)
     success = insert_gal(resampled, noise_data, empty_cube, z_pos)
+    print("\r" + str(int(i*100/no_gals)) + "% inserted", end="")
     return success
