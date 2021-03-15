@@ -21,11 +21,16 @@ In this project we will explore the various existing methods, including the trad
 Clone repository.
 ```bash
 git clone https://github.com/Jbarkai/HISourceFinder.git
+cd HISourceFinder
+```
+Create and activate a Python 3.6 environment.
+```bash
+conda create -n myenv python=3.6
+source activate myenv
 ```
 Install the required packages.
 ```bash
-cd HISourceFinder
-pip3 install -r requirements
+pip3 install -r requirements.txt
 ```
 
 ## Usage

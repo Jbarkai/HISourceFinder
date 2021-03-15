@@ -10,6 +10,11 @@ from astropy.io import fits
 import astropy.units as u
 import astropy.constants as const
 from spectral_cube import SpectralCube
+import warnings
+
+
+# Ignore warning about header
+warnings.filterwarnings("ignore", message="Could not parse unit W.U.")
 
 
 def load_cube(filename):
@@ -77,7 +82,6 @@ def regrid_cube(gal_cube, noise_cube, gal_data, orig_d=50*u.Mpc, h_0=70*u.km/(u.
     d_pos = (redshift*const.c/h_0).to(u.Mpc)
     # Randomly pick channel within this subset which fits in noise cube
     z_pos = randint(0, idx_range[-1])
-    print(z_pos)
     new_width = max(d_pos[z_pos:z_pos+gal_data.shape[0]]) - min(d_pos[z_pos:z_pos+gal_data.shape[0]])
     width_frac = new_width/gal_width
     # Get pixel size ratio
