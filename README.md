@@ -29,34 +29,20 @@ pip3 install -r requirements
 ```
 
 ## Usage
-Rescale and smooth each mock galaxy and output the new cubes to `data/mock_gals/smoothed/`:
+Create the simulated cubes by inserting 200-500 random snoothed and regrided mock galaxies randomly into a random mosaiced cube.
 ```bash
-usage: prepare_galaxies.py [-h] gal_dir out_dir dim
-
-Rescale and smooth mock galaxies
-
-positional arguments:
-  gal_dir     The directory of the mock galaxy cubes
-  out_dir     The output directory of the smoothed synthetic cubes
-  dim         The dimensions to rescale the galaxies to
-
-optional arguments:
-  -h, --help  show this help message and exit
-```
-
-Create the simulated cubes by inserting 200-500 random snoothed mock galaxies randomly into a random mosaiced cube.
-```bash
-usage: make_cubes.py [-h] mos_dir gal_dir out_dir dim no_cubes
+usage: make_cubes.py [-h] [--mos_dir [MOS_DIR]] [--gal_dir [GAL_DIR]] [--out_dir [OUT_DIR]] [--no_cubes [NO_CUBES]] [--min_gal [MIN_GAL]]
+                     [--max_gal [MAX_GAL]]
 
 Insert mock galaxies into HI cubes
 
-positional arguments:
-  mos_dir     The directory of the noise cubes to insert the mock galaxies into
-  gal_dir     The directory of the mock galaxy cubes
-  out_dir     The output directory of the synthetic cubes
-  dim         The dimensions to rescale the galaxies to
-  no_cubes    The number of synthetic training cubes to produce
-
 optional arguments:
-  -h, --help  show this help message and exit
+  -h, --help            show this help message and exit
+  --mos_dir [MOS_DIR]   The directory of the noise cubes to insert the mock galaxies into
+  --gal_dir [GAL_DIR]   The directory of the mock galaxy cubes
+  --out_dir [OUT_DIR]   The output directory of the synthetic cubes
+  --no_cubes [NO_CUBES]
+                        The number of synthetic training cubes to produce
+  --min_gal [MIN_GAL]   The minimum number of galaxies to insert
+  --max_gal [MAX_GAL]   The maximum number of galaxies to insert
 ```
