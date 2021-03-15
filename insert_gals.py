@@ -67,17 +67,17 @@ def regrid_cube(gal_cube, noise_cube, gal_data, orig_d=50*u.Mpc, h_0=70*u.km/(u.
     gal_d_pos = (gal_redshift*const.c/h_0).to(u.Mpc)
     gal_width = max(gal_d_pos)- min(gal_d_pos)
     # Find max frequency
+    max_pos = noise_cube.shape[0]-gal_cube.shape[0]
     max_freq = (rest_freq/(1+orig_d*h_0/const.c)).to(u.Hz)
-    idx_range = np.where(noise_cube.spectral_axis < max_freq)
+    idx_range = np.where(np.where((noise_cube.spectral_axis < max_freq))[0] < max_pos)[0]
+    np.where(noise_cube.spectral_axis < max_freq)[0]
     # Find insert channel below max freq
     freq_pos = noise_cube.spectral_axis[idx_range]
     redshift = (rest_freq/freq_pos)-1
     d_pos = (redshift*const.c/h_0).to(u.Mpc)
     # Randomly pick channel within this subset which fits in noise cube
-    new_idx_range = np.where(np.where(
-        noise_cube.spectral_axis < max_freq
-        )[0] + gal_cube.shape[0] < noise_cube.shape[0])[0]
-    z_pos = randint(0, new_idx_range[-1])
+    z_pos = randint(0, idx_range[-1])
+    print(z_pos)
     new_width = max(d_pos[z_pos:z_pos+gal_data.shape[0]]) - min(d_pos[z_pos:z_pos+gal_data.shape[0]])
     width_frac = new_width/gal_width
     # Get pixel size ratio

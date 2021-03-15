@@ -71,22 +71,22 @@ def main(no_cubes, mos_dir, gal_dir, out_dir, min_gal, max_gal):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Insert mock galaxies into HI cubes")
     parser.add_argument(
-        'mos_dir', type=str, nargs='?', const='default', default="data/mosaics",
+        '--mos_dir', type=str, nargs='?', const='default', default="data/mosaics",
         help='The directory of the noise cubes to insert the mock galaxies into')
     parser.add_argument(
-        'gal_dir', type=str, nargs='?', const='default', default='data/mock_gals',
+        '--gal_dir', type=str, nargs='?', const='default', default='data/mock_gals',
         help='The directory of the mock galaxy cubes')
     parser.add_argument(
-        'out_dir', type=str, nargs='?', const='default', default="data/training",
+        '--out_dir', type=str, nargs='?', const='default', default="data/training",
         help='The output directory of the synthetic cubes')
     parser.add_argument(
-        'no_cubes', type=int, nargs='?', const='default', default=2,
+        '--no_cubes', type=int, nargs='?', const='default', default=2,
         help='The number of synthetic training cubes to produce')
     parser.add_argument(
-        'min_gal', type=int, nargs='?', const='default', default=200,
+        '--min_gal', type=int, nargs='?', const='default', default=200,
         help='The minimum number of galaxies to insert')
     parser.add_argument(
-        'max_gal', type=int, nargs='?', const='default', default=500,
+        '--max_gal', type=int, nargs='?', const='default', default=500,
         help='The maximum number of galaxies to insert')
     args = parser.parse_args()
 
