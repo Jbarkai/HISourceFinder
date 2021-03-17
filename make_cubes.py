@@ -37,11 +37,13 @@ def create_fake_cube(i, no_cubes, noise_file, gal_dir, out_dir, min_gal=200, max
     success = [add_to_cube(
         j, no_gals, gal_dir + "/" + g, noise_cube, noise_data, empty_cube
         ) for j, g in enumerate(gals)]
-    print("Success: ", success)
+    if all(success):
+        print("Successfully inserted galaxies")
     # output new cube and its mask file
     hdu1 = fits.PrimaryHDU(noise_data, noise_cube.header)
     hdu2 = fits.PrimaryHDU(empty_cube, noise_cube.header)
     hdu1.writeto(out_dir + '/mockcube_%s.fits'%i, overwrite=True)
+    print("Mock Cube Done!")
     hdu2.writeto(out_dir + '/maskcube_%s.fits'%i, overwrite=True)
     print("Cube %s Done!"%i)
     return True
@@ -65,7 +67,8 @@ def main(no_cubes, mos_dir, gal_dir, out_dir, min_gal, max_gal):
     success = [create_fake_cube(
         k, no_cubes, f, gal_dir, out_dir, min_gal, max_gal
         ) for k, f in enumerate(cubes)]
-    print("Success! ", success)
+    if all(success):
+        print("Success!")
 
 
 if __name__ == "__main__":

@@ -33,21 +33,32 @@ def load_cube(filename):
     return gal_cube
 
 
-def smooth_cube(gal_cube, fwhm=15*u.arcsec):
+def smooth_cube(gal_cube, fwhm_x=15*u.arcsec, fwhm_y=27*u.arcsec):
     """Spatially smooth cube using 2D Gaussian kernel
 
     Args:
         gal_cube (SpectralCube): The spectral cube to smooth
-        fwhm (Quantity): Telescope FWHM
+        fwhm_x (Quantity): Telescope FWHM minor axis
+        fwhm_y (Quantity): Telescope FWHM major axis
     Return:
         The smoothed cube
     """
+    # The default value for SCALE= is obtained by convolving
+    # the calculated convolution function with a 2-d gaussian
+    # with maximum amplitude equal to 1 and with parameters
+    # given in OLDBEAM=0.1 0.1 and OLDPOSANG=0.0  The result is a gaussian
+    # of which the central value is not longer equal to zero.
+    # The scale factor is the number that is needed to scale the
+    # central value back to 1
     # Find sigma from FWHM
-    sigma = fwhm/(2*np.sqrt(2*np.log(2)))
+    sigma1 = fwhm_x/(2*np.sqrt(2*np.log(2)))
+    sigma2 = fwhm_y/(2*np.sqrt(2*np.log(2)))
     # Convert to pixels by dividing by pixel size
-    sigma_pix = sigma.to('deg').value/gal_cube.header['CDELT2']
-    gauss_kernel = Gaussian2DKernel(sigma_pix)
-    gal_data = gal_cube.unmasked_data[:, :, :].value
+    sigma_pix1 = sigma1.to('deg').value/gal_cube.header['CDELT1']
+    sigma_pix2 = sigma2.to('deg').value/gal_cube.header['CDELT2']
+    gauss_kernel = Gaussian2DKernel(np.abs(sigma_pix1), sigma_pix2)
+    # Convert from W.U. to JY/BEAM
+    gal_data = gal_cube.unmasked_data[:, :, :].value*5e-3
     smoothed_gal = np.zeros(gal_data.shape)
     for idx in range(len(gal_data)):
         smoothed_gal[idx, :, :] = convolve(gal_data[idx, :, :], gauss_kernel)
@@ -113,12 +124,13 @@ def insert_gal(gal_data, noise_data, empty_cube, z_pos, verbose=False):
         z_pos:gal_data.shape[0]+z_pos,
         x_pos:gal_data.shape[1]+x_pos,
         y_pos:gal_data.shape[2]+y_pos
-        ] += gal_data*3e-2
+        ] += gal_data*1e1
+    masked = (gal_data > np.mean(gal_data) + np.std(gal_data)).astype(int)
     empty_cube[
         z_pos:gal_data.shape[0]+z_pos,
         x_pos:gal_data.shape[1]+x_pos,
         y_pos:gal_data.shape[2]+y_pos
-        ] += gal_data*3e-2
+        ] += masked*1e1
     return True
 
 
