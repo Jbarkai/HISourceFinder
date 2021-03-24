@@ -132,14 +132,26 @@ class GalCube():
         # Randomly place galaxy in x and y direction and fill whole z
         x_pos = randint(0, noise_data.shape[1]-self.scaled_flux.shape[1])
         y_pos = randint(0, noise_data.shape[2]-self.scaled_flux.shape[2])
-        noise_data[
-            self.z_pos:self.scaled_flux.shape[0]+self.z_pos,
-            x_pos:self.scaled_flux.shape[1]+x_pos,
-            y_pos:self.scaled_flux.shape[2]+y_pos
-            ] += self.scaled_flux
         masked = (self.scaled_flux > np.mean(self.scaled_flux) + np.std(self.scaled_flux)).astype(int)
-        empty_cube[
-            self.z_pos:self.scaled_flux.shape[0]+self.z_pos,
-            x_pos:self.scaled_flux.shape[1]+x_pos,
-            y_pos:self.scaled_flux.shape[2]+y_pos
-            ] += masked
+        if self.z_pos + self.scaled_flux.shape[0] > noise_data.shape[0]:
+            noise_data[
+                self.z_pos:noise_data.shape[0],
+                x_pos:self.scaled_flux.shape[1]+x_pos,
+                y_pos:self.scaled_flux.shape[2]+y_pos
+                ] += self.scaled_flux[:noise_data.shape[0]-self.z_pos]
+            empty_cube[
+                self.z_pos:noise_data.shape[0],
+                x_pos:self.scaled_flux.shape[1]+x_pos,
+                y_pos:self.scaled_flux.shape[2]+y_pos
+                ] += masked[:noise_data.shape[0]-self.z_pos]
+        else:
+            noise_data[
+                self.z_pos:self.scaled_flux.shape[0]+self.z_pos,
+                x_pos:self.scaled_flux.shape[1]+x_pos,
+                y_pos:self.scaled_flux.shape[2]+y_pos
+                ] += self.scaled_flux
+            empty_cube[
+                self.z_pos:self.scaled_flux.shape[0]+self.z_pos,
+                x_pos:self.scaled_flux.shape[1]+x_pos,
+                y_pos:self.scaled_flux.shape[2]+y_pos
+                ] += masked
