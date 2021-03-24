@@ -63,6 +63,7 @@ def create_fake_cube(i, no_cubes, noise_file, gal_dir, out_dir, min_gal=200, max
     """
     print("Making cube %s "%i, "out of %s..."%no_cubes)
     # Load noise cube
+    print(noise_file)
     noise_cube_hdulist = fits.open(noise_file)
     noise_cube_hdulist[0].header['CTYPE3'] = 'FREQ'
     noise_cube_hdulist[0].header['CUNIT3'] = 'Hz'

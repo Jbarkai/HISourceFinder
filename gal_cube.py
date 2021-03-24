@@ -24,6 +24,7 @@ class GalCube():
         Args:
             filename (str): The filename of the cube
         """
+        print(filename)
         self.filename = filename
         self.orig_d = 50*u.Mpc
         self.h_0 = 70*u.km/(u.Mpc*u.s)
