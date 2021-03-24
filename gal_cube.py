@@ -17,7 +17,7 @@ import warnings
 warnings.filterwarnings("ignore", message="Could not parse unit W.U.")
 
 
-class GalCube:
+class GalCube():
     def __init__(self, filename):
         """Initialize fits Cube
 
@@ -55,8 +55,6 @@ class GalCube:
         max_pos = noise_cube.shape[0]-self.gal_cube.shape[0]
         max_freq = (self.rest_freq/(1+self.orig_d*self.h_0/const.c)).to(u.Hz)
         idx_range = np.where(np.where((noise_cube.spectral_axis < max_freq))[0] < max_pos)[0]
-        # Find insert channel below max freq
-        freq_pos = noise_cube.spectral_axis[idx_range]
         # Randomly pick channel within this subset which fits in noise cube
         self.z_pos = randint(0, idx_range[-1])
         self.chosen_f = noise_cube.spectral_axis[self.z_pos]
@@ -114,7 +112,7 @@ class GalCube:
         moment_0 = new_gal_cube.with_spectral_unit(
             u.km/u.s, velocity_convention='radio', rest_value=self.rest_freq
             ).moment(order=0)
-        moment_0_orig = gal_cube.with_spectral_unit(
+        moment_0_orig = self.gal_cube.with_spectral_unit(
             u.km/u.s, velocity_convention='radio', rest_value=self.rest_freq
             ).moment(order=0)
         redshift = self.h_0*self.orig_d/const.c
