@@ -103,13 +103,25 @@ class GalCube:
         self.resampled = zoom(self.smoothed_gal, (float(dF_scale), float(pix_scale_x/self.dx), float(pix_scale_y/self.dy)))
 
     def rescale_cube(self, noise_cube):
-        """Rescale flux of galaxy cube
+        """Rescale flux of galaxy cube to primary beam
 
         Args:
             noise_cube (SpectralCube): The noise cube to insert into
         """
         flux_scale = (self.orig_d/self.new_dist)**2
-        self.scaled_flux = flux_scale*self.resampled
+        scaled_flux = flux_scale*self.resampled
+        new_gal_cube = SpectralCube(scaled_flux, noise_cube.wcs)
+        moment_0 = new_gal_cube.with_spectral_unit(
+            u.km/u.s, velocity_convention='radio', rest_value=self.rest_freq
+            ).moment(order=0)
+        moment_0_orig = gal_cube.with_spectral_unit(
+            u.km/u.s, velocity_convention='radio', rest_value=self.rest_freq
+            ).moment(order=0)
+        redshift = self.h_0*self.orig_d/const.c
+        orig_mass = 2.36e5*np.sum(moment_0_orig)*self.orig_d**2/(1+redshift)
+        new_mass = 2.36e5*np.sum(moment_0)*self.new_dist**2/(1+self.new_z)
+        scale_fac = orig_mass/new_mass
+        self.scaled_flux = (scaled_flux*scale_fac).value
 
     def insert_gal(self, noise_data, empty_cube):
         """Inserts galaxy randomly into given cube
@@ -119,16 +131,16 @@ class GalCube:
             empty_cube (numpy.array): Empty 3D array the shape of cube_data
         """
         # Randomly place galaxy in x and y direction and fill whole z
-        x_pos = randint(0, noise_data.shape[1]-self.gal_data.shape[1])
-        y_pos = randint(0, noise_data.shape[2]-self.gal_data.shape[2])
+        x_pos = randint(0, noise_data.shape[1]-self.scaled_flux.shape[1])
+        y_pos = randint(0, noise_data.shape[2]-self.scaled_flux.shape[2])
         noise_data[
-            self.z_pos:self.gal_data.shape[0]+self.z_pos,
-            x_pos:self.gal_data.shape[1]+x_pos,
-            y_pos:self.gal_data.shape[2]+y_pos
-            ] += self.gal_data
-        masked = (self.gal_data > np.mean(self.gal_data) + np.std(self.gal_data)).astype(int)
+            self.z_pos:self.scaled_flux.shape[0]+self.z_pos,
+            x_pos:self.scaled_flux.shape[1]+x_pos,
+            y_pos:self.scaled_flux.shape[2]+y_pos
+            ] += self.scaled_flux
+        masked = (self.scaled_flux > np.mean(self.scaled_flux) + np.std(self.scaled_flux)).astype(int)
         empty_cube[
-            self.z_pos:self.gal_data.shape[0]+self.z_pos,
-            x_pos:self.gal_data.shape[1]+x_pos,
-            y_pos:self.gal_data.shape[2]+y_pos
+            self.z_pos:self.scaled_flux.shape[0]+self.z_pos,
+            x_pos:self.scaled_flux.shape[1]+x_pos,
+            y_pos:self.scaled_flux.shape[2]+y_pos
             ] += masked
