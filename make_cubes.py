@@ -8,7 +8,40 @@ from random import sample, uniform
 import argparse
 import numpy as np
 from astropy.io import fits
-from insert_gals import add_to_cube, load_cube
+from spectral_cube import SpectralCube
+from gal_cube import GalCube
+
+
+def add_to_cube(i, no_gals, filename, noise_cube, noise_data, empty_cube):
+    """Load, smooth, regrid and insert mock galaxies
+
+    Args:
+        i (int): Cube index
+        no_cubes (int): Total number of cubes
+        filename (str): The file name of the mock galaxy
+        noise_cube (SpectralCube): Noise cube to insert galaxy into
+        noise_data (numpy.array): 3D array of noise cube to insert it to
+        empty_cube (numpy.array): Empty 3D array the shape of cube_data
+
+    Returns:
+        The return value. True for success, False otherwise.
+    """
+    gal_cube = GalCube(filename)
+    # Load Galaxy
+    gal_cube.load_cube()
+    # Choose channel
+    gal_cube.choose_freq(noise_cube)
+    # Smooth cube
+    gal_cube.smooth_cube()
+    # Regrid Cube
+    gal_cube.regrid_cube(noise_cube)
+    # Rescale flux
+    gal_cube.rescale_cube(noise_cube)
+    # Insert galaxy
+    gal_cube.insert_gal(noise_data, empty_cube)
+    print("\r" + str(int(i*100/no_gals)) + "% inserted", end="")
+    return True
+
 
 
 def create_fake_cube(i, no_cubes, noise_file, gal_dir, out_dir, min_gal=200, max_gal=500):
@@ -28,8 +61,12 @@ def create_fake_cube(i, no_cubes, noise_file, gal_dir, out_dir, min_gal=200, max
     """
     print("Making cube %s "%i, "out of %s..."%no_cubes)
     # Load noise cube
-    noise_cube = load_cube(noise_file)
+    noise_cube_hdulist = fits.open(noise_file)
+    noise_cube_hdulist[0].header['CTYPE3'] = 'FREQ'
+    noise_cube_hdulist[0].header['CUNIT3'] = 'Hz'
+    noise_cube = SpectralCube.read(noise_cube_hdulist)
     noise_data = noise_cube.unmasked_data[:, :, :].value
+    noise_cube_hdulist.close()
     empty_cube = np.zeros(noise_cube.shape)
     # Choose a random sample of mock galaxies and insert them
     no_gals = int(uniform(min_gal, max_gal))
