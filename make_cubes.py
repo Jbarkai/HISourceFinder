@@ -85,9 +85,9 @@ def create_fake_cube(i, no_cubes, noise_file, gal_dir, out_dir, min_gal=200, max
     print("Mock Cube Done!")
     del hdu1
     del noise_data
-    del noise_cube
     gc.collect()
     hdu2 = fits.PrimaryHDU(empty_cube, noise_cube.header)
+    del noise_cube
     hdu2.writeto(out_dir + '/maskcube_%s.fits'%i, overwrite=True)
     print("Cube %s Done!"%i)
     return True
