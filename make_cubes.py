@@ -29,38 +29,38 @@ def create_fake_cube(i, no_cubes, noise_file, gal_dir, out_dir, min_gal=200, max
     Returns:
         The return value. True for success, False otherwise.
     """
-    print("Making cube %s "%i, "out of %s..."%no_cubes)
-    # Load noise cube
-    print(noise_file)
-    noise_cube_hdulist = fits.open(noise_file)
-    noise_cube_hdulist[0].header['CTYPE3'] = 'FREQ'
-    noise_cube_hdulist[0].header['CUNIT3'] = 'Hz'
-    noise_cube = SpectralCube.read(noise_cube_hdulist)
-    noise_data = noise_cube.unmasked_data[:, :, :].value
-    noise_header = noise_cube.header
-    noise_spectral = noise_cube.spectral_axis
-    noise_cube_hdulist.close()
-    del noise_cube
-    gc.collect()
-    empty_cube = np.zeros(noise_data.shape)
-    # Choose a random sample of mock galaxies and insert them
-    no_gals = int(uniform(min_gal, max_gal))
-    gals = sample([f for f in listdir(gal_dir) if ".fits" in f], no_gals)
-    success = [add_to_cube(
-        j, no_gals, gal_dir + "/" + g, noise_header, noise_spectral, noise_data, empty_cube
-        ) for j, g in enumerate(gals)]
-    if all(success):
-        print("Successfully inserted galaxies")
-    # output new cube and its mask file
-    hdu1 = fits.PrimaryHDU(noise_data, noise_header)
-    hdu1.writeto(out_dir + '/mockcube_%s.fits'%i, overwrite=True)
-    print("Mock Cube Done!")
-    del hdu1
-    gc.collect()
-    hdu2 = fits.PrimaryHDU(empty_cube, noise_header)
-    hdu2.writeto(out_dir + '/maskcube_%s.fits'%i, overwrite=True)
-    print("Cube %s Done!"%i)
-    return True
+    try:
+        print("Making cube %s "%i, "out of %s..."%no_cubes)
+        # Load noise cube
+        print(noise_file)
+        noise_cube_hdulist = fits.open(noise_file)
+        noise_cube_hdulist[0].header['CTYPE3'] = 'FREQ'
+        noise_cube_hdulist[0].header['CUNIT3'] = 'Hz'
+        noise_cube = SpectralCube.read(noise_cube_hdulist)
+        noise_data = noise_cube.unmasked_data[:, :, :].value
+        noise_header = noise_cube.header
+        noise_spectral = noise_cube.spectral_axis
+        noise_cube_hdulist.close()
+        del noise_cube
+        gc.collect()
+        empty_cube = np.zeros(noise_data.shape)
+        # Choose a random sample of mock galaxies and insert them
+        no_gals = int(uniform(min_gal, max_gal))
+        gals = sample([f for f in listdir(gal_dir) if ".fits" in f], no_gals)
+        success = [add_to_cube(
+            j, no_gals, gal_dir + "/" + g, noise_header, noise_spectral, noise_data, empty_cube
+            ) for j, g in enumerate(gals)]
+        if all(success):
+            print("Successfully inserted galaxies")
+        # output new cube and its mask file
+        fits.writeto(out_dir + '/mockcube_%s.fits'%i, noise_data, noise_header, overwrite=True)
+        print("Mock Cube Done!")
+        fits.writeto(out_dir + '/maskcube_%s.fits'%i, empty_cube, noise_header, overwrite=True)
+        print("Cube %s Done!"%i)
+        return True
+    except:
+        print("Something Broke")
+        return False
 
 
 def main(no_cubes, mos_dir, gal_dir, out_dir, min_gal, max_gal):
