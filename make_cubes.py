@@ -53,9 +53,10 @@ def create_fake_cube(i, no_cubes, noise_file, gal_dir, out_dir, min_gal=200, max
         if all(success):
             print("Successfully inserted galaxies")
         # output new cube and its mask file
+        fits.writeto(out_dir + '/maskcube_%s.fits'%i, empty_cube, noise_header, overwrite=True)
+        print("Mask Cube Done!")
         fits.writeto(out_dir + '/mockcube_%s.fits'%i, noise_data, noise_header, overwrite=True)
         print("Mock Cube Done!")
-        fits.writeto(out_dir + '/maskcube_%s.fits'%i, empty_cube, noise_header, overwrite=True)
         print("Cube %s Done!"%i)
         return True
     except:
