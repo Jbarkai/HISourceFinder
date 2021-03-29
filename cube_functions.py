@@ -97,12 +97,7 @@ def load_cube(filename, orig_d, h_0):
     deltaV = (dF*const.c/rest_freq).to(u.km/u.s)
     S_v = np.sum(gal_data, axis=0)*u.Jy*deltaV
     orig_mass = np.sum(2.36e5*S_v*orig_d**2)/(1+redshift)
-    # Crop to save space when rescaled
-    true_points = np.argwhere(gal_data > np.nanmean(gal_data))
-    c1 = true_points.min(axis=0)
-    c2 = true_points.max(axis=0)
-    cropped = gal_data[:, c1[1]:c2[1]+1, c1[2]:c2[2]+1]
-    return orig_mass, dx, dy, dF, rest_freq, orig_scale, cropped
+    return orig_mass, dx, dy, dF, rest_freq, orig_scale, gal_data
 
 
 def choose_freq(noise_spectral, noise_shape, gal_shape, rest_freq, h_0, orig_d):
