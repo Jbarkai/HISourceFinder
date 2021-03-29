@@ -59,8 +59,9 @@ def create_fake_cube(i, no_cubes, noise_file, gal_dir, out_dir, min_gal=200, max
         print("Mock Cube Done!")
         print("Cube %s Done!"%i)
         return True
-    except:
-        print("Something Broke")
+    except ValueError as e:
+        print("Noise Cube %s was unable to be created"%noise_file)
+        print(e)
         return False
 
 
