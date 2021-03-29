@@ -138,7 +138,7 @@ def smooth_cube(noise_res, new_z, new_dist, dx, dy, gal_data, orig_scale):
     # Smooth to new channel
     gauss_kernel = Gaussian2DKernel((sigma_x.to(u.deg)/dx).value, (sigma_y.to(u.deg)/dy).value)
     gauss_kernel.normalize(mode="peak")
-    smoothed_gal = np.arrau([convolve(sliced, gauss_kernel, normalize_kernel=False) for sliced in gal_data])
+    smoothed_gal = np.array([convolve(sliced, gauss_kernel, normalize_kernel=False) for sliced in gal_data])
     return smoothed_gal, np.sum(gauss_kernel.array)
 
 def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, chosen_f, rest_freq):
