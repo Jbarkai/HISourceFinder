@@ -50,9 +50,13 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         # Smooth cube
         smoothed_gal, prim_beam = smooth_cube(noise_res, new_z, new_dist, dx, dy, gal_data, orig_scale)
         print("smoothed")
+        del gal_data
+        gc.collect()
         # Regrid Cube
         resampled, new_dF = regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, chosen_f, rest_freq)
         print("resampled")
+        del smoothed_gal
+        gc.collect()
         print(noise_data.shape, resampled.shape)
         # Randomly place galaxy in x and y direction and fill whole z
         x_pos = randint(0, noise_data.shape[1]-resampled.shape[1])
@@ -60,6 +64,8 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         # Rescale flux
         scaled_flux = rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, prim_beam, new_dF)
         print("scaled")
+        del resampled
+        gc.collect()
         # Insert galaxy
         insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data, empty_cube)
         print("inserted")
@@ -91,7 +97,12 @@ def load_cube(filename, orig_d, h_0):
     deltaV = (dF*const.c/rest_freq).to(u.km/u.s)
     S_v = np.sum(gal_data, axis=0)*u.Jy*deltaV
     orig_mass = np.sum(2.36e5*S_v*orig_d**2)/(1+redshift)
-    return orig_mass, dx, dy, dF, rest_freq, orig_scale, gal_data
+    # Crop to save space when rescaled
+    true_points = np.argwhere(gal_data > np.nanmean(gal_data))
+    c1 = true_points.min(axis=0)
+    c2 = true_points.max(axis=0)
+    cropped = gal_data[:, c1[1]:c2[1]+1, c1[2]:c2[2]+1]
+    return orig_mass, dx, dy, dF, rest_freq, orig_scale, cropped
 
 
 def choose_freq(noise_spectral, noise_shape, gal_shape, rest_freq, h_0, orig_d):
@@ -151,12 +162,12 @@ def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, ch
     dF_scale = noise_rest_vel/rest_vel
     # Regrid cube to new distance and pixel sizes
     resampled = zoom(smoothed_gal, (float(dF_scale), float(pix_scale_x/dx), float(pix_scale_y/dy)))
-    # Crop to ensure it is smaller than noise cube
-    # true_points = np.argwhere(resampled > np.nanmean(resampled))
-    # c1 = true_points.min(axis=0)
-    # c2 = true_points.max(axis=0)
-    # cropped = resampled[:, c1[1]:c2[1]+1, c1[2]:c2[2]+1]
-    return resampled, dF*dF_scale
+    # Crop to save space
+    true_points = np.argwhere(resampled > np.nanmean(resampled))
+    c1 = true_points.min(axis=0)
+    c2 = true_points.max(axis=0)
+    cropped = resampled[:, c1[1]:c2[1]+1, c1[2]:c2[2]+1]
+    return cropped, dF*dF_scale
 
 def rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, prim_beam, new_dF):
     """Rescale flux of galaxy cube to primary beam
