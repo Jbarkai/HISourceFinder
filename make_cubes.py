@@ -46,6 +46,7 @@ def create_fake_cube(i, no_cubes, noise_file, gal_dir, out_dir, min_gal=200, max
         empty_cube = np.zeros(noise_data.shape)
         # Choose a random sample of mock galaxies and insert them
         no_gals = int(uniform(min_gal, max_gal))
+        print("Inserting %s galaxies"%no_gals)
         gals = sample([f for f in listdir(gal_dir) if ".fits" in f], no_gals)
         success = [add_to_cube(
             j, no_gals, gal_dir + "/" + g, noise_header, noise_spectral, noise_data, empty_cube

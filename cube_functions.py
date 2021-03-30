@@ -40,23 +40,17 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         orig_d = 50*u.Mpc
         h_0 = 70*u.km/(u.Mpc*u.s)
         noise_res = [15*u.arcsec, 25*u.arcsec]
-        noise_shape = noise_data.shape
         # Load Galaxy
         orig_mass, dx, dy, dF, rest_freq, orig_scale, gal_data = load_cube(filename, orig_d, h_0)
-        print("loaded")
         # Choose channel
         chosen_f, new_z, new_dist, z_pos = choose_freq(
             noise_spectral, noise_data.shape, gal_data.shape, rest_freq, h_0, orig_d)
-        print("f chosen")
-        print(chosen_f)
         # Smooth cube
         smoothed_gal, prim_beam = smooth_cube(noise_res, new_z, new_dist, dx, dy, gal_data, orig_scale)
-        print("smoothed")
         del gal_data
         gc.collect()
         # Regrid Cube
         resampled, new_dF = regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, chosen_f, rest_freq)
-        print("resampled")
         del smoothed_gal
         gc.collect()
         # Randomly place galaxy in x and y direction and fill whole z
@@ -64,12 +58,10 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         y_pos = randint(0, noise_data.shape[2]-resampled.shape[2])
         # Rescale flux
         scaled_flux = rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, prim_beam, new_dF)
-        print("scaled")
         del resampled
         gc.collect()
         # Insert galaxy
         insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data, empty_cube)
-        print("inserted")
         print("\r" + str(int(i*100/no_gals)) + "% inserted", end="")
         return True
     except ValueError as e:
@@ -155,8 +147,8 @@ def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, ch
     noise_rest_vel = (const.c*(noise_dF/chosen_f)).to(u.km/u.s)
     rest_vel = (const.c*(dF/rest_freq)).to(u.km/u.s)
     dF_scale = float(noise_rest_vel/rest_vel)
-    dx_scale = float(pix_scale_x/dx)
-    dy_scale = float(pix_scale_y/dy)
+    dx_scale = float(dx/pix_scale_x)
+    dy_scale = float(dy/pix_scale_y)
     # Regrid cube to new distance and pixel sizes
     # check = (
     #     (int(dF_scale*smoothed_gal.shape[0]) < noise_shape[0]) |
@@ -165,11 +157,11 @@ def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, ch
     # )
     # if check:
     # Crop to save space
-    true_points = np.argwhere(smoothed_gal > np.nanmean(smoothed_gal))
-    c1 = true_points.min(axis=0)
-    c2 = true_points.max(axis=0)
-    cropped = smoothed_gal[:, c1[1]:c2[1]+1, c1[2]:c2[2]+1]
-    resampled = zoom(cropped, (dF_scale, dx_scale, dy_scale))
+    # true_points = np.argwhere(smoothed_gal > np.nanmean(smoothed_gal))
+    # c1 = true_points.min(axis=0)
+    # c2 = true_points.max(axis=0)
+    # cropped = smoothed_gal[:, c1[1]:c2[1]+1, c1[2]:c2[2]+1]
+    resampled = zoom(smoothed_gal, (dF_scale, dx_scale, dy_scale))
     return resampled, dF*dF_scale
     # else:
     #     raise ValueError("The cube is rescaled too big")
