@@ -37,6 +37,7 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         The return value. True for success, False otherwise.
     """
     try:
+        now = datetime.now()
         print("\r Making galaxy %s out of %s"%((i+1), no_gals), end="")
         orig_d = 50*u.Mpc
         h_0 = 70*u.km/(u.Mpc*u.s)
@@ -66,6 +67,7 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         if verbose:
             print(z_pos, x_pos, y_pos)
         print("\r Inserted galaxy ", i, "out of ", no_gals, end="")
+        print(datetime.now() - now)
         return True
     except ValueError as e:
         print("Galaxy %s was unable to be inserted"%filename)
