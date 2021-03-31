@@ -105,7 +105,7 @@ def main(cube_file, mos_dir, gal_dir, out_dir, min_gal, max_gal):
     """
     # cubes = sample([mos_dir + "/" + k for k in listdir(mos_dir) if ".fits" in k], no_cubes)
     success = create_fake_cube(cube_file, gal_dir, out_dir, min_gal, max_gal)
-    if all(success):
+    if success:
         print("Success!")
 
 
