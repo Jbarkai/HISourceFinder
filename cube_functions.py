@@ -14,6 +14,7 @@ from spectral_cube import SpectralCube
 import warnings
 import gc
 from tqdm import tqdm
+from datetime import datetime
 
 
 # Ignore warning about header
@@ -21,7 +22,7 @@ warnings.filterwarnings("ignore", message="Could not parse unit W.U.")
 
 
 
-def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, empty_cube):
+def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, empty_cube, verbose=False):
     """Load, smooth, regrid and insert mock galaxies
 
     Args:
@@ -36,7 +37,7 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         The return value. True for success, False otherwise.
     """
     try:
-        print("\r" + str(int(i*100/no_gals)) + "%", end="")
+        print("\r Making galaxy %s out of %s"%((i+1), no_gals), end="")
         orig_d = 50*u.Mpc
         h_0 = 70*u.km/(u.Mpc*u.s)
         noise_res = [15*u.arcsec, 25*u.arcsec]
@@ -62,7 +63,9 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         gc.collect()
         # Insert galaxy
         insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data, empty_cube)
-        print("\r" + str(int(i*100/no_gals)) + "% inserted", end="")
+        if verbose:
+            print(z_pos, x_pos, y_pos)
+        print("\r Inserted galaxy ", i, "out of ", no_gals, end="")
         return True
     except ValueError as e:
         print("Galaxy %s was unable to be inserted"%filename)
@@ -130,7 +133,11 @@ def smooth_cube(noise_res, new_z, new_dist, dx, dy, gal_data, orig_scale):
     # Smooth to new channel
     gauss_kernel = Gaussian2DKernel((sigma_x.to(u.deg)/dx).value, (sigma_y.to(u.deg)/dy).value)
     gauss_kernel.normalize(mode="peak")
-    smoothed_gal = np.array([convolve(sliced, gauss_kernel, normalize_kernel=False) for sliced in gal_data])
+    # smoothed_gal = np.array([convolve(sliced, gauss_kernel, normalize_kernel=False) for sliced in gal_data])
+    smoothed_gal = np.apply_along_axis(
+        lambda x: convolve(x.reshape(gal_data.shape[1],gal_data.shape[2]),
+         gauss_kernel, normalize_kernel=False), 1, gal_data.reshape(gal_data.shape[0],-1)
+    )
     return smoothed_gal, np.sum(gauss_kernel.array)
 
 def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, chosen_f, rest_freq):
@@ -149,22 +156,8 @@ def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, ch
     dF_scale = float(noise_rest_vel/rest_vel)
     dx_scale = float(dx/pix_scale_x)
     dy_scale = float(dy/pix_scale_y)
-    # Regrid cube to new distance and pixel sizes
-    # check = (
-    #     (int(dF_scale*smoothed_gal.shape[0]) < noise_shape[0]) |
-    #     (int(dx_scale*smoothed_gal.shape[1]) < noise_shape[1]) |
-    #     (int(dy_scale*smoothed_gal.shape[2]) < noise_shape[2])
-    # )
-    # if check:
-    # Crop to save space
-    # true_points = np.argwhere(smoothed_gal > np.nanmean(smoothed_gal))
-    # c1 = true_points.min(axis=0)
-    # c2 = true_points.max(axis=0)
-    # cropped = smoothed_gal[:, c1[1]:c2[1]+1, c1[2]:c2[2]+1]
     resampled = zoom(smoothed_gal, (dF_scale, dx_scale, dy_scale))
     return resampled, dF*dF_scale
-    # else:
-    #     raise ValueError("The cube is rescaled too big")
 
 def rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, prim_beam, new_dF):
     """Rescale flux of galaxy cube to primary beam
