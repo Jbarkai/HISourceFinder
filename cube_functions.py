@@ -43,15 +43,19 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         h_0 = 70*u.km/(u.Mpc*u.s)
         noise_res = [15*u.arcsec, 25*u.arcsec]
         # Load Galaxy
+        print("load")
         orig_mass, dx, dy, dF, rest_freq, orig_scale, gal_data = load_cube(filename, orig_d, h_0)
         # Choose channel
+        print("choose freq")
         chosen_f, new_z, new_dist, z_pos = choose_freq(
             noise_spectral, noise_data.shape, gal_data.shape, rest_freq, h_0, orig_d)
         # Smooth cube
+        print("smooth")
         smoothed_gal, prim_beam = smooth_cube(noise_res, new_z, new_dist, dx, dy, gal_data, orig_scale)
         del gal_data
         gc.collect()
         # Regrid Cube
+        print("resample")
         resampled, new_dF = regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, chosen_f, rest_freq)
         del smoothed_gal
         gc.collect()
@@ -59,10 +63,12 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         x_pos = randint(0, noise_data.shape[1]-resampled.shape[1])
         y_pos = randint(0, noise_data.shape[2]-resampled.shape[2])
         # Rescale flux
+        print("scale")
         scaled_flux = rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, prim_beam, new_dF)
         del resampled
         gc.collect()
         # Insert galaxy
+        print("insert")
         insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data, empty_cube)
         if verbose:
             print(z_pos, x_pos, y_pos)
