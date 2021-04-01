@@ -1,3 +1,2 @@
-from cube import Cube
-from make_cubes import create_training_set
-from cube_functions import add_to_cube
+from data_generators.make_cubes import *
+from data_generators.cube_functions import *

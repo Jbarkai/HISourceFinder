@@ -55,6 +55,8 @@ def create_fake_cube(noise_file, gal_dir, out_dir, min_gal=200, max_gal=500):
         i = noise_file.split(".")[0].split("/")[-1]
         fits.writeto(out_dir + '/maskcube_%s.fits'%i, empty_cube, noise_header, overwrite=True)
         print("Mask Cube Done!")
+        del empty_cube
+        gc.collect()
         fits.writeto(out_dir + '/mockcube_%s.fits'%i, noise_data, noise_header, overwrite=True)
         print("Mock Cube Done!")
         # print("Cube %s Done!"%i)

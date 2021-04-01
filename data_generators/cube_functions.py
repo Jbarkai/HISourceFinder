@@ -161,7 +161,7 @@ def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, ch
     pix_scale_y = dy*(new_pix_size_y/orig_scale)
     noise_rest_vel = (const.c*(noise_dF/chosen_f)).to(u.km/u.s)
     rest_vel = (const.c*(dF/rest_freq)).to(u.km/u.s)
-    dF_scale = float(noise_rest_vel/rest_vel)
+    dF_scale = float(rest_vel/exitnoise_rest_vel)
     dx_scale = float(dx/pix_scale_x)
     dy_scale = float(dy/pix_scale_y)
     resampled = zoom(smoothed_gal, (dF_scale, dx_scale, dy_scale))
@@ -178,7 +178,7 @@ def rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_
     deltaV = (new_dF*const.c/rest_freq).to(u.km/u.s)
     S_v = np.sum(scaled_flux, axis=0)*u.Jy*deltaV
     new_mass = np.sum(2.36e5*S_v*new_dist**2)/(1+new_z)
-    scale_fac = (new_mass/prim_beam)/orig_mass
+    scale_fac = (orig_mass*prim_beam/new_mass)
     corrected_scaled_flux = (scaled_flux*scale_fac).value
     return corrected_scaled_flux
 
