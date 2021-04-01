@@ -40,9 +40,9 @@ def create_fake_cube(noise_file, gal_dir, out_dir, min_gal=200, max_gal=500):
         noise_spectral = noise_cube.spectral_axis
         noise_cube_hdulist.close()
         empty_cube = np.zeros(noise_cube.shape)
+        noise_data = np.zeros(noise_cube.shape) # To create noise free cube
         del noise_cube
         gc.collect()
-        noise_data = empty_cube # To create noise free cube
         # Choose a random sample of mock galaxies and insert them
         no_gals = int(uniform(min_gal, max_gal))
         print("Inserting %s galaxies"%no_gals)

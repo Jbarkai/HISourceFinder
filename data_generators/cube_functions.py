@@ -200,7 +200,7 @@ def insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data, empty_cube):
             z_pos:noise_data.shape[0],
             x_pos:scaled_flux.shape[1]+x_pos,
             y_pos:scaled_flux.shape[2]+y_pos
-            ] += masked[:noise_data.shape[0]-z_pos]*5e-3
+            ] = masked[:noise_data.shape[0]-z_pos]
     else:
         noise_data[
             z_pos:scaled_flux.shape[0]+z_pos,
@@ -211,4 +211,4 @@ def insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data, empty_cube):
             z_pos:scaled_flux.shape[0]+z_pos,
             x_pos:scaled_flux.shape[1]+x_pos,
             y_pos:scaled_flux.shape[2]+y_pos
-            ] += masked*5e-3
+            ] = masked
