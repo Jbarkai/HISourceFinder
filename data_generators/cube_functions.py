@@ -51,7 +51,7 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
             noise_spectral, noise_data.shape, gal_data.shape, rest_freq, h_0, orig_d)
         # Smooth cube
         print("smooth")
-        smoothed_gal, prim_beam = smooth_cube(noise_res, new_z, new_dist, dx, dy, gal_data, orig_scale)
+        smoothed_gal = smooth_cube(noise_res, new_z, new_dist, dx, dy, gal_data, orig_scale)
         del gal_data
         gc.collect()
         # Regrid Cube
@@ -64,7 +64,7 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         y_pos = randint(0, noise_data.shape[2]-resampled.shape[2])
         # Rescale flux
         print("scale")
-        scaled_flux = rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, prim_beam, new_dF)
+        scaled_flux = rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, new_dF)
         del resampled
         gc.collect()
         # Insert galaxy
@@ -146,7 +146,7 @@ def smooth_cube(noise_res, new_z, new_dist, dx, dy, gal_data, orig_scale):
         lambda x: convolve(x.reshape(gal_data.shape[1],gal_data.shape[2]),
          gauss_kernel, normalize_kernel=False), 1, gal_data.reshape(gal_data.shape[0],-1)
     )
-    return smoothed_gal, np.sum(gauss_kernel.array)
+    return smoothed_gal
 
 def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, chosen_f, rest_freq):
     """Resample cube spatially and in the frequency domain
@@ -167,7 +167,7 @@ def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, ch
     resampled = zoom(smoothed_gal, (dF_scale, dx_scale, dy_scale))
     return resampled, dF*dF_scale
 
-def rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, prim_beam, new_dF):
+def rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, new_dF):
     """Rescale flux of galaxy cube to primary beam
 
     Args:
@@ -178,7 +178,7 @@ def rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_
     deltaV = (new_dF*const.c/rest_freq).to(u.km/u.s)
     S_v = np.sum(scaled_flux, axis=0)*u.Jy*deltaV
     new_mass = np.sum(2.36e5*S_v*new_dist**2)/(1+new_z)
-    scale_fac = (orig_mass*prim_beam/new_mass)
+    scale_fac = (orig_mass/new_mass)
     corrected_scaled_flux = (scaled_flux*scale_fac).value
     return corrected_scaled_flux
 
