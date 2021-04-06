@@ -6,6 +6,12 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import pathlib
 from os import listdir
+import numpy as np
+import shutil
+import pickle
+import os
+import torch
+import tensorflow as tf
 
 
 class SegmentationDataSet(Dataset):
@@ -28,12 +34,18 @@ class SegmentationDataSet(Dataset):
         self.save_name = root + 'hisource-list-slidingwindow.txt'
         if load:
             ## load pre-generated data
-            self.list = utils.load_list(self.save_name)
+            with open(self.save_name, "rb") as fp:
+                list_file = pickle.load(fp)
+            self.list = list_file
             return
 
         subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2])
         self.sub_vol_path = root + '/generated/' + subvol + '/'
-        utils.make_dirs(self.sub_vol_path)
+        if os.path.exists(self.sub_vol_path):
+            shutil.rmtree(self.sub_vol_path)
+            os.mkdir(self.sub_vol_path)
+        else:
+            os.makedirs(self.sub_vol_path)
         ################ SLIDING WINDOW ######################
         for index in range(len(self.inputs)):
             input_ID = self.inputs[index]
@@ -70,9 +82,8 @@ class SegmentationDataSet(Dataset):
         input_path, seg_path = self.list[index]
         x, y = np.load(input_path), np.load(seg_path)
         # Typecasting
-        input_x, target_y = torch.from_numpy(
-            x.astype(np.float32)).type(self.inputs_dtype),
-        torch.from_numpy(y.astype(np.int64)).type(self.targets_dtype)
+        input_x = torch.from_numpy(x.astype(np.float32)).type(self.inputs_dtype)
+        target_y = torch.from_numpy(y.astype(np.int64)).type(self.targets_dtype)
         return input_x, target_y
 
 def sliding_window(arr, dims, overlaps):
