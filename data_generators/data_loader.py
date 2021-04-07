@@ -53,13 +53,15 @@ class SegmentationDataSet(Dataset):
 
             # Load and slide over input
             cube_hdulist = fits.open(input_ID)
-            x = cube_hdulist[0].data
+            cube_data = cube_hdulist[0].data
+            x = np.moveaxis(cube_data, 0, 2)
             cube_hdulist.close()
             tensor_images = sliding_window(x, dims, overlaps)
 
             # Load and slide over target
             maskcube_hdulist = fits.open(target_ID)
-            y = maskcube_hdulist[0].data
+            mask_data = maskcube_hdulist[0].data
+            y = np.moveaxis(mask_data, 0, 2)
             maskcube_hdulist.close()
             tensor_segs = sliding_window(y, dims, overlaps)
             filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
@@ -168,10 +170,10 @@ if __name__ == "__main__":
         '--num_workers', type=int, nargs='?', const='default', default=2,
         help='The number of workers to use')
     parser.add_argument(
-        '--dims', type=list, nargs='?', const='default', default=[10, 500, 500],
+        '--dims', type=list, nargs='?', const='default', default=[128, 128, 64],
         help='The dimensions of the subcubes')
     parser.add_argument(
-        '--overlaps', type=list, nargs='?', const='default', default=[8, 400, 400],
+        '--overlaps', type=list, nargs='?', const='default', default=[100, 100, 42],
         help='The dimensions of the overlap of subcubes')
     parser.add_argument(
         '--root', type=str, nargs='?', const='default', default='../HISourceFinder/data/training/',

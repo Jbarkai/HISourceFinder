@@ -104,10 +104,10 @@ if __name__ == "__main__":
         '--num_workers', type=int, nargs='?', const='default', default=2,
         help='The number of workers to use')
     parser.add_argument(
-        '--dims', type=list, nargs='?', const='default', default=[10, 500, 500],
+        '--dims', type=list, nargs='?', const='default', default=[128, 128, 64],
         help='The dimensions of the subcubes')
     parser.add_argument(
-        '--overlaps', type=list, nargs='?', const='default', default=[8, 400, 400],
+        '--overlaps', type=list, nargs='?', const='default', default=[100, 100, 42],
         help='The dimensions of the overlap of subcubes')
     parser.add_argument(
         '--root', type=str, nargs='?', const='default', default='../HISourceFinder/data/training/',
