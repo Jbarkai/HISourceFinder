@@ -80,7 +80,7 @@ def main(
     dataloader_validation = DataLoader(dataset=dataset_valid, **params)
     model, optimizer = create_model(args)
     criterion = DiceLoss(classes=args.classes)
-    save = '../saved_models/' + model + '_checkpoints/' + model + '_', dataset_name
+    save = ('../saved_models/' + model + '_checkpoints/' + model + '_', dataset_name)[0]
     if os.path.exists(save):
         shutil.rmtree(save)
         os.mkdir(save)
