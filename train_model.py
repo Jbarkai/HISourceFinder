@@ -12,8 +12,8 @@ from medzoo_imports import create_model, DiceLoss, Trainer
 
 def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
-    random_seed, train_size, model, opt, lr, inChannels, classes,
-    log_dir, dataset_name, terminal_show_freq, nEpochs):
+    random_seed, train_size, model, opt, lr, inChannels, inModalities,
+    classes, log_dir, dataset_name, terminal_show_freq, nEpochs):
     """Create training and validation datasets
 
     Args:
@@ -27,8 +27,9 @@ def main(
         train_size (float): Ratio of training to validation split
         model (str): The 3D segmentation model to use
         opt (str): The type of optimizer
-        lr (float): 
-        inChannels (int): 
+        lr (float): The learning rate
+        inChannels (int): The desired modalities/channels that you want to use
+        inModalities (int): The number of modalities
         classes (int): The number of classes
         log_dir (str): The directory to output the logs
         dataset_name (str): The name of the dataset
@@ -126,12 +127,15 @@ if __name__ == "__main__":
         help='The type of optimizer')
     parser.add_argument(
         '--lr', type=float, nargs='?', const='default', default=1e-2,
-        help='The maximum number of galaxies to insert')
+        help='The learning rate')
     parser.add_argument(
-        '--inChannels', type=int, nargs='?', const='default', default=2,
-        help='The maximum number of galaxies to insert')
+        '--inChannels', type=int, nargs='?', const='default', default=1,
+        help='The desired modalities/channels that you want to use')
     parser.add_argument(
-        '--classes', type=int, nargs='?', const='default', default=2,
+        '--inModalities', type=int, nargs='?', const='default', default=1,
+        help='The desired number of modalities')
+    parser.add_argument(
+        '--classes', type=int, nargs='?', const='default', default=1,
         help='The number of classes')
     parser.add_argument(
         '--log_dir', type=str, nargs='?', const='default', default="./runs/",
@@ -150,5 +154,5 @@ if __name__ == "__main__":
     main(
         args.batch_size, args.shuffle, args.num_workers, args.dims,
         args.overlaps, args.root, args.random_seed, args.train_size,
-        args.model, args.opt, args.lr, args.inChannels, args.classes,
+        args.model, args.opt, args.lr, args.inChannels, args.inModalities, args.classes,
         args.log_dir, args.dataset_name, args.terminal_show_freq, args.nEpochs)

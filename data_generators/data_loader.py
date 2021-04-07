@@ -19,8 +19,8 @@ class SegmentationDataSet(Dataset):
     def __init__(self,
                  inputs: list, # list of input paths
                  targets: list, # list of mask paths
-                 dims=[10, 500, 500],
-                 overlaps=[8, 400, 400],
+                 dims=[128, 128, 64],
+                 overlaps=[100, 100, 42],
                  load=False,
                  root='../HISourceFinder/data/training/'
                  ):
@@ -56,14 +56,14 @@ class SegmentationDataSet(Dataset):
             cube_data = cube_hdulist[0].data
             x = np.moveaxis(cube_data, 0, 2)
             cube_hdulist.close()
-            tensor_images = sliding_window(x, dims, overlaps)
+            tensor_images = sliding_window(x, dims, dims-overlaps)
 
             # Load and slide over target
             maskcube_hdulist = fits.open(target_ID)
             mask_data = maskcube_hdulist[0].data
             y = np.moveaxis(mask_data, 0, 2)
             maskcube_hdulist.close()
-            tensor_segs = sliding_window(y, dims, overlaps)
+            tensor_segs = sliding_window(y, dims, dims-overlaps)
             filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
             list_saved_paths = [(filename + str(j) + '.npy', filename + str(j) + 'seg.npy') for j in range(len(tensor_images))]
             ############### SAVE SUBCUBES ##########################
@@ -83,10 +83,10 @@ class SegmentationDataSet(Dataset):
         # Select the sample
         input_path, seg_path = self.list[index]
         x, y = np.load(input_path), np.load(seg_path)
-        # Typecasting
-        input_x = torch.from_numpy(x.astype(np.float32)).type(self.inputs_dtype)
-        target_y = torch.from_numpy(y.astype(np.int64)).type(self.targets_dtype)
-        return input_x, target_y
+        # # Typecasting
+        # input_x = torch.from_numpy(x.astype(np.float32)).type(self.inputs_dtype)
+        # target_y = torch.from_numpy(y.astype(np.int64)).type(self.targets_dtype)
+        return torch.FloatTensor(x).unsqueeze(0), torch.FloatTensor(y).unsqueeze(0)
 
 def sliding_window(arr, dims, overlaps):
     kernel=(1, dims[0], dims[1], dims[2], 1)

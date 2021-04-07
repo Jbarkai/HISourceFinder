@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 import os
+import shutil
 
 
 dict_class_names = {"iseg2017": ["Air", "CSF", "GM", "WM"],
@@ -22,10 +23,13 @@ class TensorboardWriter():
 
     def __init__(self, args):
 
-        name_model = args.log_dir + args.model + "_" + args.dataset_name + "_" + utils.datestr()
+        name_model = args.log_dir + args.model + "_" + args.dataset_name
         self.writer = SummaryWriter(log_dir=args.log_dir + name_model, comment=name_model)
-
-        utils.make_dirs(args.save)
+        if os.path.exists(args.save):
+            shutil.rmtree(args.save)
+            os.mkdir(args.save)
+        else:
+            os.makedirs(args.save)
         self.csv_train, self.csv_val = self.create_stats_files(args.save)
         self.dataset_name = args.dataset_name
         self.classes = args.classes
