@@ -189,26 +189,27 @@ def insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data, empty_cube):
         noise_data (numpy.array): 3D array of noise cube to insert it to
         empty_cube (numpy.array): Empty 3D array the shape of cube_data
     """
-    masked = (scaled_flux > np.mean(scaled_flux) + np.std(scaled_flux)).astype(int)
+    masked_bin = (scaled_flux > np.mean(scaled_flux) + np.std(scaled_flux)).astype(int)
+    masked = masked_bin*scaled_flux*5e-3
     if z_pos + scaled_flux.shape[0] > noise_data.shape[0]:
         noise_data[
             z_pos:noise_data.shape[0],
             x_pos:scaled_flux.shape[1]+x_pos,
             y_pos:scaled_flux.shape[2]+y_pos
-            ] += masked*scaled_flux[:noise_data.shape[0]-z_pos]*5e-3
+            ] += masked[:noise_data.shape[0]-z_pos]
         empty_cube[
             z_pos:noise_data.shape[0],
             x_pos:scaled_flux.shape[1]+x_pos,
             y_pos:scaled_flux.shape[2]+y_pos
-            ] = masked[:noise_data.shape[0]-z_pos]
+            ] = masked_bin[:noise_data.shape[0]-z_pos]
     else:
         noise_data[
             z_pos:scaled_flux.shape[0]+z_pos,
             x_pos:scaled_flux.shape[1]+x_pos,
             y_pos:scaled_flux.shape[2]+y_pos
-            ] += masked*scaled_flux*5e-3
+            ] += masked
         empty_cube[
             z_pos:scaled_flux.shape[0]+z_pos,
             x_pos:scaled_flux.shape[1]+x_pos,
             y_pos:scaled_flux.shape[2]+y_pos
-            ] = masked
+            ] = masked_bin

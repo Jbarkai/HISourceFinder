@@ -5,6 +5,7 @@ from astropy.io import fits
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import pathlib
+import argparse
 from os import listdir
 import numpy as np
 import shutil
@@ -21,7 +22,6 @@ class SegmentationDataSet(Dataset):
                  dims=[10, 500, 500],
                  overlaps=[8, 400, 400],
                  load=False,
-                 mode='train',
                  root='../HISourceFinder/data/training/'
                  ):
         self.list = []
@@ -97,68 +97,93 @@ def sliding_window(arr, dims, overlaps):
     in_patches = tf.reshape(in_patches,[x*y*z,sx,sy,sz])
     return in_patches
 
-# input and target files
-inputs = ['../data/training/Input/' + x for x in listdir('../data/training/Input') if ".fits" in x]
-targets = ['../data/training/Target/' + x for x in listdir('../data/training/Target') if ".fits" in x]
-# random seed
-random_seed = 42
-# split dataset into training set and validation set
-train_size = 0.8  # 80:20 split
 
-inputs_train, inputs_valid = train_test_split(
-    inputs,
-    random_state=random_seed,
-    train_size=train_size,
-    shuffle=True)
+def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, train_size):
+    """Create training and validation datasets
 
-targets_train, targets_valid = train_test_split(
-    targets,
-    random_state=random_seed,
-    train_size=train_size,
-    shuffle=True)
-# dataset training
-dataset_train = SegmentationDataSet(inputs=inputs_train,
-                                    targets=targets_train,
-                                    dims=[10, 500, 500],
-                                    overlaps=[8, 400, 400],
-                                    load=False,
-                                    mode='train',
-                                    root='../HISourceFinder/data/training/')
+    Args:
+        batch_size (int): Batch size
+        shuffle (bool): Whether or not to shuffle the train/val split
+        num_workers (int): The number of workers to use
+        dims (list): The dimensions of the subcubes
+        overlaps (list): The dimensions of the overlap of subcubes
+        root (str): The root directory of the data
+        random_seed (int): Random Seed
+        train_size (float): Ratio of training to validation split
 
-# dataset validation
-dataset_valid = SegmentationDataSet(inputs=inputs_valid,
-                                    targets=targets_valid,
-                                    dims=[10, 500, 500],
-                                    overlaps=[8, 400, 400],
-                                    load=False,
-                                    mode='train',
-                                    root='../HISourceFinder/data/training/')
+    Returns:
+        The training and validation data loaders
+    """
+    # input and target files
+    inputs = [root+'Input/' + x for x in listdir(root+'Input') if ".fits" in x]
+    targets = [root+'Target/' + x for x in listdir(root+'Target') if ".fits" in x]
 
-# dataloader training
-params = {'batch_size': 4,
-          'shuffle': True,
-          'num_workers': 2}
-dataloader_training = DataLoader(dataset=dataset_train, **params)
+    inputs_train, inputs_valid = train_test_split(
+        inputs,
+        random_state=random_seed,
+        train_size=train_size,
+        shuffle=True)
 
-# dataloader validation
-dataloader_validation = DataLoader(dataset=dataset_valid, **params)
+    targets_train, targets_valid = train_test_split(
+        targets,
+        random_state=random_seed,
+        train_size=train_size,
+        shuffle=True)
+    # dataset training
+    dataset_train = SegmentationDataSet(inputs=inputs_train,
+                                        targets=targets_train,
+                                        dims=dims,
+                                        overlaps=overlaps,
+                                        load=False,
+                                        root=root)
 
-###### TRAIN MODEL ############
-# class argsclass:
-#     def __init__(self, model, opt, lr, inChannels, classes):
-#         self.model = model
-#         self.opt=opt
-#         self.lr=lr
-#         self.inChannels=inChannels
-#         self.classes=classes
-#         self.log_dir = "./runs/"
-#         self.dataset_name = 'iseg2017'
-#         self.save = save
-#         self.terminal_show_freq = 50
-#         self.nEpochs = 10
-# args = argsclass('VNET', opt, lr, inChannels, classes)
-# model, optimizer = medzoo.create_model(args)
-# criterion = DiceLoss(classes=args.classes)
-# utils.make_dirs(save)
-# trainer = train.Trainer(args, model, criterion, optimizer, train_data_loader=dataloader_training,
-#                         valid_data_loader=dataloader_validation, lr_scheduler=None)
+    # dataset validation
+    dataset_valid = SegmentationDataSet(inputs=inputs_valid,
+                                        targets=targets_valid,
+                                        dims=dims,
+                                        overlaps=overlaps,
+                                        load=False,
+                                        root=root)
+
+    # dataloader training
+    params = {'batch_size': batch_size,
+            'shuffle': shuffle,
+            'num_workers': num_workers}
+    dataloader_training = DataLoader(dataset=dataset_train, **params)
+
+    # dataloader validation
+    dataloader_validation = DataLoader(dataset=dataset_valid, **params)
+    return dataloader_training, dataloader_validation
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Create training and validation datasets")
+    parser.add_argument(
+        '--batch_size', type=int, nargs='?', const='default', default=4,
+        help='Batch size')
+    parser.add_argument(
+        '--shuffle', type=bool, nargs='?', const='default', default=True,
+        help='Whether or not to shuffle the train/val split')
+    parser.add_argument(
+        '--num_workers', type=int, nargs='?', const='default', default=2,
+        help='The number of workers to use')
+    parser.add_argument(
+        '--dims', type=list, nargs='?', const='default', default=[10, 500, 500],
+        help='The dimensions of the subcubes')
+    parser.add_argument(
+        '--overlaps', type=list, nargs='?', const='default', default=[8, 400, 400],
+        help='The dimensions of the overlap of subcubes')
+    parser.add_argument(
+        '--root', type=str, nargs='?', const='default', default='../HISourceFinder/data/training/',
+        help='The root directory of the data')
+    parser.add_argument(
+        '--random_seed', type=int, nargs='?', const='default', default=42,
+        help='Random Seed')
+    parser.add_argument(
+        '--train_size', type=float, nargs='?', const='default', default=0.8,
+        help='Ratio of training to validation split')
+    args = parser.parse_args()
+
+    main(
+        args.batch_size, args.shuffle, args.num_workers, args.dims,
+        args.overlaps, args.root, args.random_seed, args.train_size)
