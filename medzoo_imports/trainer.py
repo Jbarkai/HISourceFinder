@@ -1,3 +1,8 @@
+'''
+Model trainer
+Adapted from MedicalZooPytorch: https://github.com/black0017/MedicalZooPytorch
+'''
+
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -5,17 +10,7 @@ import os
 import shutil
 
 
-dict_class_names = {"iseg2017": ["Air", "CSF", "GM", "WM"],
-                    "iseg2019": ["Air", "CSF", "GM", "WM"],
-                    "mrbrains4": ["Air", "CSF", "GM", "WM"],
-                    "mrbrains9": ["Background", "Cort.GM", "BS", "WM", "WML", "CSF",
-                                  "Ventr.", "Cerebellum", "stem"],
-                    "brats2018": ["Background", "NCR/NET", "ED", "ET"],
-                    "brats2019": ["Background", "NCR", "ED", "NET", "ET"],
-                    "brats2020": ["Background", "NCR/NET", "ED", "ET"],
-                    "covid_seg": ["c1", "c2", "c3"],
-                    "miccai2019": ["c1", "c2", "c3", "c4", "c5", "c6", "c7"]
-                    }
+dict_class_names = {"hi_source": ["gal"]}
 
 
 
@@ -144,6 +139,7 @@ class TensorboardWriter():
 
 
 def prepare_input(input_tuple, inModalities=-1, inChannels=-1, cuda=False, args=None):
+    args.cuda = False
     if args is not None:
         modalities = args.inModalities
         channels = args.inChannels

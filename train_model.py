@@ -7,6 +7,7 @@ from os import listdir
 import os
 import shutil
 from medzoo_imports import create_model, DiceLoss, Trainer
+from datetime import datetime
 
 
 
@@ -42,7 +43,6 @@ def main(
     # input and target files
     inputs = [root+'Input/' + x for x in listdir(root+'Input') if ".fits" in x]
     targets = [root+'Target/' + x for x in listdir(root+'Target') if ".fits" in x]
-
     inputs_train, inputs_valid = train_test_split(
         inputs,
         random_state=random_seed,
@@ -59,17 +59,20 @@ def main(
                                         targets=targets_train,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=True,
-                                        root=root)
+                                        load=False,
+                                        root=root,
+                                        mode="train")
 
     # dataset validation
     dataset_valid = SegmentationDataSet(inputs=inputs_valid,
                                         targets=targets_valid,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=True,
-                                        root=root)
-
+                                        load=False,
+                                        root=root,
+                                        mode="test")
+    date_str = "_".join("_".join(str(datetime.now()).split(".")[0].split(":")).split(" "))
+    save = ('../saved_models/' + model + '_checkpoints/' + model + '_', dataset_name + "_" + date_str)[0]
     # dataloader training
     params = {'batch_size': batch_size,
             'shuffle': shuffle,
@@ -80,12 +83,12 @@ def main(
     dataloader_validation = DataLoader(dataset=dataset_valid, **params)
     model, optimizer = create_model(args)
     criterion = DiceLoss(classes=args.classes)
-    save = ('../saved_models/' + model + '_checkpoints/' + model + '_', dataset_name)[0]
     if os.path.exists(save):
         shutil.rmtree(save)
         os.mkdir(save)
     else:
         os.makedirs(save)
+    args.save = save
     trainer = Trainer(args, model, criterion, optimizer, train_data_loader=dataloader_training,
                             valid_data_loader=dataloader_validation, lr_scheduler=None)
     print("START TRAINING...")
@@ -108,7 +111,7 @@ if __name__ == "__main__":
         '--dims', type=list, nargs='?', const='default', default=[128, 128, 64],
         help='The dimensions of the subcubes')
     parser.add_argument(
-        '--overlaps', type=list, nargs='?', const='default', default=[100, 100, 42],
+        '--overlaps', type=list, nargs='?', const='default', default=[15, 20, 20],
         help='The dimensions of the overlap of subcubes')
     parser.add_argument(
         '--root', type=str, nargs='?', const='default', default='../HISourceFinder/data/training/',
@@ -147,7 +150,7 @@ if __name__ == "__main__":
         '--terminal_show_freq', type=int, nargs='?', const='default', default=50,
         help='The maximum number of galaxies to insert')
     parser.add_argument(
-        '--nEpochs', type=int, nargs='?', const='default', default=10,
+        '--nEpochs', type=int, nargs='?', const='default', default=5,
         help='The number of epochs')
     args = parser.parse_args()
 

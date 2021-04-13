@@ -1,15 +1,17 @@
+'''
+VNET Model
+Adapted from MedicalZooPytorch: https://github.com/black0017/MedicalZooPytorch
+
+Implementation of this model is borrowed and modified
+(to support multi-channels and latest pytorch version)
+from here:
+https://github.com/Dawn90/V-Net.pytorch
+'''
 from torchsummary import summary
 import os
 from abc import ABC, abstractmethod
 import torch
 import torch.nn as nn
-
-"""
-Implementation of this model is borrowed and modified
-(to support multi-channels and latest pytorch version)
-from here:
-https://github.com/Dawn90/V-Net.pytorch
-"""
 
 
 class BaseModel(nn.Module, ABC):

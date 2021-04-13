@@ -1,3 +1,7 @@
+'''
+Dice loss
+Adapted from MedicalZooPytorch: https://github.com/black0017/MedicalZooPytorch
+'''
 import torch
 from torch import nn as nn
 

@@ -1,3 +1,7 @@
+'''
+Creation of model
+Adapted from MedicalZooPytorch: https://github.com/black0017/MedicalZooPytorch
+'''
 import torch.optim as optim
 from .Vnet import VNet, VNetLight
 from .dice import DiceLoss

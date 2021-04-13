@@ -34,10 +34,9 @@ pip3 install -r requirements.txt
 ```
 
 ## Usage
-Create the simulated cubes by inserting 200-500 random snoothed and regrided mock galaxies randomly into a random mosaiced cube.
+1. Create the simulated cubes by inserting 200-500 random smoothed and resampled mock galaxies randomly into a random noise free equivalent of the mosaiced cubes.
 ```bash
-usage: make_cubes.py [-h] [--mos_dir [MOS_DIR]] [--gal_dir [GAL_DIR]] [--out_dir [OUT_DIR]] [--no_cubes [NO_CUBES]] [--min_gal [MIN_GAL]]
-                     [--max_gal [MAX_GAL]]
+usage: make_cubes.py [-h] [--mos_dir [MOS_DIR]] [--gal_dir [GAL_DIR]] [--out_dir [OUT_DIR]] [--cube_file [CUBE_FILE] [--min_gal [MIN_GAL]] [--max_gal [MAX_GAL]]
 
 Insert mock galaxies into HI cubes
 
@@ -46,8 +45,71 @@ optional arguments:
   --mos_dir [MOS_DIR]   The directory of the noise cubes to insert the mock galaxies into
   --gal_dir [GAL_DIR]   The directory of the mock galaxy cubes
   --out_dir [OUT_DIR]   The output directory of the synthetic cubes
-  --no_cubes [NO_CUBES]
-                        The number of synthetic training cubes to produce
+  --cube_file [CUBE_FILE]
+                        The noise cube to insert into
   --min_gal [MIN_GAL]   The minimum number of galaxies to insert
   --max_gal [MAX_GAL]   The maximum number of galaxies to insert
+```
+
+2. Run data loader to create training and validation sets, each of dimension 128x128x64 made with a sliding window iwth an overlap chosen to include the average size of a galaxy.
+```bash
+usage: data_loader.py [-h] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]] [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]]
+
+Create training and validation datasets
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --batch_size [BATCH_SIZE]
+                        Batch size
+  --shuffle [SHUFFLE]   Whether or not to shuffle the train/val split
+  --num_workers [NUM_WORKERS]
+                        The number of workers to use
+  --dims [DIMS]         The dimensions of the subcubes
+  --overlaps [OVERLAPS]
+                        The dimensions of the overlap of subcubes
+  --root [ROOT]         The root directory of the data
+  --random_seed [RANDOM_SEED]
+                        Random Seed
+  --train_size [TRAIN_SIZE]
+                        Ratio of training to validation split
+```
+
+3. Train model on subcubes created from sliding window.
+```bash
+usage: train_model.py [-h] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
+                      [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]]
+                      [--inModalities [INMODALITIES]] [--classes [CLASSES]] [--log_dir [LOG_DIR]] [--dataset_name [DATASET_NAME]]
+                      [--terminal_show_freq [TERMINAL_SHOW_FREQ]] [--nEpochs [NEPOCHS]]
+
+Train model
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --batch_size [BATCH_SIZE]
+                        Batch size
+  --shuffle [SHUFFLE]   Whether or not to shuffle the train/val split
+  --num_workers [NUM_WORKERS]
+                        The number of workers to use
+  --dims [DIMS]         The dimensions of the subcubes
+  --overlaps [OVERLAPS]
+                        The dimensions of the overlap of subcubes
+  --root [ROOT]         The root directory of the data
+  --random_seed [RANDOM_SEED]
+                        Random Seed
+  --train_size [TRAIN_SIZE]
+                        Ratio of training to validation split
+  --model [MODEL]       The 3D segmentation model to use
+  --opt [OPT]           The type of optimizer
+  --lr [LR]             The learning rate
+  --inChannels [INCHANNELS]
+                        The desired modalities/channels that you want to use
+  --inModalities [INMODALITIES]
+                        The desired number of modalities
+  --classes [CLASSES]   The number of classes
+  --log_dir [LOG_DIR]   The directory to output the logs
+  --dataset_name [DATASET_NAME]
+                        The name of the dataset
+  --terminal_show_freq [TERMINAL_SHOW_FREQ]
+                        The maximum number of galaxies to insert
+  --nEpochs [NEPOCHS]   The number of epochs
 ```

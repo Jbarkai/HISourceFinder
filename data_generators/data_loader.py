@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 from astropy.io import fits
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
+from skimage.util.shape import view_as_windows
 import pathlib
 import argparse
 from os import listdir
@@ -13,6 +14,7 @@ import pickle
 import os
 import torch
 import tensorflow as tf
+import gc
 
 
 class SegmentationDataSet(Dataset):
@@ -20,9 +22,10 @@ class SegmentationDataSet(Dataset):
                  inputs: list, # list of input paths
                  targets: list, # list of mask paths
                  dims=[128, 128, 64],
-                 overlaps=[100, 100, 42],
+                 overlaps=[15, 20, 20],
                  load=False,
-                 root='../HISourceFinder/data/training/'
+                 root='../HISourceFinder/data/training/',
+                 mode="train"
                  ):
         self.list = []
         self.inputs = inputs
@@ -31,7 +34,8 @@ class SegmentationDataSet(Dataset):
         self.targets_dtype = torch.long
         self.dims = dims
         self.overlaps = overlaps
-        self.save_name = root + 'hisource-list-slidingwindow.txt'
+        self.mode = mode
+        self.save_name = root + 'hisource-list-' + self.mode + '-slidingwindow.txt'
         if load:
             ## load pre-generated data
             with open(self.save_name, "rb") as fp:
@@ -39,7 +43,7 @@ class SegmentationDataSet(Dataset):
             self.list = list_file
             return
 
-        subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2])
+        subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2]) + "_" +self.mode
         self.sub_vol_path = root + '/generated/' + subvol + '/'
         if os.path.exists(self.sub_vol_path):
             shutil.rmtree(self.sub_vol_path)
@@ -56,20 +60,32 @@ class SegmentationDataSet(Dataset):
             cube_data = cube_hdulist[0].data
             x = np.moveaxis(cube_data, 0, 2)
             cube_hdulist.close()
-            tensor_images = sliding_window(x, dims, dims-overlaps)
-
+            del cube_data
+            gc.collect()
+            tensor_images = sliding_window(x, dims, np.array(dims)-np.array(overlaps))
+            print(len(tensor_images))
+            filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
+            list_saved_paths = [(filename + str(j) + '.npy', filename + str(j) + 'seg.npy') for j in range(len(tensor_images))]
+            for j in range(len(tensor_images)):
+                np.save(list_saved_paths[j][0], tensor_images[j])
+            del tensor_images
+            gc.collect()
             # Load and slide over target
+            print("done subcubes")
             maskcube_hdulist = fits.open(target_ID)
             mask_data = maskcube_hdulist[0].data
             y = np.moveaxis(mask_data, 0, 2)
             maskcube_hdulist.close()
-            tensor_segs = sliding_window(y, dims, dims-overlaps)
-            filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
-            list_saved_paths = [(filename + str(j) + '.npy', filename + str(j) + 'seg.npy') for j in range(len(tensor_images))]
+            del mask_data
+            gc.collect()
+            tensor_segs = sliding_window(y, dims, np.array(dims)-np.array(overlaps))
             ############### SAVE SUBCUBES ##########################
-            for j in range(len(tensor_images)):
-                np.save(list_saved_paths[j][0], tensor_images[j])
+            for j in range(len(tensor_segs)):
                 np.save(list_saved_paths[j][1], tensor_segs[j])
+            del tensor_segs
+            gc.collect()
+
+            print("done masks")
             self.list += list_saved_paths
         # Save list of subcubes
         with open(self.save_name, "wb") as fp:
@@ -88,16 +104,12 @@ class SegmentationDataSet(Dataset):
         # target_y = torch.from_numpy(y.astype(np.int64)).type(self.targets_dtype)
         return torch.FloatTensor(x).unsqueeze(0), torch.FloatTensor(y).unsqueeze(0)
 
-def sliding_window(arr, dims, overlaps):
-    kernel=(1, dims[0], dims[1], dims[2], 1)
-    stride=(1, overlaps[0], overlaps[1], overlaps[2], 1) 
-    _,sx,sy,sz,_ = kernel   
-    in_patches=tf.extract_volume_patches(
-        arr[None, ..., None],kernel,stride,'SAME',
-    )
-    _,x,y,z,n = in_patches.shape
-    in_patches = tf.reshape(in_patches,[x*y*z,sx,sy,sz])
-    return in_patches
+def sliding_window(arr, kernel, stride):
+    subvols = view_as_windows(arr, kernel, stride)
+    x,y,z = subvols.shape[:3]
+    sx, sy, sz = kernel
+    subvols = tf.reshape(subvols,[x*y*z,sx,sy,sz])
+    return subvols
 
 
 def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, train_size):
@@ -119,7 +131,6 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
     # input and target files
     inputs = [root+'Input/' + x for x in listdir(root+'Input') if ".fits" in x]
     targets = [root+'Target/' + x for x in listdir(root+'Target') if ".fits" in x]
-
     inputs_train, inputs_valid = train_test_split(
         inputs,
         random_state=random_seed,
@@ -137,7 +148,8 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
                                         dims=dims,
                                         overlaps=overlaps,
                                         load=False,
-                                        root=root)
+                                        root=root,
+                                        mode="train")
 
     # dataset validation
     dataset_valid = SegmentationDataSet(inputs=inputs_valid,
@@ -145,7 +157,8 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
                                         dims=dims,
                                         overlaps=overlaps,
                                         load=False,
-                                        root=root)
+                                        root=root,
+                                        mode="test")
 
     # dataloader training
     params = {'batch_size': batch_size,
@@ -173,7 +186,7 @@ if __name__ == "__main__":
         '--dims', type=list, nargs='?', const='default', default=[128, 128, 64],
         help='The dimensions of the subcubes')
     parser.add_argument(
-        '--overlaps', type=list, nargs='?', const='default', default=[100, 100, 42],
+        '--overlaps', type=list, nargs='?', const='default', default=[15, 20, 20],
         help='The dimensions of the overlap of subcubes')
     parser.add_argument(
         '--root', type=str, nargs='?', const='default', default='../HISourceFinder/data/training/',
