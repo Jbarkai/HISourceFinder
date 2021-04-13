@@ -39,7 +39,6 @@ def create_fake_cube(noise_file, gal_dir, out_dir, min_gal=200, max_gal=500):
         noise_header = noise_cube.header
         noise_spectral = noise_cube.spectral_axis
         noise_cube_hdulist.close()
-        empty_cube = np.zeros(noise_cube.shape)
         noise_data = np.zeros(noise_cube.shape) # To create noise free cube
         del noise_cube
         gc.collect()
@@ -48,12 +47,13 @@ def create_fake_cube(noise_file, gal_dir, out_dir, min_gal=200, max_gal=500):
         print("Inserting %s galaxies"%no_gals)
         gals = sample([f for f in listdir(gal_dir) if ".fits" in f], no_gals)
         success = [add_to_cube(
-            j, no_gals, gal_dir + "/" + g, noise_header, noise_spectral, noise_data, empty_cube
+            j, no_gals, gal_dir + "/" + g, noise_header, noise_spectral, noise_data
             ) for j, g in enumerate(gals)]
         if all(success):
             print("Successfully inserted galaxies")
         # output new cube and its mask file
         i = noise_file.split(".")[0].split("/")[-1]
+        empty_cube = (noise_data > 0).astype(int)
         fits.writeto(out_dir + '/Target/mask_%s.fits'%i, empty_cube, noise_header, overwrite=True)
         print("Mask Cube Done!")
         del empty_cube
