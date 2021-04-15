@@ -113,6 +113,7 @@ class BaseModel(nn.Module, ABC):
             name = "{}_BEST.pth".format(
                 os.path.basename(directory))
             torch.save(ckpt_dict, os.path.join(directory, name))
+        return name
 
     def count_params(self):
         r"""

@@ -224,9 +224,11 @@ class Trainer:
             val_loss = self.writer.data['val']['loss'] / self.writer.data['val']['count']
 
             if self.args.save is not None and ((epoch + 1) % self.save_frequency):
-                self.model.save_checkpoint(self.args.save,
+                print("Saving checkpoint")
+                name_checkpoint = self.model.save_checkpoint(self.args.save,
                                            epoch, val_loss,
                                            optimizer=self.optimizer)
+                print("Saved at ", name_checkpoint)
 
             self.writer.write_end_of_epoch(epoch)
 

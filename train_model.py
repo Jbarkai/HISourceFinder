@@ -59,7 +59,7 @@ def main(
                                         targets=targets_train,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=False,
+                                        load=True,
                                         root=root,
                                         mode="train")
 
@@ -68,11 +68,11 @@ def main(
                                         targets=targets_valid,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=False,
+                                        load=True,
                                         root=root,
                                         mode="test")
     date_str = "_".join("_".join(str(datetime.now()).split(".")[0].split(":")).split(" "))
-    save = ('../saved_models/' + model + '_checkpoints/' + model + '_', dataset_name + "_" + date_str)[0]
+    save = ('./saved_models/' + model + '_checkpoints/' + model + '_', dataset_name + "_" + date_str)[0]
     # dataloader training
     params = {'batch_size': batch_size,
             'shuffle': shuffle,
@@ -129,7 +129,7 @@ if __name__ == "__main__":
         '--opt', type=str, nargs='?', const='default', default='sgd',
         help='The type of optimizer')
     parser.add_argument(
-        '--lr', type=float, nargs='?', const='default', default=1e-2,
+        '--lr', type=float, nargs='?', const='default', default=1e-3,
         help='The learning rate')
     parser.add_argument(
         '--inChannels', type=int, nargs='?', const='default', default=1,
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         '--terminal_show_freq', type=int, nargs='?', const='default', default=50,
         help='The maximum number of galaxies to insert')
     parser.add_argument(
-        '--nEpochs', type=int, nargs='?', const='default', default=5,
+        '--nEpochs', type=int, nargs='?', const='default', default=3,
         help='The number of epochs')
     args = parser.parse_args()
 
