@@ -2,7 +2,7 @@ import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import astropy.units as u
-import skimage.measure as skmeas
+from skimage.measure.skmeas import label, regionprops
 from os import listdir
 import gc
 
@@ -16,10 +16,10 @@ def get_mask_data(mask, eccentricity, flatness, vol, galdim):
     new_mask = maskcube_data > 0
     del maskcube_data
     gc.collect()
-    object_labels = skmeas.label(new_mask)
+    object_labels = label(new_mask)
     del new_mask
     gc.collect()
-    some_props = skmeas.regionprops(object_labels)
+    some_props = regionprops(object_labels)
     eigen_vals = [gal.inertia_tensor_eigvals for gal in some_props]
     eccentricities = [e[0]/e[1] for e in eigen_vals]
     flatnesses = [e[1]/e[2] for e in eigen_vals]
@@ -39,10 +39,12 @@ def get_cube_data(mask, tot_flux, peak_flux, some_props):
     cube_data = cube_hdulist[0].data
     cube_hdulist.close()
     bbs = [gal.bbox for gal in some_props]
+    del some_props
+    gc.collect()
     tot_fluxes = [np.sum(cube_data[bbs[i][0]:bbs[i][3], bbs[i][1]:bbs[i][4], bbs[i][2]:bbs[i][5]])
-     for i in range(len(some_props))]
+     for i in range(len(bbs))]
     peak_fluxes = [np.max(np.sum(cube_data[bbs[i][0]:bbs[i][3], bbs[i][1]:bbs[i][4], bbs[i][2]:bbs[i][5]], axis=0))
-     for i in range(len(some_props))]
+     for i in range(len(bbs))]
     del cube_data
     gc.collect()
     tot_flux.append(tot_fluxes)
@@ -62,6 +64,8 @@ masks = [i for i in listdir("./data/training/Target")if ".fits" in i]
 for mask in masks:
     some_props = get_mask_data(mask, eccentricity, flatness, vol, galdim)
     get_cube_data(mask, tot_flux, peak_flux, some_props)
+    del some_props
+    gc.collect()
     break
 plt.boxplot(tot_flux)
 plt.xlabel("Synthetic Noise-free Cube")
