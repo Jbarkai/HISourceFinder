@@ -12,17 +12,20 @@ def get_mask_data(mask, eccentricity, flatness, vol, galdim):
     maskcube_hdulist = fits.open("./data/training/Target/" + mask)
     maskcube_data = maskcube_hdulist[0].data
     maskcube_hdulist.close()
+    shape_needed = maskcube_data.shape
     new_mask = maskcube_data > 0
+    del maskcube_data
+    gc.collect()
     object_labels = skmeas.label(new_mask)
+    del new_mask
+    gc.collect()
     some_props = skmeas.regionprops(object_labels)
     eigen_vals = [gal.inertia_tensor_eigvals for gal in some_props]
     eccentricities = [e[0]/e[1] for e in eigen_vals]
     flatnesses = [e[1]/e[2] for e in eigen_vals]
     galdims = [gal.image.shape for gal in some_props]
     vols = [np.prod(gal) for gal in galdims]
-    pixel_percent = np.sum(vols)/np.prod(maskcube_data.shape)
-    del maskcube_data
-    gc.collect()
+    pixel_percent = np.sum(vols)/np.prod(shape_needed)
     eccentricity.append(eccentricities)
     flatness.append(flatnesses)
     vol.append(vols)
