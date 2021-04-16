@@ -6,14 +6,8 @@ import skimage.measure as skmeas
 from os import listdir
 import gc
 
-tot_flux = []
-peak_flux = []
-eccentricity = []
-flatness = []
-vol = []
-galdim = []
-masks = [i for i in listdir("./data/training/Target")if ".fits" in i]
-def plot_maker(mask, tot_flux, peak_flux, eccentricity, flatness, vol, galdim):
+
+def get_mask_data(mask, eccentricity, flatness, vol, galdim):
     print(mask)
     maskcube_hdulist = fits.open("./data/training/Target/" + mask)
     maskcube_data = maskcube_hdulist[0].data
@@ -21,7 +15,6 @@ def plot_maker(mask, tot_flux, peak_flux, eccentricity, flatness, vol, galdim):
     new_mask = maskcube_data > 0
     object_labels = skmeas.label(new_mask)
     some_props = skmeas.regionprops(object_labels)
-    bbs = [gal.bbox for gal in some_props]
     eigen_vals = [gal.inertia_tensor_eigvals for gal in some_props]
     eccentricities = [e[0]/e[1] for e in eigen_vals]
     flatnesses = [e[1]/e[2] for e in eigen_vals]
@@ -30,12 +23,19 @@ def plot_maker(mask, tot_flux, peak_flux, eccentricity, flatness, vol, galdim):
     pixel_percent = np.sum(vols)/np.prod(maskcube_data.shape)
     del maskcube_data
     gc.collect()
+    eccentricity.append(eccentricities)
+    flatness.append(flatnesses)
+    vol.append(vols)
+    galdim.append(galdims)
+    pixel_percents.append(pixel_percent)
+    return some_props
 
+def get_cube_data(mask, tot_flux, peak_flux, some_props):
     print(mask.split("_")[-1])
     cube_hdulist = fits.open("./data/training/Input/noisefree_" + mask.split("_")[-1])
     cube_data = cube_hdulist[0].data
     cube_hdulist.close()
-
+    bbs = [gal.bbox for gal in some_props]
     tot_fluxes = [np.sum(cube_data[bbs[i][0]:bbs[i][3], bbs[i][1]:bbs[i][4], bbs[i][2]:bbs[i][5]])
      for i in range(len(some_props))]
     peak_fluxes = [np.max(np.sum(cube_data[bbs[i][0]:bbs[i][3], bbs[i][1]:bbs[i][4], bbs[i][2]:bbs[i][5]], axis=0))
@@ -44,13 +44,21 @@ def plot_maker(mask, tot_flux, peak_flux, eccentricity, flatness, vol, galdim):
     gc.collect()
     tot_flux.append(tot_fluxes)
     peak_flux.append(peak_fluxes)
-    eccentricity.append(eccentricities)
-    flatness.append(flatnesses)
-    vol.append(vols)
-    galdim.append(galdims)
 
-for gal in masks:
-    plot_maker(gal, tot_flux, peak_flux, eccentricity, flatness, vol, galdim)
+
+tot_flux = []
+peak_flux = []
+eccentricity = []
+flatness = []
+vol = []
+galdim = []
+pixel_percents = []
+masks = [i for i in listdir("./data/training/Target")if ".fits" in i]
+
+
+for mask in masks:
+    some_props = get_mask_data(mask, eccentricity, flatness, vol, galdim)
+    get_cube_data(mask, tot_flux, peak_flux, some_props)
     break
 plt.boxplot(tot_flux)
 plt.xlabel("Synthetic Noise-free Cube")
@@ -89,3 +97,8 @@ ax3.set_xlabel("Synthetic Noise-free Cube")
 fig.tight_layout()
 plt.show()
 plt.savefig('./plots/galdim.png')
+plt.hist(pixel_percents)
+plt.ylabel("Number of Cubes")
+plt.ylabel("Galaxy Pixel Percentage")
+plt.show()
+plt.savefig('./plots/pixel_percents.png')
