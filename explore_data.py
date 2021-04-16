@@ -13,13 +13,9 @@ def get_mask_data(mask, eccentricity, flatness, vol, galdim):
     maskcube_data = maskcube_hdulist[0].data
     maskcube_hdulist.close()
     shape_needed = maskcube_data.shape
-    new_mask = maskcube_data > 0
     del maskcube_data
     gc.collect()
-    object_labels = label(new_mask)
-    del new_mask
-    gc.collect()
-    some_props = regionprops(object_labels)
+    some_props = regionprops(label(maskcube_data > 0))
     eigen_vals = [gal.inertia_tensor_eigvals for gal in some_props]
     eccentricities = [e[0]/e[1] for e in eigen_vals]
     flatnesses = [e[1]/e[2] for e in eigen_vals]
