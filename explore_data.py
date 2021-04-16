@@ -1,13 +1,7 @@
 import numpy as np
 from astropy.io import fits
-import astropy.units as u
-import astropy.constants as const
 import matplotlib.pyplot as plt
-from matplotlib.cm import register_cmap
 import astropy.units as u
-from astropy.wcs import WCS
-from astropy.visualization import ImageNormalize, ZScaleInterval
-import tensorflow as tf
 import skimage.measure as skmeas
 from os import listdir
 import gc
@@ -19,7 +13,8 @@ flatness = []
 vol = []
 galdim = []
 masks = [i for i in listdir("./data/training/Target")if ".fits" in i]
-for mask in masks:
+def plot_maker(mask, tot_flux, peak_flux, eccentricity, flatness, vol, galdim):
+    print(mask)
     maskcube_hdulist = fits.open("./data/training/Target/" + mask)
     maskcube_data = maskcube_hdulist[0].data
     maskcube_hdulist.close()
@@ -36,7 +31,8 @@ for mask in masks:
     del maskcube_data
     gc.collect()
 
-    cube_hdulist = fits.open("./data/training/Input/noisefree_" +  + mask.split("_")[-1])
+    print(mask.split("_")[-1])
+    cube_hdulist = fits.open("./data/training/Input/noisefree_" + mask.split("_")[-1])
     cube_data = cube_hdulist[0].data
     cube_hdulist.close()
 
@@ -44,6 +40,8 @@ for mask in masks:
      for i in range(len(some_props))]
     peak_fluxes = [np.max(np.sum(cube_data[bbs[i][0]:bbs[i][3], bbs[i][1]:bbs[i][4], bbs[i][2]:bbs[i][5]], axis=0))
      for i in range(len(some_props))]
+    del cube_data
+    gc.collect()
     tot_flux.append(tot_fluxes)
     peak_flux.append(peak_fluxes)
     eccentricity.append(eccentricities)
@@ -51,6 +49,9 @@ for mask in masks:
     vol.append(vols)
     galdim.append(galdims)
 
+for gal in masks:
+    plot_maker(gal, tot_flux, peak_flux, eccentricity, flatness, vol, galdim)
+    break
 plt.boxplot(tot_flux)
 plt.xlabel("Synthetic Noise-free Cube")
 plt.ylabel("Total Flux")
