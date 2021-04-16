@@ -2,7 +2,7 @@ import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import astropy.units as u
-from skimage.measure.skmeas import label, regionprops
+from skimage.measure import label, regionprops
 from os import listdir
 import gc
 
