@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore", message="Could not parse unit W.U.")
 
 
 
-def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, empty_cube, verbose=False):
+def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, verbose=False):
     """Load, smooth, regrid and insert mock galaxies
 
     Args:
@@ -69,7 +69,7 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         gc.collect()
         # Insert galaxy
         print("insert")
-        insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data, empty_cube)
+        insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data)
         if verbose:
             print(z_pos, x_pos, y_pos)
         print("\r Inserted galaxy ", i, "out of ", no_gals, end="")
