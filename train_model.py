@@ -150,7 +150,7 @@ if __name__ == "__main__":
         '--terminal_show_freq', type=int, nargs='?', const='default', default=50,
         help='The maximum number of galaxies to insert')
     parser.add_argument(
-        '--nEpochs', type=int, nargs='?', const='default', default=3,
+        '--nEpochs', type=int, nargs='?', const='default', default=10,
         help='The number of epochs')
     args = parser.parse_args()
 
