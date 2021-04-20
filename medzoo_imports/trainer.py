@@ -10,7 +10,7 @@ import os
 import shutil
 
 
-dict_class_names = {"hi_source": ["gal"]}
+dict_class_names = {"hi_source": ["galaxy", "background"]}
 
 
 
@@ -222,6 +222,7 @@ class Trainer:
                 self.validate_epoch(epoch)
 
             val_loss = self.writer.data['val']['loss'] / self.writer.data['val']['count']
+            train_loss = self.writer.data['train']['loss'] / self.writer.data['train']['count']
 
             if self.args.save is not None and ((epoch + 1) % self.save_frequency):
                 print("Saving checkpoint")
@@ -231,7 +232,10 @@ class Trainer:
                 print("Saved at ", name_checkpoint)
 
             self.writer.write_end_of_epoch(epoch)
-
+            # Early stopping
+            # if train_loss < val_loss:
+            #     print("Stopping early with train loss = ", train_loss, " and validation loss = ", val_loss)
+            #     break
             self.writer.reset('train')
             self.writer.reset('val')
 
