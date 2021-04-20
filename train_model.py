@@ -14,7 +14,7 @@ from datetime import datetime
 def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
     random_seed, train_size, model, opt, lr, inChannels, inModalities,
-    classes, log_dir, dataset_name, terminal_show_freq, nEpochs):
+    classes, log_dir, dataset_name, terminal_show_freq, nEpochs, cuda):
     """Create training and validation datasets
 
     Args:
@@ -152,10 +152,13 @@ if __name__ == "__main__":
     parser.add_argument(
         '--nEpochs', type=int, nargs='?', const='default', default=10,
         help='The number of epochs')
+    parser.add_argument(
+        '--cuda', type=bool, nargs='?', const='default', default=False,
+        help='Memory allocation')
     args = parser.parse_args()
 
     main(
         args.batch_size, args.shuffle, args.num_workers, args.dims,
         args.overlaps, args.root, args.random_seed, args.train_size,
         args.model, args.opt, args.lr, args.inChannels, args.inModalities, args.classes,
-        args.log_dir, args.dataset_name, args.terminal_show_freq, args.nEpochs)
+        args.log_dir, args.dataset_name, args.terminal_show_freq, args.nEpochs, args.cuda)

@@ -138,8 +138,7 @@ class TensorboardWriter():
         self.csv_val.write(val_csv_line + '\n')
 
 
-def prepare_input(input_tuple, inModalities=-1, inChannels=-1, cuda=False, args=None):
-    args.cuda = False
+def prepare_input(input_tuple, inModalities=-1, inChannels=-1, args=None):
     if args is not None:
         modalities = args.inModalities
         channels = args.inChannels
