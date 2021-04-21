@@ -197,7 +197,8 @@ class Trainer:
                  valid_data_loader=None, lr_scheduler=None, patience=5, min_delta=0):
 
         self.args = args
-        self.model = model
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.model = model.to(device)
         self.optimizer = optimizer
         self.criterion = criterion
         self.train_data_loader = train_data_loader
@@ -221,7 +222,6 @@ class Trainer:
 
     def training(self):
         for epoch in range(self.start_epoch, self.args.nEpochs):
-            print("Starting Epoch %s"%epoch)
             self.train_epoch(epoch)
 
             if self.do_validation:
@@ -251,9 +251,8 @@ class Trainer:
             self.writer.reset('val')
 
     def train_epoch(self, epoch):
-        print("Training epoch %s"%epoch)
         self.model.train()
-        print("Calculating loss")
+
         for batch_idx, input_tuple in enumerate(self.train_data_loader):
 
             self.optimizer.zero_grad()
