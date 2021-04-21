@@ -194,7 +194,7 @@ class Trainer:
     """
 
     def __init__(self, args, model, criterion, optimizer, train_data_loader,
-                 valid_data_loader=None, lr_scheduler=None):
+                 valid_data_loader=None, lr_scheduler=None, patience=5, min_delta=0):
 
         self.args = args
         self.model = model
@@ -213,16 +213,21 @@ class Trainer:
         self.terminal_show_freq = self.args.terminal_show_freq
         self.start_epoch = 1
 
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+
     def training(self):
         for epoch in range(self.start_epoch, self.args.nEpochs):
+            print("Starting Epoch %s"%epoch)
             self.train_epoch(epoch)
 
             if self.do_validation:
                 self.validate_epoch(epoch)
 
             val_loss = self.writer.data['val']['loss'] / self.writer.data['val']['count']
-            train_loss = self.writer.data['train']['loss'] / self.writer.data['train']['count']
-
             if self.args.save is not None and ((epoch + 1) % self.save_frequency):
                 print("Saving checkpoint")
                 name_checkpoint = self.model.save_checkpoint(self.args.save,
@@ -232,15 +237,23 @@ class Trainer:
 
             self.writer.write_end_of_epoch(epoch)
             # Early stopping
-            # if train_loss < val_loss:
-            #     print("Stopping early with train loss = ", train_loss, " and validation loss = ", val_loss)
-            #     break
+            if self.best_loss == None:
+                self.best_loss = val_loss
+            elif self.best_loss - val_loss > self.min_delta:
+                self.best_loss = val_loss
+            elif self.best_loss - val_loss < self.min_delta:
+                self.counter += 1
+                print(f"INFO: Early stopping counter {self.counter} of {self.patience}")
+                if self.counter >= self.patience:
+                    print('INFO: Early stopping')
+                    break
             self.writer.reset('train')
             self.writer.reset('val')
 
     def train_epoch(self, epoch):
+        print("Training epoch %s"%epoch)
         self.model.train()
-
+        print("Calculating loss")
         for batch_idx, input_tuple in enumerate(self.train_data_loader):
 
             self.optimizer.zero_grad()

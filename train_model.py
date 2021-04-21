@@ -71,7 +71,8 @@ def main(
                                         load=True,
                                         root=root,
                                         mode="test")
-    date_str = "_".join("_".join(str(datetime.now()).split(".")[0].split(":")).split(" "))
+    now = datetime.now() # current date and time
+    date_str = now.strftime("%d%m%Y_%H%M%S")
     save = ('./saved_models/' + model + '_checkpoints/' + model + '_', dataset_name + "_" + date_str)[0]
     # dataloader training
     params = {'batch_size': batch_size,
