@@ -57,7 +57,7 @@ class SegmentationDataSet(Dataset):
 
             # Load and slide over input
             cube_hdulist = fits.open(input_ID)
-            cube_data = cube_hdulist[0].data
+            cube_data = np.nan_to_num(cube_hdulist[0].data)
             x = np.moveaxis(cube_data, 0, 2)
             cube_hdulist.close()
             del cube_data
@@ -73,7 +73,7 @@ class SegmentationDataSet(Dataset):
             # Load and slide over target
             print("done subcubes")
             maskcube_hdulist = fits.open(target_ID)
-            mask_data = maskcube_hdulist[0].data
+            mask_data = np.nan_to_num(maskcube_hdulist[0].data)
             y = np.moveaxis(mask_data, 0, 2)
             maskcube_hdulist.close()
             del mask_data

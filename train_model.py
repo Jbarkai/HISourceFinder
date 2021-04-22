@@ -59,7 +59,7 @@ def main(
                                         targets=targets_train,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=True,
+                                        load=False,
                                         root=root,
                                         mode="train")
 
@@ -68,7 +68,7 @@ def main(
                                         targets=targets_valid,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=True,
+                                        load=False,
                                         root=root,
                                         mode="test")
     now = datetime.now() # current date and time
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         '--random_seed', type=int, nargs='?', const='default', default=42,
         help='Random Seed')
     parser.add_argument(
-        '--train_size', type=float, nargs='?', const='default', default=0.8,
+        '--train_size', type=float, nargs='?', const='default', default=0.6,
         help='Ratio of training to validation split')
     parser.add_argument(
         '--model', type=str, nargs='?', const='default', default='VNET',

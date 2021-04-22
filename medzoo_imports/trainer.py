@@ -197,8 +197,7 @@ class Trainer:
                  valid_data_loader=None, lr_scheduler=None, patience=5, min_delta=0):
 
         self.args = args
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model = model.to(device)
+        self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.train_data_loader = train_data_loader
@@ -243,7 +242,7 @@ class Trainer:
                 self.best_loss = val_loss
             elif self.best_loss - val_loss < self.min_delta:
                 self.counter += 1
-                print(f"INFO: Early stopping counter {self.counter} of {self.patience}")
+                print("INFO: Early stopping counter ", self.counter," of ",self.patience)
                 if self.counter >= self.patience:
                     print('INFO: Early stopping')
                     break
