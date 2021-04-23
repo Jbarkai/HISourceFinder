@@ -2,6 +2,7 @@ import torch
 from skimage.io import imread
 from torch.utils.data import Dataset
 from astropy.io import fits
+from astropy.visualization import ZScaleInterval
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from skimage.util.shape import view_as_windows
@@ -59,9 +60,11 @@ class SegmentationDataSet(Dataset):
             cube_hdulist = fits.open(input_ID)
             # Turn nans to 0 (edge of images)
             cube_data = np.nan_to_num(cube_hdulist[0].data)
-            # Normalise between -1 and 1  
+            # Z scale normalise between 0 and 1  
             x = np.moveaxis(cube_data, 0, 2)
-            x = 2.*(x - np.min(x))/np.ptp(x)-1
+            # x = 2.*(x - np.min(x))/np.ptp(x)-1
+            interval = ZScaleInterval()
+            x = interval(x)
             cube_hdulist.close()
             del cube_data
             gc.collect()
