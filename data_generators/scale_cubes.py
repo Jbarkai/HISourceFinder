@@ -12,7 +12,7 @@ def main(filename, scale):
         cube_data += noise_data*1e-1
     elif scale == "loud":
         cube_data += noise_data*4e-1
-    fits.writeto("../data/training/" + scale+"Input/"+scale+"_"+filename.split("_")[-1], cube_data)
+    fits.writeto("../data/training/"+scale+"Input/"+scale+"_"+filename.split("_")[-1], cube_data)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Scale cubes")
