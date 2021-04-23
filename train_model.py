@@ -8,6 +8,7 @@ import os
 import shutil
 from medzoo_imports import create_model, DiceLoss, Trainer
 from datetime import datetime
+import gc
 
 
 
@@ -71,6 +72,9 @@ def main(
                                         load=False,
                                         root=root,
                                         mode="test")
+    del targets_train
+    del targets_valid
+    gc.collect()
     now = datetime.now() # current date and time
     date_str = now.strftime("%d%m%Y_%H%M%S")
     save = ('./saved_models/' + model + '_checkpoints/' + model + '_', dataset_name + "_" + date_str)[0]
@@ -82,6 +86,9 @@ def main(
 
     # dataloader validation
     dataloader_validation = DataLoader(dataset=dataset_valid, **params)
+    del dataset_train
+    del dataset_valid
+    gc.collect()
     model, optimizer = create_model(args)
     criterion = DiceLoss(classes=args.classes)
     if os.path.exists(save):
@@ -92,6 +99,9 @@ def main(
     args.save = save
     trainer = Trainer(args, model, criterion, optimizer, train_data_loader=dataloader_training,
                             valid_data_loader=dataloader_validation, lr_scheduler=None)
+    del dataloader_training
+    del dataloader_validation
+    gc.collect()
     print("START TRAINING...")
     trainer.training()
     return trainer
