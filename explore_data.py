@@ -74,6 +74,14 @@ for mask in masks:
     # get_cube_data(mask, tot_flux, peak_flux, some_props)
     # del some_props
     # gc.collect()
+
+fig3 = plt.gcf()
+plt.hist(pixel_percents)
+plt.ylabel("Number of Cubes")
+plt.ylabel("Galaxy Pixel Percentage")
+plt.show()
+fig3.savefig('./plots/pixel_percents.png')
+
 fig1 = plt.gcf()
 plt.boxplot(tot_flux)
 plt.xlabel("Synthetic Noise-free Cube")
@@ -108,13 +116,6 @@ plt.xlabel("Synthetic Noise-free Cube")
 plt.ylabel("Volume")
 plt.show()
 fig4.savefig('./plots/vol.png')
-
-fig3 = plt.gcf()
-plt.hist(pixel_percents)
-plt.ylabel("Number of Cubes")
-plt.ylabel("Galaxy Pixel Percentage")
-plt.show()
-fig3.savefig('./plots/pixel_percents.png')
 
 fig2 = plt.gcf()
 fig2, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10,15))
