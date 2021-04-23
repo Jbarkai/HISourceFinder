@@ -57,8 +57,11 @@ class SegmentationDataSet(Dataset):
 
             # Load and slide over input
             cube_hdulist = fits.open(input_ID)
+            # Turn nans to 0 (edge of images)
             cube_data = np.nan_to_num(cube_hdulist[0].data)
+            # Normalise between -1 and 1  
             x = np.moveaxis(cube_data, 0, 2)
+            x = 2.*(x - np.min(x))/np.ptp(x)-1
             cube_hdulist.close()
             del cube_data
             gc.collect()
