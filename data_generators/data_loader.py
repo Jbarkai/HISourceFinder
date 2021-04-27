@@ -56,9 +56,9 @@ class SegmentationDataSet(Dataset):
         for index in range(len(self.inputs)):
             input_ID = self.inputs[index]
             target_ID = self.targets[index]
-            list_saved_paths = save_as_numpy(input_ID, seg=False, list_saved_paths=None)
+            list_saved_paths = save_as_numpy(index, input_ID, dims, overlaps, seg=False, list_saved_paths=None)
             print("saved cubes")
-            list_saved_paths = save_as_numpy(target_ID, seg=True, list_saved_paths=list_saved_paths)
+            list_saved_paths = save_as_numpy(index, target_ID, dims, overlaps, seg=True, list_saved_paths=list_saved_paths)
             print("saved masks")
             self.list += list_saved_paths
         # Save list of subcubes
@@ -85,7 +85,7 @@ def sliding_window(arr, kernel, stride):
     subvols = tf.reshape(subvols,[x*y*z,sx,sy,sz])
     return subvols
     
-def save_as_numpy(input_ID, seg=False, list_saved_paths=None):
+def save_as_numpy(index, input_ID, dims, overlaps, seg=False, list_saved_paths=None):
     # Load and slide over input
     cube_hdulist = fits.open(input_ID)
     # Turn nans to 0 (edge of images)
