@@ -8,6 +8,7 @@ import os
 import shutil
 from medzoo_imports import create_model, DiceLoss, Trainer
 from datetime import datetime
+from random import sample
 import gc
 
 
