@@ -26,7 +26,8 @@ class SegmentationDataSet(Dataset):
                  overlaps=[15, 20, 20],
                  load=False,
                  root='../HISourceFinder/data/training/',
-                 mode="train"
+                 mode="train",
+                 scale="loud"
                  ):
         self.list = []
         self.inputs = inputs
@@ -45,7 +46,7 @@ class SegmentationDataSet(Dataset):
             return
 
         subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2]) + "_" +self.mode
-        self.sub_vol_path = root + '/generated/' + subvol + '/'
+        self.sub_vol_path = root + '/generated/' + scale "/" + subvol + '/'
         if os.path.exists(self.sub_vol_path):
             shutil.rmtree(self.sub_vol_path)
             os.mkdir(self.sub_vol_path)
@@ -118,7 +119,7 @@ def sliding_window(arr, kernel, stride):
     return subvols
 
 
-def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, train_size):
+def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, train_size, scale):
     """Create training and validation datasets
 
     Args:
@@ -130,12 +131,13 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
         root (str): The root directory of the data
         random_seed (int): Random Seed
         train_size (float): Ratio of training to validation split
+        scale (str): Loud or soft - S-N ratio
 
     Returns:
         The training and validation data loaders
     """
     # input and target files
-    inputs = [root+'Input/' + x for x in listdir(root+'Input') if ".fits" in x]
+    inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
     targets = [root+'Target/' + x for x in listdir(root+'Target') if ".fits" in x]
     inputs_train, inputs_valid = train_test_split(
         inputs,
@@ -155,7 +157,8 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
                                         overlaps=overlaps,
                                         load=False,
                                         root=root,
-                                        mode="train")
+                                        mode="train",
+                                        scale=scale)
 
     # dataset validation
     dataset_valid = SegmentationDataSet(inputs=inputs_valid,
@@ -164,7 +167,8 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
                                         overlaps=overlaps,
                                         load=False,
                                         root=root,
-                                        mode="test")
+                                        mode="test",
+                                        scale=scale)
 
     # dataloader training
     params = {'batch_size': batch_size,
@@ -201,10 +205,13 @@ if __name__ == "__main__":
         '--random_seed', type=int, nargs='?', const='default', default=42,
         help='Random Seed')
     parser.add_argument(
+        '--scale', type=str, nargs='?', const='default', default="loud",
+        help='The scale of inserted galaxies to noise')
+    parser.add_argument(
         '--train_size', type=float, nargs='?', const='default', default=0.8,
         help='Ratio of training to validation split')
     args = parser.parse_args()
 
     main(
         args.batch_size, args.shuffle, args.num_workers, args.dims,
-        args.overlaps, args.root, args.random_seed, args.train_size)
+        args.overlaps, args.root, args.random_seed, args.train_size, args.scale)

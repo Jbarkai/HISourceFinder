@@ -15,7 +15,7 @@ import gc
 def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
     random_seed, train_size, model, opt, lr, inChannels, inModalities,
-    classes, log_dir, dataset_name, terminal_show_freq, nEpochs, cuda):
+    classes, log_dir, dataset_name, terminal_show_freq, nEpochs, cuda, scale):
     """Create training and validation datasets
 
     Args:
@@ -37,12 +37,13 @@ def main(
         dataset_name (str): The name of the dataset
         terminal_show_freq (int): 
         nEpochs (int): The number of epochs
+        scale (str): Loud or soft - S-N ratio
 
     Returns:
         The training and validation data loaders
     """
     # input and target files
-    inputs = [root+'Input/' + x for x in listdir(root+'Input') if ".fits" in x]
+    inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
     targets = [root+'Target/' + x for x in listdir(root+'Target') if ".fits" in x]
     inputs_train, inputs_valid = train_test_split(
         inputs,
@@ -164,6 +165,9 @@ if __name__ == "__main__":
         '--nEpochs', type=int, nargs='?', const='default', default=10,
         help='The number of epochs')
     parser.add_argument(
+        '--scale', type=str, nargs='?', const='default', default="loud",
+        help='The scale of inserted galaxies to noise')
+    parser.add_argument(
         '--cuda', type=bool, nargs='?', const='default', default=False,
         help='Memory allocation')
     args = parser.parse_args()
@@ -172,4 +176,4 @@ if __name__ == "__main__":
         args.batch_size, args.shuffle, args.num_workers, args.dims,
         args.overlaps, args.root, args.random_seed, args.train_size,
         args.model, args.opt, args.lr, args.inChannels, args.inModalities, args.classes,
-        args.log_dir, args.dataset_name, args.terminal_show_freq, args.nEpochs, args.cuda)
+        args.log_dir, args.dataset_name, args.terminal_show_freq, args.nEpochs, args.cuda, args.scale)
