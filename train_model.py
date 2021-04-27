@@ -15,7 +15,7 @@ import gc
 def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
     random_seed, train_size, model, opt, lr, inChannels, inModalities,
-    classes, log_dir, dataset_name, terminal_show_freq, nEpochs, cuda, scale):
+    classes, log_dir, dataset_name, terminal_show_freq, nEpochs, cuda, scale, subsample):
     """Create training and validation datasets
 
     Args:
@@ -38,13 +38,15 @@ def main(
         terminal_show_freq (int): 
         nEpochs (int): The number of epochs
         scale (str): Loud or soft - S-N ratio
+        subsample (int): Size of subset
 
     Returns:
         The training and validation data loaders
     """
     # input and target files
     inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
-    targets = [root+'Target/' + x for x in listdir(root+'Target') if ".fits" in x]
+    inputs = sample(inputs, subsample)
+    targets = [root+'Target/mask' + x.split("/")[-1].split("_")[-1] for x in inputs]
     inputs_train, inputs_valid = train_test_split(
         inputs,
         random_state=random_seed,
@@ -168,6 +170,9 @@ if __name__ == "__main__":
         '--scale', type=str, nargs='?', const='default', default="loud",
         help='The scale of inserted galaxies to noise')
     parser.add_argument(
+        '--subsample', type=int, nargs='?', const='default', default=5,
+        help='The size of subset to train on')
+    parser.add_argument(
         '--cuda', type=bool, nargs='?', const='default', default=False,
         help='Memory allocation')
     args = parser.parse_args()
@@ -176,4 +181,4 @@ if __name__ == "__main__":
         args.batch_size, args.shuffle, args.num_workers, args.dims,
         args.overlaps, args.root, args.random_seed, args.train_size,
         args.model, args.opt, args.lr, args.inChannels, args.inModalities, args.classes,
-        args.log_dir, args.dataset_name, args.terminal_show_freq, args.nEpochs, args.cuda, args.scale)
+        args.log_dir, args.dataset_name, args.terminal_show_freq, args.nEpochs, args.cuda, args.scale, args.subsample)
