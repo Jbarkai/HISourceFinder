@@ -70,6 +70,8 @@ class SegmentationDataSet(Dataset):
             del cube_data
             gc.collect()
             tensor_images = sliding_window(x, dims, np.array(dims)-np.array(overlaps))
+            del x
+            gc.collect()
             print(len(tensor_images))
             filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
             list_saved_paths = [(filename + str(j) + '.npy', filename + str(j) + 'seg.npy') for j in range(len(tensor_images))]
@@ -86,6 +88,8 @@ class SegmentationDataSet(Dataset):
             del mask_data
             gc.collect()
             tensor_segs = sliding_window(y, dims, np.array(dims)-np.array(overlaps))
+            del y
+            gc.collect()
             ############### SAVE SUBCUBES ##########################
             for j in range(len(tensor_segs)):
                 np.save(list_saved_paths[j][1], tensor_segs[j])
