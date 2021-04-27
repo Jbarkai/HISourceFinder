@@ -46,7 +46,7 @@ class SegmentationDataSet(Dataset):
             return
 
         subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2]) + "_" +self.mode
-        self.sub_vol_path = root + '/generated/' + scale "/" + subvol + '/'
+        self.sub_vol_path = root + '/generated/' + scale +"/" + subvol + '/'
         if os.path.exists(self.sub_vol_path):
             shutil.rmtree(self.sub_vol_path)
             os.mkdir(self.sub_vol_path)
