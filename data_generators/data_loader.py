@@ -56,47 +56,10 @@ class SegmentationDataSet(Dataset):
         for index in range(len(self.inputs)):
             input_ID = self.inputs[index]
             target_ID = self.targets[index]
-
-            # Load and slide over input
-            cube_hdulist = fits.open(input_ID)
-            # Turn nans to 0 (edge of images)
-            cube_data = np.nan_to_num(cube_hdulist[0].data)
-            # Z scale normalise between 0 and 1  
-            x = np.moveaxis(cube_data, 0, 2)
-            # x = 2.*(x - np.min(x))/np.ptp(x)-1
-            interval = ZScaleInterval()
-            x = interval(x)
-            cube_hdulist.close()
-            del cube_data
-            gc.collect()
-            tensor_images = sliding_window(x, dims, np.array(dims)-np.array(overlaps))
-            del x
-            gc.collect()
-            print(len(tensor_images))
-            filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
-            list_saved_paths = [(filename + str(j) + '.npy', filename + str(j) + 'seg.npy') for j in range(len(tensor_images))]
-            for j in range(len(tensor_images)):
-                np.save(list_saved_paths[j][0], tensor_images[j])
-            del tensor_images
-            gc.collect()
-            # Load and slide over target
-            print("done subcubes")
-            maskcube_hdulist = fits.open(target_ID)
-            mask_data = np.nan_to_num(maskcube_hdulist[0].data)
-            y = np.moveaxis(mask_data, 0, 2)
-            maskcube_hdulist.close()
-            del mask_data
-            gc.collect()
-            tensor_segs = sliding_window(y, dims, np.array(dims)-np.array(overlaps))
-            del y
-            gc.collect()
-            ############### SAVE SUBCUBES ##########################
-            for j in range(len(tensor_segs)):
-                np.save(list_saved_paths[j][1], tensor_segs[j])
-            del tensor_segs
-            gc.collect()
-
-            print("done masks")
+            list_saved_paths = save_as_numpy(input_ID, seg=False, list_saved_paths=None)
+            print("saved cubes")
+            list_saved_paths = save_as_numpy(target_ID, seg=True, list_saved_paths=list_saved_paths)
+            print("saved masks")
             self.list += list_saved_paths
         # Save list of subcubes
         with open(self.save_name, "wb") as fp:
@@ -121,6 +84,32 @@ def sliding_window(arr, kernel, stride):
     sx, sy, sz = kernel
     subvols = tf.reshape(subvols,[x*y*z,sx,sy,sz])
     return subvols
+    
+def save_as_numpy(input_ID, seg=False, list_saved_paths=None):
+    # Load and slide over input
+    cube_hdulist = fits.open(input_ID)
+    # Turn nans to 0 (edge of images)
+    cube_data = np.nan_to_num(cube_hdulist[0].data)
+    # Z scale normalise between 0 and 1  
+    x = np.moveaxis(cube_data, 0, 2)
+    cube_hdulist.close()
+    interval = ZScaleInterval()
+    x = interval(np.moveaxis(cube_data, 0, 2))
+    del cube_data
+    gc.collect()
+    tensor_images = sliding_window(x, dims, np.array(dims)-np.array(overlaps))
+    del x
+    gc.collect()
+    print(len(tensor_images))
+    filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
+    if not seg:
+        list_saved_paths = [(filename + str(j) + '.npy', filename + str(j) + 'seg.npy') for j in range(len(tensor_images))]
+        for j in range(len(tensor_images)):
+            np.save(list_saved_paths[j][0], tensor_images[j])
+    for j in range(len(tensor_images)):
+        np.save(list_saved_paths[j][1], tensor_images[j])
+    return list_saved_paths
+
 
 
 def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, train_size, scale):
