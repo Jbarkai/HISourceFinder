@@ -23,20 +23,21 @@ Clone repository.
 git clone https://github.com/Jbarkai/HISourceFinder.git
 cd HISourceFinder
 ```
-Create and activate a Python 3.6 environment.
+Create and activate a Python 3.7 environment.
 ```bash
-conda create -n myenv python=3.6
-source activate myenv
+conda create -n hisources python=3.7
+source activate hisources
 ```
 Install the required packages.
 ```bash
-pip3 install -r requirements.txt
+pip --cache-dir /tmp/pipcache install -r requirements.txt
 ```
 
 ## Usage
-1. Create the simulated cubes by inserting 200-500 random smoothed and resampled mock galaxies randomly into a random noise free equivalent of the mosaiced cubes.
+### Create Mock Cubes (all scripts in data_generators/)
+1. Create the noise-free cubes and their masks by inserting 200-500 random smoothed and resampled mock galaxies randomly into a random noise-free equivalent of the mosaiced cubes.
 ```bash
-usage: make_cubes.py [-h] [--mos_dir [MOS_DIR]] [--gal_dir [GAL_DIR]] [--out_dir [OUT_DIR]] [--cube_file [CUBE_FILE] [--min_gal [MIN_GAL]] [--max_gal [MAX_GAL]]
+usage: make_cubes.py [-h] [--mos_dir [MOS_DIR]] [--gal_dir [GAL_DIR]] [--out_dir [OUT_DIR]] [--cube_file [CUBE_FILE]] [--min_gal [MIN_GAL]] [--max_gal [MAX_GAL]]
 
 Insert mock galaxies into HI cubes
 
@@ -50,10 +51,34 @@ optional arguments:
   --min_gal [MIN_GAL]   The minimum number of galaxies to insert
   --max_gal [MAX_GAL]   The maximum number of galaxies to insert
 ```
-
-2. Run data loader to create training and validation sets, each of dimension 128x128x64 made with a sliding window iwth an overlap chosen to include the average size of a galaxy.
+2. Summarize galaxies in resulting noise-free cubes with exploratory plots:
 ```bash
-usage: data_loader.py [-h] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]] [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]]
+usage: explore_data.py [-h] [--output_dir [OUTPUT_DIR]] [--root [ROOT]]
+
+Create training and validation datasets
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --output_dir [OUTPUT_DIR]
+                        Directory to output plots to
+  --root [ROOT]         The root directory of the data
+```
+3. Scale noise-free cubes and add to noise cubes:
+```bash
+usage: scale_cubes.py [-h] [--filename [FILENAME]] [--scale [SCALE]]
+
+Scale cubes
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --filename [FILENAME]
+                        Filename
+  --scale [SCALE]       Scaling amount
+```
+4. Run data loader to create training and validation sets, each of dimension 128x128x64 made with a sliding window iwth an overlap chosen to include the average size of a galaxy.
+```bash
+usage: data_loader.py [-h] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
+                      [--random_seed [RANDOM_SEED]] [--scale [SCALE]] [--train_size [TRAIN_SIZE]]
 
 Create training and validation datasets
 
@@ -70,16 +95,17 @@ optional arguments:
   --root [ROOT]         The root directory of the data
   --random_seed [RANDOM_SEED]
                         Random Seed
+  --scale [SCALE]       The scale of inserted galaxies to noise
   --train_size [TRAIN_SIZE]
                         Ratio of training to validation split
 ```
-
-3. Train model on subcubes created from sliding window.
+### Train V-Net
+Train model on subcubes created from sliding window.
 ```bash
 usage: train_model.py [-h] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
-                      [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]]
-                      [--inModalities [INMODALITIES]] [--classes [CLASSES]] [--log_dir [LOG_DIR]] [--dataset_name [DATASET_NAME]]
-                      [--terminal_show_freq [TERMINAL_SHOW_FREQ]] [--nEpochs [NEPOCHS]]
+                      [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--inModalities [INMODALITIES]]
+                      [--classes [CLASSES]] [--log_dir [LOG_DIR]] [--dataset_name [DATASET_NAME]] [--terminal_show_freq [TERMINAL_SHOW_FREQ]] [--nEpochs [NEPOCHS]] [--scale [SCALE]]
+                      [--subsample [SUBSAMPLE]] [--cuda [CUDA]]
 
 Train model
 
@@ -112,4 +138,8 @@ optional arguments:
   --terminal_show_freq [TERMINAL_SHOW_FREQ]
                         The maximum number of galaxies to insert
   --nEpochs [NEPOCHS]   The number of epochs
+  --scale [SCALE]       The scale of inserted galaxies to noise
+  --subsample [SUBSAMPLE]
+                        The size of subset to train on
+  --cuda [CUDA]         Memory allocation
 ```
