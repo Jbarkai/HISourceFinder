@@ -143,3 +143,40 @@ optional arguments:
                         The size of subset to train on
   --cuda [CUDA]         Memory allocation
 ```
+
+## Install and Train LVQ with MTO
+Fork and then clone repository.
+```bash
+git clone https://gitlab.com/michaelvandeweerd/mto-lvq.git
+cd mto-lvq
+```
+Fix out-of-date dependency: replace "GLVQClassifier" with just "GLVQ" in src/lvq.c
+
+Run MTO and LVQ on all files:
+```bash
+mv ../HISourceFinder/test_mto.sh ./test_mto.sh
+bash test_mto.sh
+```
+MTO usage:
+```bash
+usage: ./mt-objects <nthreads> <levels> <input> <lambda>
+                    [<classifier> [<labels> [<bits> [<mul>
+                    [<output> [<3d> [<sigma> [<factor>]]]]]]]]
+
+    nthreads    Numer of threads for sorting and quantizing
+    levels      Number of quantized levels and threads for
+                refining
+    input       Input image
+    lambda      
+    classifier  LVQ classifier, prompts LVQ segmentation
+    labels      Ground truth (FITS) for the input image,
+                prompts LVQ training
+    bits        Amount of bits per pixel
+    mul         Mulfactor bpp(input image) + mulfactor = bits
+                per pixel
+    output      Output image
+    3d          Whether the input image is in 3D
+    sigma       Standard deviation
+    factor      Move up factor
+
+```
