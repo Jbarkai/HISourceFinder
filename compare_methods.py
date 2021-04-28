@@ -3,51 +3,51 @@ from os import listdir
 from astropy.visualization import ZScaleInterval
 import matplotlib.pyplot as plt
 from medzoo_imports import create_model, DiceLoss
+import gc
 
 
-def vnet(args):
+def load_vnet(args, data_loader_tensor):
     """Run inference with VNet
 
     Args:
-        model (str): The 3D segmentation model to use
-        opt (str): The type of optimizer
-        lr (float): The learning rate
-        inChannels (int): The desired modalities/channels that you want to use
-        classes (int): The number of classes
-        dataset_name (str): The name of the dataset
-        pretrained (str): Location of the pretrained model
-        save (str): The saved checkpoint
-        test_dir (str): The directory of the test data
+        args (str): The model arguments
+        data_loader_tensor (tensor): The input tensor
 
     Returns:
         The training and validation data loaders
     """
     model, optimizer = create_model(args)
-    criterion = DiceLoss(classes=args.classes)
     model.restore_checkpoint(args.pretrained)
     model.eval()
-    for file in listdir(args.test_dir+"Input/"):
-        orig_data = fits.getdata(args.test_dir+"Input/"+file)[:64, :128, :128]
-        prepared_data = prepare_data(orig_data)
-        realseg_data = fits.getdata(args.test_dir+"Target/mask_"+file.split("_")[-1])[:64, :128, :128]
-        
-        data_loader_tensor = torch.FloatTensor(prepared_data.astype(np.float32)).unsqueeze(0)[None, ...]
-        with torch.no_grad():
-            out_cube = model.inference(data_loader_tensor)
-        
-        loss_dice, per_ch_score = criterion(out_cube, torch.FloatTensor(np.moveaxis(realseg_data, 0, 2).astype(np.float32)).unsqueeze(0)[None, ...])
-        
-        print(loss_dice)
-        fig, axes = plt.subplots(1, 4, figsize=(10, 10))
-        axes[0].imshow(orig_data[1])
-        axes[1].imshow(prepared_data[..., 1])
-        axes[2].imshow(realseg_data[1])
-        axes[3].imshow(out_cube.squeeze()[..., 1])
-        plt.show()
+    with torch.no_grad():
+        out_cube = model.inference(data_loader_tensor)
+    return out_cube
 
 def main(args):
-    vnet(args)
-    return 0
+    criterion = DiceLoss(classes=args.classes)
+    interval = ZScaleInterval()
+    orig_data = fits.getdata(args.test_dir+"Input/"+file)[:64, :128, :128]
+    prepared_data = interval(np.nan_to_num(np.moveaxis(orig_data, 0, 2)))
+    del orig_data
+    gc.collect()
+    data_loader_tensor = torch.FloatTensor(prepared_data.astype(np.float32)).unsqueeze(0)[None, ...]
+    del prepared_data
+    gc.collect()
+    realseg_data = fits.getdata(args.test_dir+"Target/mask_"+file.split("_")[-1])[:64, :128, :128]
+    mask_tensor = torch.FloatTensor(np.moveaxis(realseg_data, 0, 2).astype(np.float32)).unsqueeze(0)[None, ...]
+    del realseg_data
+    gc.collect()
+    # VNET
+    vnet_out_tensor = load_vnet(args, data_loader_tensor)
+    vnet_loss_dice, vnet_per_ch_score = criterion(vnet_out_tensor, mask_tensor)
+    # MTO
+    mto_seg_data = fits.getdata(args.test_dir+"MTO/c%s_mto_lvq"%(file.split("_")[-1]))[:64, :128, :128]
+    mto_out_tensor = torch.FloatTensor(mto_seg_data.astype(np.float32)).unsqueeze(0)[None, ...]
+    del mto_seg_data
+    gc.collect()
+    mto_loss_dice, mto_per_ch_score = criterion(mto_out_tensor, mask_tensor)
+
+    return vnet_loss_dice, mto_loss_dice
 
 
 if __name__ == "__main__":
