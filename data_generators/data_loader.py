@@ -56,12 +56,12 @@ class SegmentationDataSet(Dataset):
         for index in range(len(self.inputs)):
             input_ID = self.inputs[index]
             target_ID = self.targets[index]
-            print(input_ID, target_ID)
-            list_saved_paths = save_as_numpy(index, input_ID, dims, overlaps, seg=False, list_saved_paths=None)
-            print("saved cubes")
-            list_saved_paths = save_as_numpy(index, target_ID, dims, overlaps, seg=True, list_saved_paths=list_saved_paths)
-            print("saved masks")
-            self.list += list_saved_paths
+            filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
+            list_saved_cubes = save_sliding_window(input_ID, dims, overlaps, filename, seg=False)
+            print("saved %s cubes"%len(list_saved_cubes))
+            list_saved_masks = save_sliding_window(target_ID, dims, overlaps, filename, seg=False)
+            print("saved %s masks"%len(list_saved_masks))
+            self.list += [(x, y) for x, y in zip(list_saved_cubes, list_saved_masks)]
         # Save list of subcubes
         with open(self.save_name, "wb") as fp:
             pickle.dump(self.list, fp)
@@ -79,34 +79,31 @@ class SegmentationDataSet(Dataset):
         # target_y = torch.from_numpy(y.astype(np.int64)).type(self.targets_dtype)
         return torch.FloatTensor(x).unsqueeze(0), torch.FloatTensor(y).unsqueeze(0)
 
-def sliding_window(arr, kernel, stride):
-    subvols = view_as_windows(arr, kernel, stride)
-    x,y,z = subvols.shape[:3]
-    sx, sy, sz = kernel
-    subvols = tf.reshape(subvols,[x*y*z,sx,sy,sz])
-    return subvols
-    
-def save_as_numpy(index, input_ID, dims, overlaps, seg=False, list_saved_paths=None):
-    # Turn nans to 0 (edge of images)
-    cube_data = np.nan_to_num(fits.getdata(input_ID))
-    # Z scale normalise between 0 and 1  
-    interval = ZScaleInterval()
-    x = interval(np.moveaxis(cube_data, 0, 2))
-    del cube_data
-    gc.collect()
-    tensor_images = sliding_window(x, dims, np.array(dims)-np.array(overlaps))
-    del x
-    gc.collect()
-    print(len(tensor_images))
-    filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
-    if not seg:
-        list_saved_paths = [(filename + str(j) + '.npy', filename + str(j) + 'seg.npy') for j in range(len(tensor_images))]
-        for j in range(len(tensor_images)):
-            np.save(list_saved_paths[j][0], tensor_images[j])
-    for j in range(len(tensor_images)):
-        np.save(list_saved_paths[j][1], tensor_images[j])
-    return list_saved_paths
 
+def save_sliding_window(input_ID, dims, overlaps, filename, seg=False):
+    cube_data = np.moveaxis(fits.getdata(input_ID), 0, 2)
+    arr_out = view_as_windows(cube_data, dims, np.array(dims)-np.array(overlaps))
+    x,y,z = arr_out.shape[:3]
+    count = 0
+    filelist = []
+    interval = ZScaleInterval()
+    for i in range(x):
+        for j in range(y):
+            for k in range(z):
+                subcube = arr_out[i, j, k, :, :, :]
+                # Get rid of nans in corners
+                no_nans = np.nan_to_num(subcube)
+                # Z scale normalise between 0 and 1  
+                scaled = interval(no_nans)
+                if seg:
+                    filesave = filename + str(count) + 'seg.npy'
+                else:
+                    filesave = filename + str(count) + '.npy'
+                np.save(filesave, scaled)
+                filelist.append(filesave)
+                count += 1
+                print("\r", count*100/(x*y*z), end="")
+    return filelist
 
 
 def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, train_size, scale):

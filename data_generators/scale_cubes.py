@@ -24,5 +24,4 @@ if __name__ == "__main__":
         help='Scaling amount')
     args = parser.parse_args()
 
-    main(
-        args.filename, args.scale)
+    main(args.filename, args.scale)
