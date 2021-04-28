@@ -56,6 +56,7 @@ class SegmentationDataSet(Dataset):
         for index in range(len(self.inputs)):
             input_ID = self.inputs[index]
             target_ID = self.targets[index]
+            print(input_ID, target_ID)
             list_saved_paths = save_as_numpy(index, input_ID, dims, overlaps, seg=False, list_saved_paths=None)
             print("saved cubes")
             list_saved_paths = save_as_numpy(index, target_ID, dims, overlaps, seg=True, list_saved_paths=list_saved_paths)
@@ -86,13 +87,9 @@ def sliding_window(arr, kernel, stride):
     return subvols
     
 def save_as_numpy(index, input_ID, dims, overlaps, seg=False, list_saved_paths=None):
-    # Load and slide over input
-    cube_hdulist = fits.open(input_ID)
     # Turn nans to 0 (edge of images)
-    cube_data = np.nan_to_num(cube_hdulist[0].data)
+    cube_data = np.nan_to_num(fits.getdata(input_ID))
     # Z scale normalise between 0 and 1  
-    x = np.moveaxis(cube_data, 0, 2)
-    cube_hdulist.close()
     interval = ZScaleInterval()
     x = interval(np.moveaxis(cube_data, 0, 2))
     del cube_data
