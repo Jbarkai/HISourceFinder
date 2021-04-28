@@ -128,3 +128,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Files
+.fits
+.DS_Store
+.zip
+hisource-list-train-slidingwindow.txt
+.hdr
+.img
+data/
+.csv
