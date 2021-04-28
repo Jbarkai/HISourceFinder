@@ -47,7 +47,7 @@ def main(
     # input and target files
     inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
     inputs = sample(inputs, subsample)
-    targets = [root+'Target/mask' + x.split("/")[-1].split("_")[-1] for x in inputs]
+    targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
     print(inputs, targets)
     inputs_train, inputs_valid = train_test_split(
         inputs,
