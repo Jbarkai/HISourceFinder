@@ -253,6 +253,7 @@ class Trainer:
         self.model.train()
 
         for batch_idx, input_tuple in enumerate(self.train_data_loader):
+            print(epoch, batch_idx, self.len_epoch)
 
             self.optimizer.zero_grad()
 

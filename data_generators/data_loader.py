@@ -172,7 +172,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create training and validation datasets",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--batch_size', type=int, nargs='?', const='default', default=4,
+        '--batch_size', type=int, nargs='?', const='default', default=1,
         help='Batch size')
     parser.add_argument(
         '--shuffle', type=bool, nargs='?', const='default', default=True,
