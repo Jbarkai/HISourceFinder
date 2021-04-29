@@ -4,7 +4,7 @@ Adapted from MedicalZooPytorch: https://github.com/black0017/MedicalZooPytorch
 '''
 import torch.optim as optim
 from .Vnet import VNet, VNetLight
-from .dice import DiceLoss
+from .dice import DiceLoss, compute_per_channel_dice
 from .trainer import Trainer
 
 model_list = ['VNET']

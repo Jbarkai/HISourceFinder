@@ -39,13 +39,13 @@ def main(args):
     gc.collect()
     # VNET
     vnet_out_tensor = load_vnet(args, data_loader_tensor)
-    vnet_loss_dice, vnet_per_ch_score = criterion(vnet_out_tensor, mask_tensor)
+    vnet_loss_dice = float(compute_per_channel_dice(vnet_out_tensor, mask_tensor)[0])
     # MTO
     mto_seg_data = fits.getdata(args.test_dir+"MTO/c%s_mto_lvq"%(file.split("_")[-1]))[:64, :128, :128]
     mto_out_tensor = torch.FloatTensor(mto_seg_data.astype(np.float32)).unsqueeze(0)[None, ...]
     del mto_seg_data
     gc.collect()
-    mto_loss_dice, mto_per_ch_score = criterion(mto_out_tensor, mask_tensor)
+    mto_loss_dice = float(compute_per_channel_dice(mto_out_tensor, mask_tensor)[0])
 
     return vnet_loss_dice, mto_loss_dice
 

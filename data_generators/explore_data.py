@@ -120,7 +120,7 @@ def main(root, output_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Create training and validation datasets",
+    parser = argparse.ArgumentParser(description="Create exploratory plots of noise-free cubes",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--output_dir', type=str, nargs='?', const='default', default="../plots/",
