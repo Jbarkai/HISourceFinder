@@ -65,7 +65,7 @@ def main(
                                         targets=targets_train,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=True,
+                                        load=False,
                                         root=root,
                                         mode="train")
 
@@ -74,7 +74,7 @@ def main(
                                         targets=targets_valid,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=True,
+                                        load=False,
                                         root=root,
                                         mode="test")
     del targets_train
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         '--inModalities', type=int, nargs='?', const='default', default=1,
         help='The desired number of modalities')
     parser.add_argument(
-        '--classes', type=int, nargs='?', const='default', default=1,
+        '--classes', type=int, nargs='?', const='default', default=4,
         help='The number of classes')
     parser.add_argument(
         '--log_dir', type=str, nargs='?', const='default', default="./runs/",
@@ -164,8 +164,8 @@ if __name__ == "__main__":
         '--dataset_name', type=str, nargs='?', const='default', default='hi_source',
         help='The name of the dataset')
     parser.add_argument(
-        '--terminal_show_freq', type=int, nargs='?', const='default', default=50,
-        help='The maximum number of galaxies to insert')
+        '--terminal_show_freq', type=int, nargs='?', const='default', default=3000,
+        help='Show when to print progress')
     parser.add_argument(
         '--nEpochs', type=int, nargs='?', const='default', default=10,
         help='The number of epochs')
