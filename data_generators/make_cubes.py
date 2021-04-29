@@ -113,7 +113,8 @@ def main(cube_file, mos_dir, gal_dir, out_dir, min_gal, max_gal):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Insert mock galaxies into HI cubes")
+    parser = argparse.ArgumentParser(description="Insert mock galaxies into HI cubes",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--mos_dir', type=str, nargs='?', const='default', default="data/mosaics",
         help='The directory of the noise cubes to insert the mock galaxies into')

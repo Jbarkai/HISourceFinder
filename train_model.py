@@ -65,7 +65,7 @@ def main(
                                         targets=targets_train,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=False,
+                                        load=True,
                                         root=root,
                                         mode="train")
 
@@ -74,7 +74,7 @@ def main(
                                         targets=targets_valid,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=False,
+                                        load=True,
                                         root=root,
                                         mode="test")
     del targets_train
@@ -113,7 +113,8 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train model")
+    parser = argparse.ArgumentParser(description="Train model",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--batch_size', type=int, nargs='?', const='default', default=4,
         help='Batch size')

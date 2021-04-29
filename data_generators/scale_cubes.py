@@ -15,7 +15,8 @@ def main(filename, scale):
     fits.writeto("../data/training/"+scale+"Input/"+scale+"_"+filename.split("_")[-1], cube_data)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Scale cubes")
+    parser = argparse.ArgumentParser(description="Scale cubes",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--filename', type=str, nargs='?', const='default', default='loud',
         help='Filename')

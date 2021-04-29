@@ -169,7 +169,8 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Create training and validation datasets")
+    parser = argparse.ArgumentParser(description="Create training and validation datasets",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--batch_size', type=int, nargs='?', const='default', default=4,
         help='Batch size')

@@ -51,7 +51,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train model")
+    parser = argparse.ArgumentParser(description="Train model",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--model', type=str, nargs='?', const='default', default='VNET',
         help='The 3D segmentation model to use')

@@ -9,7 +9,7 @@ import gc
 
 def get_plot_data(mask, eccentricity, flatness, vol, galdim, tot_flux, peak_flux):
     print(mask)
-    cube_data = fits.getdata("./data/training/Input/" + mask)
+    cube_data = fits.getdata("../data/training/Input/" + mask)
     shape_needed = cube_data.shape
     new_mask = cube_data > 0
     object_labels = label(new_mask)
@@ -120,7 +120,8 @@ def main(root, output_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Create training and validation datasets")
+    parser = argparse.ArgumentParser(description="Create training and validation datasets",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--output_dir', type=str, nargs='?', const='default', default="../plots/",
         help='Directory to output plots to')
