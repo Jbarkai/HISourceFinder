@@ -205,11 +205,10 @@ class Trainer:
         for batch_idx, input_tuple in enumerate(self.train_data_loader):
             self.optimizer.zero_grad()
             input_tensor, target = input_tuple
-            if args.cuda:
+            if self.args.cuda:
                 input_tensor, target = input_tensor.cuda(), target.cuda()
             input_tensor.requires_grad = True
             output = self.model(input_tensor)
-            print(output.shape, target.shape)
             loss_dice, per_ch_score = self.criterion(output, target)
             loss_dice.backward()
             self.optimizer.step()

@@ -64,7 +64,7 @@ def main(
                                         targets=targets_train,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=False,
+                                        load=True,
                                         root=root,
                                         mode="train")
 
@@ -73,7 +73,7 @@ def main(
                                         targets=targets_valid,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=False,
+                                        load=True,
                                         root=root,
                                         mode="test")
     del targets_train
