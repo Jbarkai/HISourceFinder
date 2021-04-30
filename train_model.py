@@ -15,7 +15,7 @@ import gc
 
 def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
-    random_seed, train_size, model, opt, lr, inChannels, inModalities,
+    random_seed, train_size, model, opt, lr, inChannels,
     classes, log_dir, dataset_name, terminal_show_freq, nEpochs, cuda, scale, subsample):
     """Create training and validation datasets
 
@@ -32,7 +32,6 @@ def main(
         opt (str): The type of optimizer
         lr (float): The learning rate
         inChannels (int): The desired modalities/channels that you want to use
-        inModalities (int): The number of modalities
         classes (int): The number of classes
         log_dir (str): The directory to output the logs
         dataset_name (str): The name of the dataset
@@ -152,10 +151,7 @@ if __name__ == "__main__":
         '--inChannels', type=int, nargs='?', const='default', default=1,
         help='The desired modalities/channels that you want to use')
     parser.add_argument(
-        '--inModalities', type=int, nargs='?', const='default', default=1,
-        help='The desired number of modalities')
-    parser.add_argument(
-        '--classes', type=int, nargs='?', const='default', default=4,
+        '--classes', type=int, nargs='?', const='default', default=2,
         help='The number of classes')
     parser.add_argument(
         '--log_dir', type=str, nargs='?', const='default', default="./runs/",
@@ -183,5 +179,6 @@ if __name__ == "__main__":
     main(
         args.batch_size, args.shuffle, args.num_workers, args.dims,
         args.overlaps, args.root, args.random_seed, args.train_size,
-        args.model, args.opt, args.lr, args.inChannels, args.inModalities, args.classes,
-        args.log_dir, args.dataset_name, args.terminal_show_freq, args.nEpochs, args.cuda, args.scale, args.subsample)
+        args.model, args.opt, args.lr, args.inChannels, args.classes,
+        args.log_dir, args.dataset_name, args.terminal_show_freq,
+        args.nEpochs, args.cuda, args.scale, args.subsample)

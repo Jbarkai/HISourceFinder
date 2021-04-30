@@ -138,56 +138,6 @@ class TensorboardWriter():
         self.csv_val.write(val_csv_line + '\n')
 
 
-def prepare_input(input_tuple, inModalities=-1, inChannels=-1, args=None):
-    if args is not None:
-        modalities = args.inModalities
-        channels = args.inChannels
-        in_cuda = args.cuda
-    else:
-        modalities = inModalities
-        channels = inChannels
-        in_cuda = cuda
-    if modalities == 4:
-        if channels == 4:
-            img_1, img_2, img_3, img_4, target = input_tuple
-            input_tensor = torch.cat((img_1, img_2, img_3, img_4), dim=1)
-        elif channels == 3:
-            # t1 post constast is ommited
-            img_1, _, img_3, img_4, target = input_tuple
-            input_tensor = torch.cat((img_1, img_3, img_4), dim=1)
-        elif channels == 2:
-            # t1 and t2 only
-            img_1, _, img_3, _, target = input_tuple
-            input_tensor = torch.cat((img_1, img_3), dim=1)
-        elif channels == 1:
-            # t1 only
-            input_tensor, _, _, target = input_tuple
-    if modalities == 3:
-        if channels == 3:
-            img_1, img_2, img_3, target = input_tuple
-            input_tensor = torch.cat((img_1, img_2, img_3), dim=1)
-        elif channels == 2:
-            img_1, img_2, _, target = input_tuple
-            input_tensor = torch.cat((img_1, img_2), dim=1)
-        elif channels == 1:
-            input_tensor, _, _, target = input_tuple
-    elif modalities == 2:
-        if channels == 2:
-            img_t1, img_t2, target = input_tuple
-
-            input_tensor = torch.cat((img_t1, img_t2), dim=1)
-
-        elif channels == 1:
-            input_tensor, _, target = input_tuple
-    elif modalities == 1:
-        input_tensor, target = input_tuple
-
-    if in_cuda:
-        input_tensor, target = input_tensor.cuda(), target.cuda()
-
-    return input_tensor, target
-
-
 class Trainer:
     """
     Trainer class
@@ -253,10 +203,10 @@ class Trainer:
         self.model.train()
 
         for batch_idx, input_tuple in enumerate(self.train_data_loader):
-
             self.optimizer.zero_grad()
-
-            input_tensor, target = prepare_input(input_tuple=input_tuple, args=self.args)
+            input_tensor, target = input_tuple
+            if args.cuda:
+                input_tensor, target = input_tensor.cuda(), target.cuda()
             input_tensor.requires_grad = True
             output = self.model(input_tensor)
             loss_dice, per_ch_score = self.criterion(output, target)
@@ -277,7 +227,9 @@ class Trainer:
 
         for batch_idx, input_tuple in enumerate(self.valid_data_loader):
             with torch.no_grad():
-                input_tensor, target = prepare_input(input_tuple=input_tuple, args=self.args)
+                input_tensor, target = input_tuple
+                if args.cuda:
+                    input_tensor, target = input_tensor.cuda(), target.cuda()
                 input_tensor.requires_grad = False
 
                 output = self.model(input_tensor)

@@ -125,7 +125,9 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
     """
     # input and target files
     inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
-    targets = [root+'Target/' + x for x in listdir(root+'Target') if ".fits" in x]
+    inputs = sample(inputs, subsample)
+    targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
+    print(inputs, targets)
     inputs_train, inputs_valid = train_test_split(
         inputs,
         random_state=random_seed,
@@ -144,8 +146,7 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
                                         overlaps=overlaps,
                                         load=False,
                                         root=root,
-                                        mode="train",
-                                        scale=scale)
+                                        mode="train")
 
     # dataset validation
     dataset_valid = SegmentationDataSet(inputs=inputs_valid,
@@ -154,8 +155,7 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
                                         overlaps=overlaps,
                                         load=False,
                                         root=root,
-                                        mode="test",
-                                        scale=scale)
+                                        mode="test")
 
     # dataloader training
     params = {'batch_size': batch_size,
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         '--overlaps', type=list, nargs='?', const='default', default=[15, 20, 20],
         help='The dimensions of the overlap of subcubes')
     parser.add_argument(
-        '--root', type=str, nargs='?', const='default', default='../HISourceFinder/data/training/',
+        '--root', type=str, nargs='?', const='default', default='./data/training/',
         help='The root directory of the data')
     parser.add_argument(
         '--random_seed', type=int, nargs='?', const='default', default=42,
@@ -196,7 +196,7 @@ if __name__ == "__main__":
         '--scale', type=str, nargs='?', const='default', default="loud",
         help='The scale of inserted galaxies to noise')
     parser.add_argument(
-        '--train_size', type=float, nargs='?', const='default', default=0.8,
+        '--train_size', type=float, nargs='?', const='default', default=0.6,
         help='Ratio of training to validation split')
     args = parser.parse_args()
 
