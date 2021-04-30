@@ -228,7 +228,7 @@ class Trainer:
         for batch_idx, input_tuple in enumerate(self.valid_data_loader):
             with torch.no_grad():
                 input_tensor, target = input_tuple
-                if args.cuda:
+                if self.args.cuda:
                     input_tensor, target = input_tensor.cuda(), target.cuda()
                 input_tensor.requires_grad = False
 
