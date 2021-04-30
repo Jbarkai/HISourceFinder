@@ -10,7 +10,7 @@ import os
 import shutil
 
 
-dict_class_names = {"hi_source": ["galaxy", "background"]}
+dict_class_names = {"hi_source": ["background", "galaxy"]}
 
 
 
