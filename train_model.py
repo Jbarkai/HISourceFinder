@@ -155,7 +155,7 @@ if __name__ == "__main__":
         '--inModalities', type=int, nargs='?', const='default', default=1,
         help='The desired number of modalities')
     parser.add_argument(
-        '--classes', type=int, nargs='?', const='default', default=4,
+        '--classes', type=int, nargs='?', const='default', default=1,
         help='The number of classes')
     parser.add_argument(
         '--log_dir', type=str, nargs='?', const='default', default="./runs/",

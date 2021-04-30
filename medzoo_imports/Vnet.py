@@ -260,7 +260,7 @@ class VNet(BaseModel):
     Implementations based on the Vnet paper: https://arxiv.org/abs/1606.04797
     """
 
-    def __init__(self, elu=True, in_channels=1, classes=4):
+    def __init__(self, elu=True, in_channels=1, classes=2):
         super(VNet, self).__init__()
         self.classes = classes
         self.in_channels = in_channels
@@ -305,7 +305,7 @@ class VNetLight(BaseModel):
     A lighter version of Vnet that skips down_tr256 and up_tr256 in oreder to reduce time and space complexity
     """
 
-    def __init__(self, elu=True, in_channels=1, classes=4):
+    def __init__(self, elu=True, in_channels=1, classes=2):
         super(VNetLight, self).__init__()
         self.classes = classes
         self.in_channels = in_channels
