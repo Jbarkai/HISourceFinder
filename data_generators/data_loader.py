@@ -37,7 +37,8 @@ class SegmentationDataSet(Dataset):
         self.dims = dims
         self.overlaps = overlaps
         self.mode = mode
-        self.save_name = root + 'hisource-list-' + self.mode + '-slidingwindow.txt'
+        self.root = root
+        self.save_name = self.root + 'hisource-list-' + self.mode + '-slidingwindow.txt'
         if load:
             ## load pre-generated data
             with open(self.save_name, "rb") as fp:
@@ -46,7 +47,7 @@ class SegmentationDataSet(Dataset):
             return
 
         subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2]) + "_" +self.mode
-        self.sub_vol_path = root + '/generated/' + scale +"/" + subvol + '/'
+        self.sub_vol_path = self.root + '/generated/' + scale +"/" + subvol + '/'
         if os.path.exists(self.sub_vol_path):
             shutil.rmtree(self.sub_vol_path)
             os.mkdir(self.sub_vol_path)
