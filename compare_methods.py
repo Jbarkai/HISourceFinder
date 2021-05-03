@@ -1,8 +1,10 @@
 import argparse
 from os import listdir
 from astropy.visualization import ZScaleInterval
+from astropy.convolution import convolve, Gaussian2DKernel
 import matplotlib.pyplot as plt
 from medzoo_imports import create_model, DiceLoss
+import skimage.measure as skmeas
 import gc
 
 
@@ -20,11 +22,26 @@ def load_vnet(args, data_loader_tensor):
     model.restore_checkpoint(args.pretrained)
     model.eval()
     with torch.no_grad():
+        # Infer probabilities from model
         out_cube = model.inference(data_loader_tensor)
-    return out_cube
+    # Grab in numpy array
+    out_np = out_cube.squeeze()[0].numpy()
+    # Turn probabilities to mask
+    bool_gal = (out_np > np.mean(out_np)+4*np.std(out_np)).astype(int)
+    gauss_kernel = Gaussian2DKernel(1)
+    gauss_kernel.normalize(mode="peak")
+    # Smooth mask
+    smoothed_gal = np.apply_along_axis(
+            lambda x: convolve(x.reshape(bool_gal.shape[1],bool_gal.shape[2]),
+            gauss_kernel, normalize_kernel=False), 1, bool_gal.reshape(bool_gal.shape[0],-1)
+    )
+    # Relabel each object seperately
+    new_mask = (smoothed_gal > np.mean(smoothed_gal))
+    object_labels = skmeas.label(new_mask)
+    target = torch.FloatTensor(object_labels.astype(np.float32)).unsqueeze(0)[None, ...]
+    return target
 
 def main(args):
-    criterion = DiceLoss(classes=args.classes)
     interval = ZScaleInterval()
     orig_data = fits.getdata(args.test_dir+"Input/"+file)[:64, :128, :128]
     prepared_data = interval(np.nan_to_num(np.moveaxis(orig_data, 0, 2)))
@@ -34,12 +51,24 @@ def main(args):
     del prepared_data
     gc.collect()
     realseg_data = fits.getdata(args.test_dir+"Target/mask_"+file.split("_")[-1])[:64, :128, :128]
-    mask_tensor = torch.FloatTensor(np.moveaxis(realseg_data, 0, 2).astype(np.float32)).unsqueeze(0)[None, ...]
+    mask_object_labels = skmeas.label(np.moveaxis(realseg_data.astype(bool), 0, 2))
     del realseg_data
     gc.collect()
+    classes = len(np.unique(mask_object_labels))
+    mask_tensor = torch.FloatTensor(mask_object_labels.astype(np.float32)).unsqueeze(0)[None, ...]
+    del mask_object_labels
+    gc.collect()
+    shape = list(mask_tensor.long().size())
+    shape[1] = classes
+    mask_tensor = torch.zeros(shape).to(mask_tensor.long()).scatter_(1, mask_tensor.long(), 1)
+
+    criterion = DiceLoss(classes=classes)
     # VNET
     vnet_out_tensor = load_vnet(args, data_loader_tensor)
+    vnet_out_tensor = torch.zeros(shape).to(tarvnet_out_tensorget.long()).scatter_(1, vnet_out_tensor.long(), 1)
     vnet_loss_dice = float(compute_per_channel_dice(vnet_out_tensor, mask_tensor)[0])
+    del vnet_out_tensor
+    gc.collect()
     # MTO
     mto_seg_data = fits.getdata(args.test_dir+"MTO/c%s_mto_lvq"%(file.split("_")[-1]))[:64, :128, :128]
     mto_out_tensor = torch.FloatTensor(mto_seg_data.astype(np.float32)).unsqueeze(0)[None, ...]
