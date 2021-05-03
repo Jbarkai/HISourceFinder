@@ -1,7 +1,7 @@
 import argparse
 from os import listdir
 from astropy.visualization import ZScaleInterval
-from astropy.convolution import convolve, Gaussian2DKernel
+from scipy import ndimage as ndi
 import matplotlib.pyplot as plt
 from medzoo_imports import create_model, DiceLoss
 import skimage.measure as skmeas
@@ -27,16 +27,9 @@ def load_vnet(args, data_loader_tensor):
     # Grab in numpy array
     out_np = out_cube.squeeze()[0].numpy()
     # Turn probabilities to mask
-    bool_gal = (out_np > np.mean(out_np)+4*np.std(out_np)).astype(int)
-    gauss_kernel = Gaussian2DKernel(1)
-    gauss_kernel.normalize(mode="peak")
-    # Smooth mask
-    smoothed_gal = np.apply_along_axis(
-            lambda x: convolve(x.reshape(bool_gal.shape[1],bool_gal.shape[2]),
-            gauss_kernel, normalize_kernel=False), 1, bool_gal.reshape(bool_gal.shape[0],-1)
-    )
+    smoothed_gal = ndi.gaussian_filter(out_np, sigma=2)
     # Relabel each object seperately
-    new_mask = (smoothed_gal > np.mean(smoothed_gal))
+    new_mask = (smoothed_gal > np.max(smoothed_gal) - np.mean(smoothed_gal))
     object_labels = skmeas.label(new_mask)
     target = torch.FloatTensor(object_labels.astype(np.float32)).unsqueeze(0)[None, ...]
     return target
