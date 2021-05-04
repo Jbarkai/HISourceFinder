@@ -6,8 +6,10 @@ Adapted from MedicalZooPytorch: https://github.com/black0017/MedicalZooPytorch
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from .dice import DiceLoss
 import os
 import shutil
+import skimage.measure as skmeas
 
 
 dict_class_names = {"hi_source": ["background", "galaxy"]}
@@ -209,8 +211,29 @@ class Trainer:
                 input_tensor, target = input_tensor.cuda(), target.cuda()
             input_tensor.requires_grad = True
             output = self.model(input_tensor)
+
+            # target_np = target[0][0].numpy()
+            # if len(np.unique(target_np)) == 1:
             loss_dice, per_ch_score = self.criterion(output, target)
+            # else:
+            #     print("seperating masks")
+            #     mask_object_labels = skmeas.label(np.moveaxis(target_np.astype(bool), 0, 2))
+            #     num_classes = len(np.unique(mask_object_labels)) + 1
+            #     mask_tensor = torch.FloatTensor(mask_object_labels.astype(np.float32)).unsqueeze(0)[None, ...]
+            #     shape = list(mask_tensor.long().size())
+            #     shape[1] = num_classes
+            #     target = torch.zeros(shape).to(mask_tensor.long()).scatter_(1, mask_tensor.long(), 1)
+
+            #     # Make multiple classes for each output
+            #     output_np = output[0][0].detach().numpy()
+            #     object_labels = skmeas.label(np.moveaxis(output_np.astype(bool), 0, 2))
+            #     output_tensor = torch.FloatTensor(object_labels.astype(np.float32)).unsqueeze(0)[None, ...]
+            #     output = torch.zeros(shape).to(output_tensor.long()).scatter_(1, output_tensor.long(), 1)
+                
+            #     criterion = DiceLoss(classes=num_classes)
+            #     loss_dice, per_ch_score = criterion(output, target)
             loss_dice.backward()
+
             self.optimizer.step()
 
             self.writer.update_scores(batch_idx, loss_dice.item(), per_ch_score, 'train',
