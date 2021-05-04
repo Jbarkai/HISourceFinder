@@ -38,6 +38,7 @@ class SegmentationDataSet(Dataset):
         self.overlaps = overlaps
         self.mode = mode
         self.root = root
+        self.scale = scale
         self.save_name = self.root + 'hisource-list-' + self.mode + '-slidingwindow.txt'
         if load:
             ## load pre-generated data
@@ -47,7 +48,7 @@ class SegmentationDataSet(Dataset):
             return
 
         subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2]) + "_" +self.mode
-        self.sub_vol_path = self.root + '/generated/' + scale +"/" + subvol + '/'
+        self.sub_vol_path = self.root + '/generated/' + self.scale +"/" + subvol + '/'
         if os.path.exists(self.sub_vol_path):
             shutil.rmtree(self.sub_vol_path)
             os.mkdir(self.sub_vol_path)
@@ -93,7 +94,7 @@ def save_sliding_window(input_ID, dims, overlaps, filename, seg=False):
             for k in range(z):
                 subcube = arr_out[i, j, k, :, :, :]
                 # Get rid of nans in corners
-                no_nans = np.nan_to_num(subcube)
+                no_nans = np.nan_to_num(subcube, np.mean(subcube))
                 # Z scale normalise between 0 and 1  
                 scaled = interval(no_nans)
                 if seg:
@@ -147,7 +148,8 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
                                         overlaps=overlaps,
                                         load=False,
                                         root=root,
-                                        mode="train")
+                                        mode="train",
+                                        scale="loud")
 
     # dataset validation
     dataset_valid = SegmentationDataSet(inputs=inputs_valid,
@@ -156,7 +158,8 @@ def main(batch_size, shuffle, num_workers, dims, overlaps, root, random_seed, tr
                                         overlaps=overlaps,
                                         load=False,
                                         root=root,
-                                        mode="test")
+                                        mode="test",
+                                        scale="loud")
 
     # dataloader training
     params = {'batch_size': batch_size,
