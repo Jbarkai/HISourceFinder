@@ -28,8 +28,7 @@ class SegmentationDataSet(Dataset):
                  load=False,
                  root='../HISourceFinder/data/training/',
                  mode="train",
-                 scale="loud",
-                 train_size=0.6
+                 scale="loud"
                  ):
         self.list = []
         self.inputs = inputs
@@ -41,15 +40,14 @@ class SegmentationDataSet(Dataset):
         self.mode = mode
         self.root = root
         self.scale = scale
-        self.train_size = train_size
         self.save_name = self.root + 'hisource-list-' + self.mode + '-slidingwindow.txt'
         if load:
             ## load pre-generated data
             self.list = [(inputs[i], targets[i]) for i in range(len(inputs))]
             return
 
-        subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2]) + "_" + str(int(self.train_size*100))
-        self.sub_vol_path = self.root + '/generated/' + self.scale +"/" + subvol + '/'
+        subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2]) + "_" + self.scale
+        self.sub_vol_path = self.root + '/generated/' + subvol + '/'
         if os.path.exists(self.sub_vol_path):
             shutil.rmtree(self.sub_vol_path)
             os.mkdir(self.sub_vol_path)

@@ -62,14 +62,12 @@ def main(
                                             overlaps=overlaps,
                                             load=False,
                                             root=root,
-                                            # TO DO: REMOVE TRAIN SIZE
-                                            train_size=train_size,
                                             scale=scale)
         cubes = np.unique([i[0].split(dataset_full.sub_vol_path)[-1].split("_subcube")[0]+"_" for i in dataset_full.list])
     inputs_train, inputs_valid, targets_train, targets_valid, inputs_test, targets_test = [], [], [], [], [], []
     for cube in cubes:
         if loaded:
-            direct = root+"generated/"+scale+"/_vol_128x128x64_"+str(int(train_size*100))+"/"
+            direct = root+"generated"+"/_vol_128x128x64_"+scale+"/"
             noisey = [direct+x for x in list_files if cube in x and "seg" not in x]
         else:
             noisey = [x[0] for x in dataset_full.list if cube in x[0]]
@@ -104,8 +102,7 @@ def main(
                                         load=True,
                                         root=root,
                                         mode="train",
-                                        scale=scale,
-                                        train_size=train_size)
+                                        scale=scale)
 
     # dataset validation
     dataset_valid = SegmentationDataSet(inputs=inputs_valid,
@@ -115,8 +112,7 @@ def main(
                                         load=True,
                                         root=root,
                                         mode="val",
-                                        scale=scale,
-                                        train_size=train_size)
+                                        scale=scale)
 
     # dataset validation
     dataset_test = SegmentationDataSet(inputs=inputs_test,
@@ -126,8 +122,7 @@ def main(
                                         load=True,
                                         root=root,
                                         mode="test",
-                                        scale=scale,
-                                        train_size=train_size)
+                                        scale=scale)
     del inputs_train
     del inputs_valid
     del targets_train
