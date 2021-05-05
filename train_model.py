@@ -190,16 +190,19 @@ def main(
                 # Relabel each object seperately
                 t = np.abs(np.mean(smoothed_gal))- np.std(smoothed_gal)
                 new_mask = (smoothed_gal > t)
-                intersection = np.sum(np.logical_and(target_np, new_mask).astype(int))
-                union = np.sum(target_np) + np.sum(new_mask)
-                dice = (2*intersection)/(union)
+                intersection = np.nansum(np.logical_and(target_np, new_mask).astype(int))
+                if np.nansum(target_np) == np.nansum(new_mask) == 0:
+                    dice = (2*intersection)/(union)
+                else:
+                    union = np.nansum(target_np) + np.nansum(new_mask)
+                    dice = (2*intersection)/(union)
                 total += batch_idx
                 dice_losses += dice
 
             # Print accuracy
             print('Accuracy for fold %d: %d %%' % (k, 100.0 * dice_losses / total))
             print('--------------------------------')
-            results[fold] = 100.0 * (dice_losses / total)
+            results[k] = 100.0 * (dice_losses / total)
     # Print fold results
     print('K-FOLD CROSS VALIDATION RESULTS FOR %s FOLDS'%k_folds)
     print('--------------------------------')
