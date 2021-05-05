@@ -10,13 +10,15 @@ from medzoo_imports import create_model, DiceLoss, Trainer
 from datetime import datetime
 from random import sample
 import gc
+import numpy as np
 
 
 
 def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
-    random_seed, train_size, model, opt, lr, inChannels,
-    classes, log_dir, dataset_name, terminal_show_freq, nEpochs, cuda, scale, subsample):
+    random_seed, train_size, loaded, model, opt, lr, inChannels,
+    classes, log_dir, dataset_name, terminal_show_freq, nEpochs,
+    cuda, scale, subsample):
     """Create training and validation datasets
 
     Args:
@@ -39,43 +41,80 @@ def main(
         nEpochs (int): The number of epochs
         scale (str): Loud or soft - S-N ratio
         subsample (int): Size of subset
+        loaded (bool): Whether to load pre-generated data
 
     Returns:
         The training and validation data loaders
     """
     # input and target files
-    inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
-    inputs = sample(inputs, subsample)
-    targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
-    print(inputs, targets)
-    inputs_train, inputs_valid = train_test_split(
-        inputs,
-        random_state=random_seed,
-        train_size=train_size,
-        shuffle=True)
+    print(loaded)
+    if loaded:
+        list_files = listdir(root+"generated/"+scale+"/_vol_128x128x64_"+str(int(train_size*100)))
+        cubes = np.unique([i.split("_subcube")[0] for i in list_files])
+    else:
+        inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
+        inputs = sample(inputs, subsample)
+        targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
+        dataset_full = SegmentationDataSet(inputs=inputs,
+                                            targets=targets,
+                                            dims=dims,
+                                            overlaps=overlaps,
+                                            load=False,
+                                            root=root,
+                                            train_size=train_size,
+                                            scale=scale)
+        cubes = np.unique([i[0].split(dataset_full.sub_vol_path)[-1].split("_subcube")[0] for i in dataset_full.list])
+    inputs_train, inputs_valid, targets_train, targets_valid = [], [], [], []
+    for cube in cubes:
+        if loaded:
+            direct = root+"generated/"+scale+"/_vol_128x128x64_"+str(int(train_size*100))+"/"
+            noisey = [direct+x for x in list_files if cube in x and "seg" not in x]
+            masks = [direct+x for x in list_files if cube in x and "seg" in x]
+        else:
+            noisey = [x[0] for x in dataset_full.list if "/"+cube in x[0]]
+            masks = [x[1] for x in dataset_full.list if "/"+cube in x[0]]
+        inputs_tr, inputs_v = train_test_split(
+            noisey,
+            random_state=random_seed,
+            train_size=train_size,
+            shuffle=True)
 
-    targets_train, targets_valid = train_test_split(
-        targets,
-        random_state=random_seed,
-        train_size=train_size,
-        shuffle=True)
+        targets_tr, targets_v = train_test_split(
+            masks,
+            random_state=random_seed,
+            train_size=train_size,
+            shuffle=True)
+        inputs_train.append(inputs_tr)
+        inputs_valid.append(inputs_v)
+        targets_train.append(targets_tr)
+        targets_valid.append(targets_v)
+    inputs_train = [item for sublist in inputs_train for item in sublist]
+    inputs_valid = [item for sublist in inputs_valid for item in sublist]
+    targets_train = [item for sublist in targets_train for item in sublist]
+    targets_valid = [item for sublist in targets_valid for item in sublist]
     # dataset training
     dataset_train = SegmentationDataSet(inputs=inputs_train,
                                         targets=targets_train,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=False,
+                                        load=True,
                                         root=root,
-                                        mode="train")
+                                        mode="train",
+                                        scale=scale,
+                                        train_size=train_size)
 
     # dataset validation
     dataset_valid = SegmentationDataSet(inputs=inputs_valid,
                                         targets=targets_valid,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=False,
+                                        load=True,
                                         root=root,
-                                        mode="test")
+                                        mode="test",
+                                        scale=scale,
+                                        train_size=train_size)
+    del inputs_train
+    del inputs_valid
     del targets_train
     del targets_valid
     gc.collect()
@@ -115,6 +154,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train model",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
+        '--loaded', type=bool, nargs='?', const='default', default=False,
+        help='Whether to load pre-generated data')
+    parser.add_argument(
         '--batch_size', type=int, nargs='?', const='default', default=4,
         help='Batch size')
     parser.add_argument(
@@ -130,7 +172,7 @@ if __name__ == "__main__":
         '--overlaps', type=list, nargs='?', const='default', default=[15, 20, 20],
         help='The dimensions of the overlap of subcubes')
     parser.add_argument(
-        '--root', type=str, nargs='?', const='default', default='../HISourceFinder/data/training/',
+        '--root', type=str, nargs='?', const='default', default='./data/training/',
         help='The root directory of the data')
     parser.add_argument(
         '--random_seed', type=int, nargs='?', const='default', default=42,
@@ -160,16 +202,16 @@ if __name__ == "__main__":
         '--dataset_name', type=str, nargs='?', const='default', default='hi_source',
         help='The name of the dataset')
     parser.add_argument(
-        '--terminal_show_freq', type=int, nargs='?', const='default', default=3000,
+        '--terminal_show_freq', type=int, nargs='?', const='default', default=500,
         help='Show when to print progress')
     parser.add_argument(
         '--nEpochs', type=int, nargs='?', const='default', default=10,
         help='The number of epochs')
     parser.add_argument(
-        '--scale', type=str, nargs='?', const='default', default="loud",
+        '--scale', type=str, nargs='?', const='default', default="",
         help='The scale of inserted galaxies to noise')
     parser.add_argument(
-        '--subsample', type=int, nargs='?', const='default', default=5,
+        '--subsample', type=int, nargs='?', const='default', default=10,
         help='The size of subset to train on')
     parser.add_argument(
         '--cuda', type=bool, nargs='?', const='default', default=False,
@@ -178,7 +220,7 @@ if __name__ == "__main__":
 
     main(
         args.batch_size, args.shuffle, args.num_workers, args.dims,
-        args.overlaps, args.root, args.random_seed, args.train_size,
+        args.overlaps, args.root, args.random_seed, args.train_size, args.loaded,
         args.model, args.opt, args.lr, args.inChannels, args.classes,
         args.log_dir, args.dataset_name, args.terminal_show_freq,
         args.nEpochs, args.cuda, args.scale, args.subsample)
