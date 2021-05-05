@@ -50,7 +50,7 @@ def main(
     print(loaded)
     if loaded:
         list_files = listdir(root+"generated/"+scale+"/_vol_128x128x64_"+str(int(train_size*100)))
-        cubes = np.unique([i.split("_subcube")[0] for i in list_files])
+        cubes = np.unique([i.split("_subcube")[0]+"_" for i in list_files])
     else:
         inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
         inputs = sample(inputs, subsample)
@@ -63,7 +63,7 @@ def main(
                                             root=root,
                                             train_size=train_size,
                                             scale=scale)
-        cubes = np.unique([i[0].split(dataset_full.sub_vol_path)[-1].split("_subcube")[0] for i in dataset_full.list])
+        cubes = np.unique([i[0].split(dataset_full.sub_vol_path)[-1].split("_subcube")[0]+"_" for i in dataset_full.list])
     inputs_train, inputs_valid, targets_train, targets_valid = [], [], [], []
     for cube in cubes:
         if loaded:
