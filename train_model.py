@@ -5,11 +5,13 @@ from data_generators.data_loader import SegmentationDataSet
 import argparse
 from os import listdir
 import os
+import torch
 import shutil
 from medzoo_imports import create_model, DiceLoss, Trainer
 from datetime import datetime
 from random import sample
 import random
+from scipy import ndimage as ndi
 import gc
 import numpy as np
 
@@ -96,6 +98,8 @@ def main(
                                             load=False,
                                             root=root,
                                             scale=scale)
+        
+        list_files = listdir(root+"generated"+"/_vol_128x128x64_"+scale)
         cubes = np.unique([i[0].split(dataset_full.sub_vol_path)[-1].split("_subcube")[0]+"_" for i in dataset_full.list])
     cubes = sample(list(cubes), subsample)
     direct = root+"generated"+"/_vol_128x128x64_"+scale+"/"
