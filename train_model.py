@@ -54,7 +54,6 @@ def main(
         cubes = np.unique([i.split("_subcube")[0]+"_" for i in list_files])
     else:
         inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
-        inputs = sample(inputs, subsample)
         targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
         dataset_full = SegmentationDataSet(inputs=inputs,
                                             targets=targets,
@@ -65,6 +64,7 @@ def main(
                                             scale=scale)
         cubes = np.unique([i[0].split(dataset_full.sub_vol_path)[-1].split("_subcube")[0]+"_" for i in dataset_full.list])
     inputs_train, inputs_valid, targets_train, targets_valid, inputs_test, targets_test = [], [], [], [], [], []
+    cubes = sample(list(cubes), subsample)
     for cube in cubes:
         if loaded:
             direct = root+"generated"+"/_vol_128x128x64_"+scale+"/"
