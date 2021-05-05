@@ -51,7 +51,7 @@ def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
     random_seed, train_size, loaded, model, opt, lr, inChannels,
     classes, log_dir, dataset_name, terminal_show_freq, nEpochs,
-    cuda, scale, subsample, k_fold):
+    cuda, scale, subsample, k_folds):
     """Create training and validation datasets
 
     Args:
@@ -103,7 +103,7 @@ def main(
     results = {}
     print('--------------------------------')
     for k in range(k_folds):
-        print('FOLD %s'k)
+        print('FOLD %s'%k)
         print('--------------------------------')
         inputs_train, inputs_valid, inputs_test, targets_train, targets_valid, targets_test = split_data(
             cubes, direct, train_size, loaded)
@@ -275,7 +275,7 @@ if __name__ == "__main__":
         '--cuda', type=bool, nargs='?', const='default', default=False,
         help='Memory allocation')
     parser.add_argument(
-        '--k_fold', type=int, nargs='?', const='default', default=5,
+        '--k_folds', type=int, nargs='?', const='default', default=5,
         help='Number of folds for k folds cross-validations')
     args = parser.parse_args()
 
@@ -284,4 +284,4 @@ if __name__ == "__main__":
         args.overlaps, args.root, args.random_seed, args.train_size, args.loaded,
         args.model, args.opt, args.lr, args.inChannels, args.classes,
         args.log_dir, args.dataset_name, args.terminal_show_freq,
-        args.nEpochs, args.cuda, args.scale, args.subsample, args.k_fold)
+        args.nEpochs, args.cuda, args.scale, args.subsample, args.k_folds)
