@@ -83,7 +83,7 @@ def main(
     print(loaded)
     if loaded:
         print("LOADING DATA...")
-        list_files = listdir(root+"generated/"+scale+"/_vol_128x128x64_"+scale)
+        list_files = listdir(root+"generated"+"/_vol_128x128x64_"+scale)
         cubes = np.unique([i.split("_subcube")[0]+"_" for i in list_files])
     else:
         print("CREATING DATA...")
