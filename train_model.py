@@ -106,7 +106,7 @@ def main(
         print('FOLD %s'%k)
         print('--------------------------------')
         inputs_train, inputs_valid, inputs_test, targets_train, targets_valid, targets_test = split_data(
-            cubes, direct, train_size, loaded)
+            cubes, direct, train_size, loaded, list_files)
         # dataset training
         dataset_train = SegmentationDataSet(inputs=inputs_train,
                                             targets=targets_train,
