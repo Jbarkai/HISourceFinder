@@ -14,7 +14,7 @@ import gc
 import numpy as np
 
 
-def split_data(cubes, direct, train_size, loaded):
+def split_data(cubes, direct, train_size, loaded, list_files):
     inputs_train, inputs_valid, targets_train, targets_valid, inputs_test, targets_test = [], [], [], [], [], []
     for cube in cubes:
         if loaded:
