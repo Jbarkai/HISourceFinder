@@ -9,6 +9,7 @@ import shutil
 from medzoo_imports import create_model, DiceLoss, Trainer
 from datetime import datetime
 from random import sample
+import random
 import gc
 import numpy as np
 
@@ -61,37 +62,40 @@ def main(
                                             overlaps=overlaps,
                                             load=False,
                                             root=root,
+                                            # TO DO: REMOVE TRAIN SIZE
                                             train_size=train_size,
                                             scale=scale)
         cubes = np.unique([i[0].split(dataset_full.sub_vol_path)[-1].split("_subcube")[0]+"_" for i in dataset_full.list])
-    inputs_train, inputs_valid, targets_train, targets_valid = [], [], [], []
+    inputs_train, inputs_valid, targets_train, targets_valid, inputs_test, targets_test = [], [], [], [], [], []
     for cube in cubes:
         if loaded:
             direct = root+"generated/"+scale+"/_vol_128x128x64_"+str(int(train_size*100))+"/"
             noisey = [direct+x for x in list_files if cube in x and "seg" not in x]
-            masks = [direct+x for x in list_files if cube in x and "seg" in x]
         else:
-            noisey = [x[0] for x in dataset_full.list if "/"+cube in x[0]]
-            masks = [x[1] for x in dataset_full.list if "/"+cube in x[0]]
-        inputs_tr, inputs_v = train_test_split(
-            noisey,
-            random_state=random_seed,
-            train_size=train_size,
-            shuffle=True)
+            noisey = [x[0] for x in dataset_full.list if cube in x[0]]
+        
+        num_test_val = int(len(noisey)*(1 - train_size)/2)
+        num_train =int(len(noisey)*train_size)
+        random.shuffle(noisey)
+        inputs_tr = noisey[:num_train]
+        targets_tr = [i.split(".npy")[0]+"seg.npy" for i in inputs_train]
+        inputs_v = noisey[num_train:num_train+num_test_val]
+        targets_v = [i.split(".npy")[0]+"seg.npy" for i in inputs_v]
+        inputs_te = noisey[num_train+num_test_val:num_train+2*num_test_val]
+        targets_te = [i.split(".npy")[0]+"seg.npy" for i in inputs_test]
 
-        targets_tr, targets_v = train_test_split(
-            masks,
-            random_state=random_seed,
-            train_size=train_size,
-            shuffle=True)
         inputs_train.append(inputs_tr)
         inputs_valid.append(inputs_v)
+        inputs_test.append(inputs_te)
         targets_train.append(targets_tr)
         targets_valid.append(targets_v)
+        targets_test.append(targets_te)
     inputs_train = [item for sublist in inputs_train for item in sublist]
     inputs_valid = [item for sublist in inputs_valid for item in sublist]
+    inputs_test = [item for sublist in inputs_test for item in sublist]
     targets_train = [item for sublist in targets_train for item in sublist]
     targets_valid = [item for sublist in targets_valid for item in sublist]
+    targets_test = [item for sublist in targets_test for item in sublist]
     # dataset training
     dataset_train = SegmentationDataSet(inputs=inputs_train,
                                         targets=targets_train,
@@ -106,6 +110,17 @@ def main(
     # dataset validation
     dataset_valid = SegmentationDataSet(inputs=inputs_valid,
                                         targets=targets_valid,
+                                        dims=dims,
+                                        overlaps=overlaps,
+                                        load=True,
+                                        root=root,
+                                        mode="val",
+                                        scale=scale,
+                                        train_size=train_size)
+
+    # dataset validation
+    dataset_test = SegmentationDataSet(inputs=inputs_test,
+                                        targets=targets_test,
                                         dims=dims,
                                         overlaps=overlaps,
                                         load=True,
