@@ -184,7 +184,7 @@ if __name__ == "__main__":
         '--model', type=str, nargs='?', const='default', default='VNET',
         help='The 3D segmentation model to use')
     parser.add_argument(
-        '--opt', type=str, nargs='?', const='default', default='sgd',
+        '--opt', type=str, nargs='?', const='default', default='adam',
         help='The type of optimizer')
     parser.add_argument(
         '--lr', type=float, nargs='?', const='default', default=1e-3,
