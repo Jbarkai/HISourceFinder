@@ -50,7 +50,7 @@ def main(
     # input and target files
     print(loaded)
     if loaded:
-        list_files = listdir(root+"generated/"+scale+"/_vol_128x128x64_"+str(int(train_size*100)))
+        list_files = listdir(root+"generated/"+scale+"/_vol_128x128x64_"+scale)
         cubes = np.unique([i.split("_subcube")[0]+"_" for i in list_files])
     else:
         inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
@@ -76,11 +76,11 @@ def main(
         num_train =int(len(noisey)*train_size)
         random.shuffle(noisey)
         inputs_tr = noisey[:num_train]
-        targets_tr = [i.split(".npy")[0]+"seg.npy" for i in inputs_train]
+        targets_tr = [i.split(".npy")[0]+"seg.npy" for i in inputs_tr]
         inputs_v = noisey[num_train:num_train+num_test_val]
         targets_v = [i.split(".npy")[0]+"seg.npy" for i in inputs_v]
         inputs_te = noisey[num_train+num_test_val:num_train+2*num_test_val]
-        targets_te = [i.split(".npy")[0]+"seg.npy" for i in inputs_test]
+        targets_te = [i.split(".npy")[0]+"seg.npy" for i in inputs_te]
 
         inputs_train.append(inputs_tr)
         inputs_valid.append(inputs_v)
@@ -94,6 +94,7 @@ def main(
     targets_train = [item for sublist in targets_train for item in sublist]
     targets_valid = [item for sublist in targets_valid for item in sublist]
     targets_test = [item for sublist in targets_test for item in sublist]
+    print(inputs_train, targets_train)
     # dataset training
     dataset_train = SegmentationDataSet(inputs=inputs_train,
                                         targets=targets_train,
