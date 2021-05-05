@@ -143,7 +143,7 @@ def main(
         gc.collect()
         now = datetime.now() # current date and time
         date_str = now.strftime("%d%m%Y_%H%M%S")
-        save = ('./saved_models/fold_' + k + '_checkpoints/' + model + '_', dataset_name + "_" + date_str)[0]
+        save = ('./saved_models/fold_' + str(k) + '_checkpoints/' + model + '_', dataset_name + "_" + date_str)[0]
         # dataloader training
         params = {'batch_size': batch_size,
                 'shuffle': shuffle,
