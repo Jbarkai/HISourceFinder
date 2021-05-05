@@ -29,7 +29,8 @@ def load_vnet(args, data_loader_tensor):
     # Turn probabilities to mask
     smoothed_gal = ndi.gaussian_filter(out_np, sigma=2)
     # Relabel each object seperately
-    new_mask = (smoothed_gal > np.max(smoothed_gal) - np.mean(smoothed_gal))
+    t = np.abs(np.mean(smoothed_gal))- np.std(smoothed_gal)
+    new_mask = (smoothed_gal > t)
     object_labels = skmeas.label(new_mask)
     target = torch.FloatTensor(object_labels.astype(np.float32)).unsqueeze(0)[None, ...]
     return target
