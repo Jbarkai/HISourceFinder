@@ -193,7 +193,7 @@ def main(
                 new_mask = (smoothed_gal > t)
                 intersection = np.nansum(np.logical_and(target_np, new_mask).astype(int))
                 if np.nansum(target_np) == np.nansum(new_mask) == 0:
-                    dice = (2*intersection)/(union)
+                    dice = 1
                 else:
                     union = np.nansum(target_np) + np.nansum(new_mask)
                     dice = (2*intersection)/(union)
@@ -201,7 +201,7 @@ def main(
                 dice_losses += dice
 
             # Print accuracy
-            print('Accuracy for fold %d: %d %%' % (k, 100.0 * dice_losses / total))
+            print('Average dice loss for fold %d: %d %%' % (k, 100.0 * dice_losses / total))
             print('--------------------------------')
             results[k] = 100.0 * (dice_losses / total)
     # Print fold results
@@ -209,10 +209,10 @@ def main(
     print('--------------------------------')
     sum = 0.0
     for key, value in results.items():
-        print('Fold %s:%s %'%(key, value))
+        print('Fold ', key, ":", value, " %")
         sum += value
     av = sum/len(results.items())
-    print(f'Average: %s %'%av)
+    print('Average: ', av, "%")
     return av
 
 
