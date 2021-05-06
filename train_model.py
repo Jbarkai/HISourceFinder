@@ -201,7 +201,7 @@ def main(
                 dice_losses += dice
 
             # Print accuracy
-            print('Average dice loss for fold %d: %d %%' % (k, 100.0 * dice_losses / total))
+            print('Average dice loss for fold ', k , ":", (100.0*dice_losses/total), "%")
             print('--------------------------------')
             results[k] = 100.0 * (dice_losses / total)
     # Print fold results
