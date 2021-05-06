@@ -83,6 +83,7 @@ def main(
     """
     # input and target files
     print(loaded)
+    model_name = model
     if loaded:
         print("LOADING DATA...")
         list_files = listdir(root+"generated"+"/_vol_128x128x64_"+scale)
@@ -147,7 +148,7 @@ def main(
         gc.collect()
         now = datetime.now() # current date and time
         date_str = now.strftime("%d%m%Y_%H%M%S")
-        save = ('./saved_models/fold_' + str(k) + '_checkpoints/' + model + '_', dataset_name + "_" + date_str)[0]
+        save = ('./saved_models/fold_' + str(k) + '_checkpoints/' + model_name + '_', dataset_name + "_" + date_str)[0]
         # dataloader training
         params = {'batch_size': batch_size,
                 'shuffle': shuffle,
@@ -190,25 +191,28 @@ def main(
                 # Relabel each object seperately
                 t = np.abs(np.mean(smoothed_gal))- np.std(smoothed_gal)
                 new_mask = (smoothed_gal > t)
-                intersection = np.sum(np.logical_and(target_np, new_mask).astype(int))
-                union = np.sum(target_np) + np.sum(new_mask)
-                dice = (2*intersection)/(union)
+                intersection = np.nansum(np.logical_and(target_np, new_mask).astype(int))
+                if np.nansum(target_np) == np.nansum(new_mask) == 0:
+                    dice = 1
+                else:
+                    union = np.nansum(target_np) + np.nansum(new_mask)
+                    dice = (2*intersection)/(union)
                 total += batch_idx
                 dice_losses += dice
 
             # Print accuracy
-            print('Accuracy for fold %d: %d %%' % (k, 100.0 * dice_losses / total))
+            print('Average dice loss for fold ', k , ":", (100.0*dice_losses/total), "%")
             print('--------------------------------')
-            results[fold] = 100.0 * (dice_losses / total)
+            results[k] = 100.0 * (dice_losses / total)
     # Print fold results
     print('K-FOLD CROSS VALIDATION RESULTS FOR %s FOLDS'%k_folds)
     print('--------------------------------')
     sum = 0.0
     for key, value in results.items():
-        print('Fold %s:%s %'%(key, value))
+        print('Fold ', key, ":", value, " %")
         sum += value
     av = sum/len(results.items())
-    print(f'Average: %s %'%av)
+    print('Average: ', av, "%")
     return av
 
 
