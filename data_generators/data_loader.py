@@ -27,32 +27,31 @@ class SegmentationDataSet(Dataset):
                  overlaps=[15, 20, 20],
                  load=False,
                  root='./data/training/',
-                 mode="train",
-                 scale="loud",
+                 list = [],
                  arr_shape=(1800, 2400, 652)
                  ):
-        self.list = []
+        self.list = list
         self.inputs = inputs
         self.targets = targets
         self.inputs_dtype = torch.float32
         self.targets_dtype = torch.long
         self.dims = dims
         self.overlaps = overlaps
-        self.mode = mode
         self.root = root
-        self.scale = scale
         self.arr_shape = arr_shape
-        self.save_name = self.root + 'hisource-list-' + self.mode + '-slidingwindowindices.txt'
+        self.save_name = self.root + 'hisource-list-slidingwindowindices.txt'
         if load:
             ## load pre-generated data
             # self.list = [(inputs[i], targets[i]) for i in range(len(inputs))]
+            if len(self.list) > 0:
+                return
             with open(self.save_name, "rb") as fp:
                 list_file = pickle.load(fp)
                 self.list = list_file
             return
 
         for f_in, f_tar in zip(self.inputs, self.targets):
-            self.list += save_sliding_window(self.arr_shape, self.dims, np.array(self.dims)-np.array(self.overlaps), f_in, f_tar)
+            self.list += save_sliding_window(self.arr_shape, self.dims, self.overlaps, f_in, f_tar)
         # Save list of subcubes
         with open(self.save_name, "wb") as fp:
             pickle.dump(self.list, fp)
@@ -72,9 +71,9 @@ class SegmentationDataSet(Dataset):
         return torch.FloatTensor(x.astype(np.float32)).unsqueeze(0), torch.FloatTensor(y.astype(np.float32)).unsqueeze(0)
 
 
-def save_sliding_window(arr_shape, window_shape, step, f_in, f_tar):
-    x, y, z =(((np.array(arr_shape) - np.array(window_shape))
-                      // np.array(step)) + 1)
+def save_sliding_window(arr_shape, dims, overlaps, f_in, f_tar):
+    x, y, z =(((np.array(arr_shape) - np.array(dims))
+                      // np.array(np.array(dims)-np.array(overlaps))) + 1)
 
     sliding_window_indices = []
     count = 0
