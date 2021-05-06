@@ -13,6 +13,7 @@ from random import sample
 import random
 from scipy import ndimage as ndi
 import gc
+import pickle
 import numpy as np
 
 
@@ -70,9 +71,10 @@ def main(
         train_list, val_list, test_list = [], [], []
         for cube in cubes:
             file_list = [i for i in dataset_full.list if cube in i[0][0]]
+            random.shuffle(file_list)
+            file_list = file_list[:10]
             num_test_val = int(len(file_list)*(1 - train_size)/2)
             num_train =int(len(file_list)*train_size)
-            random.shuffle(file_list)
             train_list +=(file_list[:num_train])
             val_list +=(file_list[num_train:num_train+num_test_val])
             test_list +=(file_list[num_train+num_test_val:num_train+2*num_test_val])
@@ -134,19 +136,23 @@ def main(
         print("START TRAINING...")
         trainer.training()
 
+        # Save list of testing cubes for comparison later
+        with open("/".join(save.split("/")[:3]) + "/test_list.txt", "wb") as fp:
+            pickle.dump(test_list, fp)
+
         # Evaluationfor this fold
-        dice_losses, total = 0, 0
+        dice_losses, total = 0, 1
         model.eval()
         with torch.no_grad():
             for batch_idx, input_tuple in enumerate(dataloader_test):
                 input_tensor, target = input_tuple
                 out_cube = model.inference(input_tensor)# Grab in numpy array
                 out_np = out_cube.squeeze()[0].numpy()
-                target_np = target.squeeze()[0].numpy()
+                target_np = target.squeeze().numpy()
                 # Turn probabilities to mask
                 smoothed_gal = ndi.gaussian_filter(out_np, sigma=2)
                 # Relabel each object seperately
-                t = np.abs(np.mean(smoothed_gal))- np.std(smoothed_gal)
+                t = np.nanmean(smoothed_gal) + np.nanstd(smoothed_gal)
                 new_mask = (smoothed_gal > t)
                 intersection = np.nansum(np.logical_and(target_np, new_mask).astype(int))
                 if np.nansum(target_np) == np.nansum(new_mask) == 0:
@@ -155,7 +161,7 @@ def main(
                     union = np.nansum(target_np) + np.nansum(new_mask)
                     dice = (2*intersection)/(union)
                 total += batch_idx
-                dice_losses += dice
+                dice_losses += 100.0*dice
 
             # Print accuracy
             print('Average dice loss for fold ', k , ":", (100.0*dice_losses/total), "%")
