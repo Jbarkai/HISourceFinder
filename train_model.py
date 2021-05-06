@@ -77,8 +77,8 @@ def main(
             val_list +=(file_list[num_train:num_train+num_test_val])
             test_list +=(file_list[num_train+num_test_val:num_train+2*num_test_val])
         # dataset training
-        dataset_train = SegmentationDataSet(inputs=inputs_train,
-                                            targets=targets_train,
+        dataset_train = SegmentationDataSet(inputs=inputs,
+                                            targets=targets,
                                             dims=dims,
                                             overlaps=overlaps,
                                             load=True,
@@ -86,8 +86,8 @@ def main(
                                             list=train_list)
 
         # dataset validation
-        dataset_valid = SegmentationDataSet(inputs=inputs_valid,
-                                            targets=targets_valid,
+        dataset_valid = SegmentationDataSet(inputs=inputs,
+                                            targets=targets,
                                             dims=dims,
                                             overlaps=overlaps,
                                             load=True,
@@ -95,8 +95,8 @@ def main(
                                             list=val_list)
 
         # dataset validation
-        dataset_test = SegmentationDataSet(inputs=inputs_test,
-                                            targets=targets_test,
+        dataset_test = SegmentationDataSet(inputs=inputs,
+                                            targets=targets,
                                             dims=dims,
                                             overlaps=overlaps,
                                             load=True,

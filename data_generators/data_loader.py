@@ -33,8 +33,8 @@ class SegmentationDataSet(Dataset):
         self.list = list
         self.inputs = inputs
         self.targets = targets
-        self.inputs_dtype = torch.float32
-        self.targets_dtype = torch.long
+        self.inputs_dtype = np.float32
+        self.targets_dtype = np.long
         self.dims = dims
         self.overlaps = overlaps
         self.root = root
@@ -64,11 +64,11 @@ class SegmentationDataSet(Dataset):
         # Select the sample and prepare
         interval = ZScaleInterval()
         cube_files, x, y, z = self.list[index]
-        subcube = np.moveaxis(fits.getdata(cube_files[0]), 0, 2)[x1:x2, y1:y2, z1:z2]
+        subcube = np.moveaxis(fits.getdata(cube_files[0]), 0, 2)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
         # Get rid of nans in corners and Z scale normalise between 0 and 1 
-        x = interval(np.nan_to_num(subcube, np.mean(subcube)))
-        y = np.moveaxis(fits.getdata(cube_files[1]), 0, 2)[x1:x2, y1:y2, z1:z2]
-        return torch.FloatTensor(x.astype(np.float32)).unsqueeze(0), torch.FloatTensor(y.astype(np.float32)).unsqueeze(0)
+        dat = interval(np.nan_to_num(subcube, np.mean(subcube)))
+        seg_dat = np.moveaxis(fits.getdata(cube_files[1]), 0, 2)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
+        return torch.FloatTensor(dat.astype(self.inputs_dtype)).unsqueeze(0), torch.FloatTensor(seg_dat.astype(self.targets_dtype)).unsqueeze(0)
 
 
 def save_sliding_window(arr_shape, dims, overlaps, f_in, f_tar):
@@ -86,4 +86,5 @@ def save_sliding_window(arr_shape, dims, overlaps, f_in, f_tar):
                 sliding_window_indices.append(([f_in, f_tar], [x1, x2], [y1, y2], [z1, z2]))
                 count += 1
                 print("\r", count*100/(x*y*z), end="")
+    print()
     return sliding_window_indices
