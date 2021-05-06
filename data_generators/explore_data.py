@@ -22,19 +22,11 @@ freq_dict = {"1245mosB.derip.fits": [1401252439.970,1425092772.001],
 "1353mosG.derip.fits": [1300104979.970,1323945312.001],
 "1353mosH.derip.fits": [1279890136.720,1303730468.751]}
 
-def get_plot_data(mask, eccentricity, flatness, vol, galdim, tot_flux, peak_flux, pixel_percents):
+def get_plot_data(mask, root, eccentricity, flatness, vol, galdim, tot_flux, peak_flux, pixel_percents):
     print(mask)
-    tot_fluxes = [mask]
-    peak_fluxes = [mask]
-    eccentricities = [mask]
-    flatnesses = [mask]
-    vols = [mask]
-    galdims = [mask]
-    pixel_percent = [mask]
-    cube_data = fits.getdata("../data/training/Input/" + mask)
+    cube_data = fits.getdata(root + "Target/" + mask)
     shape_needed = cube_data.shape
-    new_mask = cube_data > 0
-    object_labels = label(new_mask)
+    object_labels = label(cube_data)
     # del new_mask
     # gc.collect()
     print(len(np.unique(object_labels)))
@@ -42,23 +34,24 @@ def get_plot_data(mask, eccentricity, flatness, vol, galdim, tot_flux, peak_flux
     del object_labels
     gc.collect()
     eigen_vals = [gal.inertia_tensor_eigvals for gal in some_props]
-    galdims += [gal.image.shape for gal in some_props]
+    galdims = [gal.image.shape for gal in some_props]
     bbs = [gal.bbox for gal in some_props]
     del some_props
     gc.collect()
 
-    tot_fluxes += [np.sum(cube_data[bbs[i][0]:bbs[i][3], bbs[i][1]:bbs[i][4], bbs[i][2]:bbs[i][5]])
+    tot_fluxes = [mask] + [np.sum(cube_data[bbs[i][0]:bbs[i][3], bbs[i][1]:bbs[i][4], bbs[i][2]:bbs[i][5]])
      for i in range(len(bbs))]
-    peak_fluxes += [np.max(np.sum(cube_data[bbs[i][0]:bbs[i][3], bbs[i][1]:bbs[i][4], bbs[i][2]:bbs[i][5]], axis=0))
+    peak_fluxes = [mask] + [np.max(np.sum(cube_data[bbs[i][0]:bbs[i][3], bbs[i][1]:bbs[i][4], bbs[i][2]:bbs[i][5]], axis=0))
      for i in range(len(bbs))]
     del cube_data
     gc.collect()
 
-    eccentricities += [e[0]/e[1] for e in eigen_vals]
-    flatnesses += [e[1]/e[2] for e in eigen_vals]
-    vols += [np.prod(gal) for gal in galdims]
-    pixel_percent += np.sum(vols)/np.prod(shape_needed)
-    
+    eccentricities = [mask] + [e[0]/e[1] for e in eigen_vals]
+    flatnesses = [mask] + [e[1]/e[2] for e in eigen_vals]
+    vols = [np.prod(gal) for gal in galdims]
+    gal_dims = [mask] + galdims
+    pixel_percent = [mask] + [np.sum(vols)/np.prod(shape_needed)]
+    vols = [mask] + vols
 
     tot_flux.append(tot_fluxes)
     peak_flux.append(peak_fluxes)
@@ -77,11 +70,11 @@ def main(root, output_dir):
     vol = []
     galdim = []
     pixel_percents = []
-    masks = [i for i in listdir(root+"Input")if ".fits" in i]
+    masks = [i for i in listdir(root+"Target")if ".fits" in i]
 
 
     for mask in masks:
-        get_plot_data(mask, eccentricity, flatness, vol, galdim, tot_flux, peak_flux, pixel_percents)
+        get_plot_data(mask, root, eccentricity, flatness, vol, galdim, tot_flux, peak_flux, pixel_percents)
     with open("../eccentricity.txt", "wb") as fp:
         pickle.dump(eccentricity, fp)
     with open("../flatness.txt", "wb") as fp:
