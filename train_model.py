@@ -13,40 +13,8 @@ from random import sample
 import random
 from scipy import ndimage as ndi
 import gc
+import pickle
 import numpy as np
-
-
-def split_data(cubes, direct, train_size, loaded, list_files):
-    inputs_train, inputs_valid, targets_train, targets_valid, inputs_test, targets_test = [], [], [], [], [], []
-    for cube in cubes:
-        if loaded:
-            noisey = [direct+x for x in list_files if cube in x and "seg" not in x]
-        else:
-            noisey = [x[0] for x in dataset_full.list if cube in x[0]]
-        
-        num_test_val = int(len(noisey)*(1 - train_size)/2)
-        num_train =int(len(noisey)*train_size)
-        random.shuffle(noisey)
-        inputs_tr = noisey[:num_train]
-        targets_tr = [i.split(".npy")[0]+"seg.npy" for i in inputs_tr]
-        inputs_v = noisey[num_train:num_train+num_test_val]
-        targets_v = [i.split(".npy")[0]+"seg.npy" for i in inputs_v]
-        inputs_te = noisey[num_train+num_test_val:num_train+2*num_test_val]
-        targets_te = [i.split(".npy")[0]+"seg.npy" for i in inputs_te]
-
-        inputs_train.append(inputs_tr)
-        inputs_valid.append(inputs_v)
-        inputs_test.append(inputs_te)
-        targets_train.append(targets_tr)
-        targets_valid.append(targets_v)
-        targets_test.append(targets_te)
-    inputs_train = [item for sublist in inputs_train for item in sublist]
-    inputs_valid = [item for sublist in inputs_valid for item in sublist]
-    inputs_test = [item for sublist in inputs_test for item in sublist]
-    targets_train = [item for sublist in targets_train for item in sublist]
-    targets_valid = [item for sublist in targets_valid for item in sublist]
-    targets_test = [item for sublist in targets_test for item in sublist]
-    return inputs_train, inputs_valid, inputs_test, targets_train, targets_valid, targets_test
 
 
 def main(
@@ -82,70 +50,60 @@ def main(
         The training and validation data loaders
     """
     # input and target files
-    print(loaded)
     model_name = model
-    if loaded:
-        print("LOADING DATA...")
-        list_files = listdir(root+"generated"+"/_vol_128x128x64_"+scale)
-        cubes = np.unique([i.split("_subcube")[0]+"_" for i in list_files])
-    else:
-        print("CREATING DATA...")
-        inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
-        targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
-        dataset_full = SegmentationDataSet(inputs=inputs,
-                                            targets=targets,
-                                            dims=dims,
-                                            overlaps=overlaps,
-                                            load=False,
-                                            root=root,
-                                            scale=scale)
+    inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
+    targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
+    dataset_full = SegmentationDataSet(inputs=inputs,
+                                        targets=targets,
+                                        dims=dims,
+                                        overlaps=overlaps,
+                                        load=loaded,
+                                        root=root)
         
-        list_files = listdir(root+"generated"+"/_vol_128x128x64_"+scale)
-        cubes = np.unique([i[0].split(dataset_full.sub_vol_path)[-1].split("_subcube")[0]+"_" for i in dataset_full.list])
-    cubes = sample(list(cubes), subsample)
-    direct = root+"generated"+"/_vol_128x128x64_"+scale+"/"
+    cubes = [i.split("/")[-1] for i in inputs]
+    cubes = sample(cubes, subsample)
     # For fold results
     results = {}
     print('--------------------------------')
     for k in range(k_folds):
         print('FOLD %s'%k)
         print('--------------------------------')
-        inputs_train, inputs_valid, inputs_test, targets_train, targets_valid, targets_test = split_data(
-            cubes, direct, train_size, loaded, list_files)
+        train_list, val_list, test_list = [], [], []
+        for cube in cubes:
+            file_list = [i for i in dataset_full.list if cube in i[0][0]]
+            random.shuffle(file_list)
+            file_list = file_list[:10]
+            num_test_val = int(len(file_list)*(1 - train_size)/2)
+            num_train =int(len(file_list)*train_size)
+            train_list +=(file_list[:num_train])
+            val_list +=(file_list[num_train:num_train+num_test_val])
+            test_list +=(file_list[num_train+num_test_val:num_train+2*num_test_val])
         # dataset training
-        dataset_train = SegmentationDataSet(inputs=inputs_train,
-                                            targets=targets_train,
+        dataset_train = SegmentationDataSet(inputs=inputs,
+                                            targets=targets,
                                             dims=dims,
                                             overlaps=overlaps,
                                             load=True,
                                             root=root,
-                                            mode="train",
-                                            scale=scale)
+                                            list=train_list)
 
         # dataset validation
-        dataset_valid = SegmentationDataSet(inputs=inputs_valid,
-                                            targets=targets_valid,
+        dataset_valid = SegmentationDataSet(inputs=inputs,
+                                            targets=targets,
                                             dims=dims,
                                             overlaps=overlaps,
                                             load=True,
                                             root=root,
-                                            mode="val",
-                                            scale=scale)
+                                            list=val_list)
 
         # dataset validation
-        dataset_test = SegmentationDataSet(inputs=inputs_test,
-                                            targets=targets_test,
+        dataset_test = SegmentationDataSet(inputs=inputs,
+                                            targets=targets,
                                             dims=dims,
                                             overlaps=overlaps,
                                             load=True,
                                             root=root,
-                                            mode="test",
-                                            scale=scale)
-        del inputs_train
-        del inputs_valid
-        del targets_train
-        del targets_valid
-        gc.collect()
+                                            list=test_list)
         now = datetime.now() # current date and time
         date_str = now.strftime("%d%m%Y_%H%M%S")
         save = ('./saved_models/fold_' + str(k) + '_checkpoints/' + model_name + '_', dataset_name + "_" + date_str)[0]
@@ -160,6 +118,7 @@ def main(
         dataloader_test = DataLoader(dataset=dataset_test, **params)
         del dataset_train
         del dataset_valid
+        del dataset_test
         gc.collect()
         model, optimizer = create_model(args)
         criterion = DiceLoss(classes=args.classes)
@@ -177,19 +136,23 @@ def main(
         print("START TRAINING...")
         trainer.training()
 
+        # Save list of testing cubes for comparison later
+        with open("/".join(save.split("/")[:3]) + "/test_list.txt", "wb") as fp:
+            pickle.dump(test_list, fp)
+
         # Evaluationfor this fold
-        dice_losses, total = 0, 0
+        dice_losses, total = 0, 1
         model.eval()
         with torch.no_grad():
             for batch_idx, input_tuple in enumerate(dataloader_test):
                 input_tensor, target = input_tuple
                 out_cube = model.inference(input_tensor)# Grab in numpy array
                 out_np = out_cube.squeeze()[0].numpy()
-                target_np = target.squeeze()[0].numpy()
+                target_np = target.squeeze().numpy()
                 # Turn probabilities to mask
                 smoothed_gal = ndi.gaussian_filter(out_np, sigma=2)
                 # Relabel each object seperately
-                t = np.abs(np.mean(smoothed_gal))- np.std(smoothed_gal)
+                t = np.nanmean(smoothed_gal) + np.nanstd(smoothed_gal)
                 new_mask = (smoothed_gal > t)
                 intersection = np.nansum(np.logical_and(target_np, new_mask).astype(int))
                 if np.nansum(target_np) == np.nansum(new_mask) == 0:
@@ -198,7 +161,7 @@ def main(
                     union = np.nansum(target_np) + np.nansum(new_mask)
                     dice = (2*intersection)/(union)
                 total += batch_idx
-                dice_losses += dice
+                dice_losses += 100.0*dice
 
             # Print accuracy
             print('Average dice loss for fold ', k , ":", (100.0*dice_losses/total), "%")
@@ -213,7 +176,7 @@ def main(
         sum += value
     av = sum/len(results.items())
     print('Average: ', av, "%")
-    return av
+    return
 
 
 if __name__ == "__main__":

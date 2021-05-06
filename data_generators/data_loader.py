@@ -6,7 +6,7 @@ from astropy.visualization import ZScaleInterval
 from torch.utils.data import DataLoader
 from random import sample
 from sklearn.model_selection import train_test_split
-from skimage.util.shape import view_as_windows
+from numpy.lib.stride_tricks import as_strided
 import pathlib
 import argparse
 from os import listdir
@@ -26,43 +26,32 @@ class SegmentationDataSet(Dataset):
                  dims=[128, 128, 64],
                  overlaps=[15, 20, 20],
                  load=False,
-                 root='../HISourceFinder/data/training/',
-                 mode="train",
-                 scale="loud"
+                 root='./data/training/',
+                 list = [],
+                 arr_shape=(1800, 2400, 652)
                  ):
-        self.list = []
+        self.list = list
         self.inputs = inputs
         self.targets = targets
-        self.inputs_dtype = torch.float32
-        self.targets_dtype = torch.long
+        self.inputs_dtype = np.float32
+        self.targets_dtype = np.long
         self.dims = dims
         self.overlaps = overlaps
-        self.mode = mode
         self.root = root
-        self.scale = scale
-        self.save_name = self.root + 'hisource-list-' + self.mode + '-slidingwindow.txt'
+        self.arr_shape = arr_shape
+        self.save_name = self.root + 'hisource-list-slidingwindowindices.txt'
         if load:
             ## load pre-generated data
-            self.list = [(inputs[i], targets[i]) for i in range(len(inputs))]
+            # self.list = [(inputs[i], targets[i]) for i in range(len(inputs))]
+            if len(self.list) > 0:
+                return
+            with open(self.save_name, "rb") as fp:
+                list_file = pickle.load(fp)
+                self.list = list_file
             return
 
-        subvol = '_vol_' + str(dims[0]) + 'x' + str(dims[1]) + 'x' + str(dims[2]) + "_" + self.scale
-        self.sub_vol_path = self.root + '/generated/' + subvol + '/'
-        if os.path.exists(self.sub_vol_path):
-            shutil.rmtree(self.sub_vol_path)
-            os.mkdir(self.sub_vol_path)
-        else:
-            os.makedirs(self.sub_vol_path)
-        ################ SLIDING WINDOW ######################
-        for index in range(len(self.inputs)):
-            input_ID = self.inputs[index]
-            target_ID = self.targets[index]
-            filename = self.sub_vol_path + 'cube_' + str(index) +"_subcube_"
-            list_saved_cubes = save_sliding_window(input_ID, dims, overlaps, filename, seg=False)
-            print("saved %s cubes"%len(list_saved_cubes))
-            list_saved_masks = save_sliding_window(target_ID, dims, overlaps, filename, seg=True)
-            print("saved %s masks"%len(list_saved_masks))
-            self.list += [(x, y) for x, y in zip(list_saved_cubes, list_saved_masks)]
+        for f_in, f_tar in zip(self.inputs, self.targets):
+            self.list += save_sliding_window(self.arr_shape, self.dims, self.overlaps, f_in, f_tar)
         # Save list of subcubes
         with open(self.save_name, "wb") as fp:
             pickle.dump(self.list, fp)
@@ -72,33 +61,30 @@ class SegmentationDataSet(Dataset):
 
     def __getitem__(self,
                     index: int):
-        # Select the sample
-        input_path, seg_path = self.list[index]
-        x, y = np.load(input_path), np.load(seg_path)
-        return torch.FloatTensor(x).unsqueeze(0), torch.FloatTensor(y).unsqueeze(0)
+        # Select the sample and prepare
+        interval = ZScaleInterval()
+        cube_files, x, y, z = self.list[index]
+        subcube = np.moveaxis(fits.getdata(cube_files[0]), 0, 2)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
+        # Get rid of nans in corners and Z scale normalise between 0 and 1 
+        dat = interval(np.nan_to_num(subcube, np.mean(subcube)))
+        seg_dat = np.moveaxis(fits.getdata(cube_files[1]), 0, 2)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
+        return torch.FloatTensor(dat.astype(self.inputs_dtype)).unsqueeze(0), torch.FloatTensor(seg_dat.astype(self.targets_dtype)).unsqueeze(0)
 
 
-def save_sliding_window(input_ID, dims, overlaps, filename, seg=False):
-    cube_data = np.moveaxis(fits.getdata(input_ID), 0, 2)
-    arr_out = view_as_windows(cube_data, dims, np.array(dims)-np.array(overlaps))
-    x,y,z = arr_out.shape[:3]
+def save_sliding_window(arr_shape, dims, overlaps, f_in, f_tar):
+    x, y, z =(((np.array(arr_shape) - np.array(dims))
+                      // np.array(np.array(dims)-np.array(overlaps))) + 1)
+
+    sliding_window_indices = []
     count = 0
-    filelist = []
-    interval = ZScaleInterval()
     for i in range(x):
         for j in range(y):
             for k in range(z):
-                subcube = arr_out[i, j, k, :, :, :]
-                # Get rid of nans in corners
-                no_nans = np.nan_to_num(subcube, np.mean(subcube))
-                # Z scale normalise between 0 and 1  
-                scaled = interval(no_nans)
-                if seg:
-                    filesave = filename + str(count) + 'seg.npy'
-                else:
-                    filesave = filename + str(count) + '.npy'
-                np.save(filesave, scaled)
-                filelist.append(filesave)
+                x1, x2 = dims[0]*i-overlaps[0]*i, dims[0]*(i+1)-overlaps[0]*i
+                y1, y2 = dims[1]*j-overlaps[1]*j, dims[1]*(j+1)-overlaps[1]*j
+                z1, z2 = dims[2]*k-overlaps[2]*k, dims[2]*(k+1)-overlaps[2]*k
+                sliding_window_indices.append(([f_in, f_tar], [x1, x2], [y1, y2], [z1, z2]))
                 count += 1
                 print("\r", count*100/(x*y*z), end="")
-    return filelist
+    print()
+    return sliding_window_indices
