@@ -72,7 +72,7 @@ def main(
         for cube in cubes:
             file_list = [i for i in dataset_full.list if cube in i[0][0]]
             random.shuffle(file_list)
-            file_list = file_list[:10]
+            # file_list = file_list[:10]
             num_test_val = int(len(file_list)*(1 - train_size)/2)
             num_train =int(len(file_list)*train_size)
             train_list +=(file_list[:num_train])
