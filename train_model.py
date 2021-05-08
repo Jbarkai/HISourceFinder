@@ -21,7 +21,7 @@ def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
     random_seed, train_size, loaded, model, opt, lr, inChannels,
     classes, log_dir, dataset_name, terminal_show_freq, nEpochs,
-    cuda, scale, subsample, k_folds):
+    cuda, scale, subsample, k_folds, load_test):
     """Create training and validation datasets
 
     Args:
@@ -49,6 +49,11 @@ def main(
     Returns:
         The training and validation data loaders
     """
+    now = datetime.now() # current date and time
+    date_str = now.strftime("%d%m%Y_%H%M%S")
+    save = "./saved_models/"
+    if not os.path.exists(save):
+        os.mkdir(save)
     # input and target files
     model_name = model
     inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
@@ -62,22 +67,37 @@ def main(
         
     cubes = [i.split("/")[-1] for i in inputs]
     cubes = sample(cubes, subsample)
+    dataset_full.list = dataset_full.list[:10]
+    # Get test set for all folds
+    if load_test:
+        with open(save+"test_list.txt", "rb") as fp:
+            test_list = pickle.load(fp)
+    else:
+        test_list = []
+        for cube in cubes:
+            file_list = [i for i in dataset_full.list if cube in i[0][0]]
+            num_test_val = int(len(file_list)*(1 - train_size)/2)
+            random.shuffle(file_list)
+            test_list += file_list[:num_test_val]
+            # Save list of testing cubes for comparison later
+        with open(save+"test_list.txt", "wb") as fp:
+            pickle.dump(test_list, fp)
+    dataset_full.list = [x for x in dataset_full.list if x not in test_list]
     # For fold results
     results = {}
     print('--------------------------------')
     for k in range(k_folds):
         print('FOLD %s'%k)
         print('--------------------------------')
-        train_list, val_list, test_list = [], [], []
+        args.save = (save + 'fold_' + str(k) + '_checkpoints/' + model_name + '_', dataset_name + "_" + date_str)[0]
+        train_list, val_list = [], []
         for cube in cubes:
             file_list = [i for i in dataset_full.list if cube in i[0][0]]
             random.shuffle(file_list)
-            # file_list = file_list[:10]
             num_test_val = int(len(file_list)*(1 - train_size)/2)
             num_train =int(len(file_list)*train_size)
             train_list +=(file_list[:num_train])
             val_list +=(file_list[num_train:num_train+num_test_val])
-            test_list +=(file_list[num_train+num_test_val:num_train+2*num_test_val])
         # dataset training
         dataset_train = SegmentationDataSet(inputs=inputs,
                                             targets=targets,
@@ -104,9 +124,6 @@ def main(
                                             load=True,
                                             root=root,
                                             list=test_list)
-        now = datetime.now() # current date and time
-        date_str = now.strftime("%d%m%Y_%H%M%S")
-        save = ('./saved_models/fold_' + str(k) + '_checkpoints/' + model_name + '_', dataset_name + "_" + date_str)[0]
         # dataloader training
         params = {'batch_size': batch_size,
                 'shuffle': shuffle,
@@ -122,12 +139,6 @@ def main(
         gc.collect()
         model, optimizer = create_model(args)
         criterion = DiceLoss(classes=args.classes)
-        if os.path.exists(save):
-            shutil.rmtree(save)
-            os.mkdir(save)
-        else:
-            os.makedirs(save)
-        args.save = save
         trainer = Trainer(args, model, criterion, optimizer, train_data_loader=dataloader_training,
                                 valid_data_loader=dataloader_validation, lr_scheduler=None)
         del dataloader_training
@@ -135,10 +146,6 @@ def main(
         gc.collect()
         print("START TRAINING...")
         trainer.training()
-
-        # Save list of testing cubes for comparison later
-        with open("/".join(save.split("/")[:3]) + "/test_list.txt", "wb") as fp:
-            pickle.dump(test_list, fp)
 
         # Evaluationfor this fold
         dice_losses, total = 0, 1
@@ -248,6 +255,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--k_folds', type=int, nargs='?', const='default', default=5,
         help='Number of folds for k folds cross-validations')
+    parser.add_argument(
+        '--load_test', type=bool, nargs='?', const='default', default=False,
+        help='Whether to load the list of test data')
     args = parser.parse_args()
 
     main(
@@ -255,4 +265,4 @@ if __name__ == "__main__":
         args.overlaps, args.root, args.random_seed, args.train_size, args.loaded,
         args.model, args.opt, args.lr, args.inChannels, args.classes,
         args.log_dir, args.dataset_name, args.terminal_show_freq,
-        args.nEpochs, args.cuda, args.scale, args.subsample, args.k_folds)
+        args.nEpochs, args.cuda, args.scale, args.subsample, args.k_folds, args.load_test)
