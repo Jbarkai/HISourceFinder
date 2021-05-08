@@ -67,7 +67,7 @@ def main(
         
     cubes = [i.split("/")[-1] for i in inputs]
     cubes = sample(cubes, subsample)
-    dataset_full.list = dataset_full.list[:10]
+    # dataset_full.list = dataset_full.list[:10]
     # Get test set for all folds
     if load_test:
         with open(save+"test_list.txt", "rb") as fp:
