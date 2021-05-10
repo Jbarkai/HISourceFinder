@@ -51,7 +51,7 @@ def main(
     """
     now = datetime.now() # current date and time
     date_str = now.strftime("%d%m%Y_%H%M%S")
-    save = "./saved_models/"
+    save = "./saved_models_%s/"%date_str
     if not os.path.exists(save):
         os.mkdir(save)
     # input and target files
@@ -177,12 +177,12 @@ def main(
     # Print fold results
     print('K-FOLD CROSS VALIDATION RESULTS FOR %s FOLDS'%k_folds)
     print('--------------------------------')
-    sum = 0.0
     for key, value in results.items():
         print('Fold ', key, ":", value, " %")
-        sum += value
-    av = sum/len(results.items())
+    av = np.mean([i for i in results.values()])
+    std = np.std([i for i in results.values()])
     print('Average: ', av, "%")
+    print('Standard Deviation: ', std, "%")
     return
 
 
