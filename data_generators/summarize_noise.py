@@ -9,8 +9,8 @@ def get_vals(noise_data, tot_flux, peak_flux, eccentricity, flatness):
     y = np.random.randint(0, noise_data.shape[1]-20)
     z = np.random.randint(0, noise_data.shape[2]-20)
     subcube = noise_data[x:x+15, y:y+20, z:z+20]
-    if not np.isnan(subcube).all():
-        subcube[np.where(subcube > np.mean(subcube)+3*np.std(subcube))] = 0
+    if not np.isnan(subcube).any():
+        subcube[np.where(subcube > np.mean(subcube)+np.std(subcube))] = np.mean(subcube)
         tot_flux += [np.nansum(subcube)]
         peak_flux += [np.nanmax(np.nansum(subcube, axis=0))]
         some_props = skmeas.regionprops((subcube*0+1).astype(int))[0]
