@@ -51,7 +51,7 @@ def main(
     """
     now = datetime.now() # current date and time
     date_str = now.strftime("%d%m%Y_%H%M%S")
-    save = "./saved_models_%s/"%date_str
+    save = "./saved_models_%s_%s/"%(date_str, scale)
     if not os.path.exists(save):
         os.mkdir(save)
     # input and target files
