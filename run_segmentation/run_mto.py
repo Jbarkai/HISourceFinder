@@ -12,7 +12,7 @@ def mto_eval(index, test_list, mto_dir):
     interval = ZScaleInterval()
     subcube = fits.getdata("." + cube_files[0])[[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
     # Get rid of nans in corners and Z scale normalise between 0 and 1 
-    dat = interval(np.nan_to_num(subcube, np.mean(subcube)))
+    dat = np.nan_to_num(subcube, np.nanmean(subcube))
     # Save as fits file
     subcube_file = mto_dir + "/subcube_" + str(index) + ".fits"
     fits.writeto(subcube_file, dat, overwrite=True)
