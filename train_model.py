@@ -148,8 +148,9 @@ def main(
         trainer.training()
 
         # Evaluationfor this fold
-        dice_losses, total = 0, 1
         model.eval()
+        intersections = 0
+        all_or = 0
         with torch.no_grad():
             for batch_idx, input_tuple in enumerate(dataloader_test):
                 input_tensor, target = input_tuple
@@ -161,19 +162,18 @@ def main(
                 # Relabel each object seperately
                 t = np.nanmean(smoothed_gal) + np.nanstd(smoothed_gal)
                 new_mask = (smoothed_gal > t)
-                intersection = np.nansum(np.logical_and(target_np, new_mask).astype(int))
-                if np.nansum(target_np) == np.nansum(new_mask) == 0:
-                    dice = 1
-                else:
-                    union = np.nansum(target_np) + np.nansum(new_mask)
-                    dice = (2*intersection)/(union)
-                total += batch_idx
-                dice_losses += 100.0*dice
-
+                gt = (target_np).flatten().tolist()
+                pred = (new_mask).flatten().tolist()
+                intersections += np.nansum(np.logical_and(gt, pred).astype(int))
+                all_or += np.nansum(seg_dat) + np.nansum(mto_ouput)
+            dice_losses = 2*intersections/all_or
             # Print accuracy
-            print('Average dice loss for fold ', k , ":", (100.0*dice_losses/total), "%")
+            print('Total dice loss for fold ', k , ":", (100.0*dice_losses), "%")
             print('--------------------------------')
-            results[k] = 100.0 * (dice_losses / total)
+            results[k] = 100.0*dice_losses
+    
+    with open(save + "vnet_dice.txt", "wb") as fp:
+        pickle.dump(results, fp)
     # Print fold results
     print('K-FOLD CROSS VALIDATION RESULTS FOR %s FOLDS'%k_folds)
     print('--------------------------------')
