@@ -51,6 +51,14 @@ def main(
     """
     now = datetime.now() # current date and time
     date_str = now.strftime("%d%m%Y_%H%M%S")
+    with open(save+"params.txt", "wb") as fp:
+        pickle.dump([{
+            "scale": scale,
+            "subsample": subsample,
+            "opt":opt,
+            "lr": lr,
+            "batch_size": batch_size
+        }], fp)
     save = "./saved_models_%s_%s/"%(date_str, scale)
     if not os.path.exists(save):
         os.mkdir(save)
@@ -155,7 +163,7 @@ def main(
             for batch_idx, input_tuple in enumerate(dataloader_test):
                 input_tensor, target = input_tuple
                 out_cube = model.inference(input_tensor)# Grab in numpy array
-                out_np = out_cube.squeeze()[0].numpy()
+                out_np = out_cube.squeeze()[1].numpy()
                 target_np = target.squeeze().numpy()
                 # Turn probabilities to mask
                 smoothed_gal = ndi.gaussian_filter(out_np, sigma=2)
