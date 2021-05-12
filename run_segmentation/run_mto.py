@@ -8,45 +8,46 @@ import numpy as np
 
 
 def mto_eval(index, test_list, mto_dir):
-    cube_files, z, x, y = test_list[index]
+    cube_files, x, y, z = test_list[index]
     interval = ZScaleInterval()
-    subcube = fits.getdata(cube_files[0])[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
+    subcube = fits.getdata("." + cube_files[0])[[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
     # Get rid of nans in corners and Z scale normalise between 0 and 1 
     dat = interval(np.nan_to_num(subcube, np.mean(subcube)))
     # Save as fits file
-    subcube_file = (mto_dir + "/subcube_" + str(index))[0]
+    subcube_file = mto_dir + "/subcube_" + str(index) + ".fits"
     fits.writeto(subcube_file, dat, overwrite=True)
     # Run MTO on subcube
-    os.system('%s 1 16 "%s" 1 "" "" 32 1 test 1'%(mto_dir, subcube_file))
+    os.system('%s/mto-lvq 1 16 "%s" 1 "" "" 32 1 test 1 > test_list.log'%(mto_dir, subcube_file))
     # Load MTO output
-    mto_ouput = fits.getdata(mto_dir+"segmcube.fits")
+    mto_ouput = fits.getdata(mto_dir+"/segmcube.fits")
     # Convert it to binary
     mto_ouput[mto_ouput > 0] = 1
     # Delete outputted fits file
     os.remove(subcube_file)
+    os.system("rm -r ./test_*.png")
     # Load ground truth
-    seg_dat = fits.getdata(cube_files[1])[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
-    intersection = np.nansum(np.logical_and(seg_dat, mto_ouput).astype(int))
-    if np.nansum(seg_dat) == np.nansum(mto_ouput) == 0:
-        dice = 1
-    else:
-        union = np.nansum(seg_dat) + np.nansum(mto_ouput)
-        dice = (2*intersection)/(union)
-    return dice
+    seg_dat = fits.getdata("." + cube_files[1])[[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
+    gt = (seg_data).flatten().tolist()
+    pred = (mto_ouput).flatten().tolist()
+    intersection = np.nansum(np.logical_and(gt, pred).astype(int))
+    union_or = np.nansum(seg_dat) + np.nansum(mto_ouput)
+    return intersection, union_or
 
 
-def main(mto_dir, ):
+def main(mto_dir, test_file):
     # Load test data
     with open(test_file, "rb") as fp:
         test_list = pickle.load(fp)
-    dice_losses = []
+    intersections = 0
+    all_or = 0
     for index in range(len(test_list)):
-        dice = mto_eval(index, test_list, mto_dir)
-        dice_losses += [100.0*dice]
-    with open("mto_dice.txt", "wb") as fp:
-        pickle.dump(dice_losses, fp)
-    print('Average: ', np.mean(dice_losses), "%")
-    print('Standard Deviation: ', np.std(dice_losses), "%")
+        results = mto_eval(index, test_list, mto_dir)
+        intersections += results[0]
+        all_or += results[1]
+    tot_dice_loss = 2*intersections/all_or
+    # with open("mto_dice.txt", "wb") as fp:
+    #     pickle.dump(tot_dice_loss, fp)
+    print('Total Dice Loss: ', 100*tot_dice_loss, "%")
     return
 
 
