@@ -29,7 +29,7 @@ def mto_eval(index, test_list, mto_dir):
     gt = (seg_dat).flatten().tolist()
     pred = (mto_ouput).flatten().tolist()
     intersection = np.nansum(np.logical_and(gt, pred).astype(int))
-    union_or = np.nansum(seg_dat) + np.nansum(mto_ouput)
+    union_or = np.nansum(gt) + np.nansum(pred)
     return intersection, union_or
 
 

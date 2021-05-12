@@ -165,7 +165,7 @@ def main(
                 gt = (target_np).flatten().tolist()
                 pred = (new_mask).flatten().tolist()
                 intersections += np.nansum(np.logical_and(gt, pred).astype(int))
-                all_or += np.nansum(seg_dat) + np.nansum(mto_ouput)
+                all_or += np.nansum(gt) + np.nansum(pred)
             dice_losses = 2*intersections/all_or
             # Print accuracy
             print('Total dice loss for fold ', k , ":", (100.0*dice_losses), "%")
