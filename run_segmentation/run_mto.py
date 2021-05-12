@@ -45,8 +45,9 @@ def main(mto_dir, test_file):
         intersections += results[0]
         all_or += results[1]
     tot_dice_loss = 2*intersections/all_or
-    # with open("mto_dice.txt", "wb") as fp:
-    #     pickle.dump(tot_dice_loss, fp)
+    output_file = test_file.split("/")[-2] + "/" + "mto_dice.txt"
+    with open(output_file, "wb") as fp:
+        pickle.dump(tot_dice_loss, fp)
     print('Total Dice Loss: ', 100*tot_dice_loss, "%")
     return
 
