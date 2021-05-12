@@ -10,7 +10,7 @@ import numpy as np
 def mto_eval(index, test_list, mto_dir):
     cube_files, x, y, z = test_list[index]
     interval = ZScaleInterval()
-    subcube = fits.getdata("." + cube_files[0])[[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
+    subcube = fits.getdata("." + cube_files[0])[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
     # Get rid of nans in corners and Z scale normalise between 0 and 1 
     dat = np.nan_to_num(subcube, np.nanmean(subcube))
     # Save as fits file
@@ -24,10 +24,9 @@ def mto_eval(index, test_list, mto_dir):
     mto_ouput[mto_ouput > 0] = 1
     # Delete outputted fits file
     os.remove(subcube_file)
-    os.system("rm -r ./test_*.png")
     # Load ground truth
-    seg_dat = fits.getdata("." + cube_files[1])[[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
-    gt = (seg_data).flatten().tolist()
+    seg_dat = fits.getdata("." + cube_files[1])[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
+    gt = (seg_dat).flatten().tolist()
     pred = (mto_ouput).flatten().tolist()
     intersection = np.nansum(np.logical_and(gt, pred).astype(int))
     union_or = np.nansum(seg_dat) + np.nansum(mto_ouput)
@@ -41,6 +40,7 @@ def main(mto_dir, test_file):
     intersections = 0
     all_or = 0
     for index in range(len(test_list)):
+        print("\r", index*100/len(test_list), end="")
         results = mto_eval(index, test_list, mto_dir)
         intersections += results[0]
         all_or += results[1]
