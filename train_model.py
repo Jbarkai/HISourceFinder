@@ -139,8 +139,6 @@ def main(
         dataloader_training = DataLoader(dataset=dataset_train, **params)
         # dataloader validation
         dataloader_validation = DataLoader(dataset=dataset_valid, **params)
-        # dataloader test
-        dataloader_test = DataLoader(dataset=dataset_test, **params)
         del dataset_train
         del dataset_valid
         del dataset_test
@@ -157,12 +155,18 @@ def main(
 
         # Evaluationfor this fold
         model.eval()
+        # dataloader training
+        params = {'batch_size': 1,
+                'shuffle': shuffle,
+                'num_workers': num_workers}
+        # dataloader test
+        dataloader_test = DataLoader(dataset=dataset_test, **params)
         intersections = 0
         all_or = 0
         with torch.no_grad():
             for batch_idx, input_tuple in enumerate(dataloader_test):
                 input_tensor, target = input_tuple
-                out_cube = model.inference(input_tensor)# Grab in numpy array
+                out_cube = model.inference(input_tensor)
                 out_np = out_cube.squeeze()[1].numpy()
                 target_np = target.squeeze().numpy()
                 # Turn probabilities to mask
