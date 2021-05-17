@@ -51,6 +51,9 @@ def main(
     """
     now = datetime.now() # current date and time
     date_str = now.strftime("%d%m%Y_%H%M%S")
+    save = "./saved_models_%s_%s_%s/"%(date_str, scale, subsample)
+    if not os.path.exists(save):
+        os.mkdir(save)
     with open(save+"params.txt", "wb") as fp:
         pickle.dump([{
             "scale": scale,
@@ -59,12 +62,10 @@ def main(
             "lr": lr,
             "batch_size": batch_size
         }], fp)
-    save = "./saved_models_%s_%s/"%(date_str, scale)
-    if not os.path.exists(save):
-        os.mkdir(save)
     # input and target files
     model_name = model
     inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
+    inputs = sample(inputs, subsample)
     targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
     dataset_full = SegmentationDataSet(inputs=inputs,
                                         targets=targets,
@@ -74,8 +75,9 @@ def main(
                                         root=root)
         
     cubes = [i.split("/")[-1] for i in inputs]
-    cubes = sample(cubes, subsample)
+    # cubes = sample(cubes, subsample)
     # dataset_full.list = dataset_full.list[:10]
+    print(len(dataset_full.list))
     # Get test set for all folds
     if load_test:
         with open(save+"test_list.txt", "rb") as fp:
@@ -141,7 +143,6 @@ def main(
         dataloader_validation = DataLoader(dataset=dataset_valid, **params)
         del dataset_train
         del dataset_valid
-        del dataset_test
         gc.collect()
         model, optimizer = create_model(args)
         criterion = DiceLoss(classes=args.classes)
