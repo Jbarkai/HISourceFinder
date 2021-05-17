@@ -13,6 +13,9 @@ from cube_functions import add_to_cube
 import gc
 
 
+def remove_real_sources(noise_data):
+    return
+
 
 def create_fake_cube(noise_file, gal_dir, out_dir, min_gal=200, max_gal=500):
     """Create fake noise cube and outputs fits files
