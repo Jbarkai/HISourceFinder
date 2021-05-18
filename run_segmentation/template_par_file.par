@@ -15,7 +15,7 @@ pipeline.threads           =  0
 
 # Input
 
-input.data                 =  
+input.data                 =  ../data/mosaics/1245mosC.derip.fits
 input.region               =  
 input.gain                 =  
 input.noise                =  
@@ -45,10 +45,10 @@ contsub.padding            =  3
 
 # Noise scaling
 
-scaleNoise.enable          =  false
+scaleNoise.enable          =  true
 scaleNoise.mode            =  spectral
 scaleNoise.statistic       =  mad
-scaleNoise.fluxRange       =  negative
+scaleNoise.fluxRange       =  all
 scaleNoise.windowXY        =  25
 scaleNoise.windowZ         =  15
 scaleNoise.gridXY          =  0
@@ -73,10 +73,10 @@ rippleFilter.interpolate   =  false
 scfind.enable              =  true
 scfind.kernelsXY           =  0, 3, 6
 scfind.kernelsZ            =  0, 3, 7, 15
-scfind.threshold           =  5.0
+scfind.threshold           =  3.5
 scfind.replacement         =  2.0
 scfind.statistic           =  mad
-scfind.fluxRange           =  negative
+scfind.fluxRange           =  all
 
 
 # Threshold finder
@@ -91,21 +91,21 @@ threshold.fluxRange        =  negative
 # Linker
 
 linker.enable              =  true
-linker.radiusXY            =  1
-linker.radiusZ             =  1
-linker.minSizeXY           =  5
-linker.minSizeZ            =  5
-linker.maxSizeXY           =  0
-linker.maxSizeZ            =  0
+linker.radiusXY            =  3
+linker.radiusZ             =  3
+linker.minSizeXY           =  3
+linker.minSizeZ            =  2
+linker.maxSizeXY           =  -1
+linker.maxSizeZ            =  -1
 linker.positivity          =  false
 linker.keepNegative        =  false
 
 
 # Reliability
 
-reliability.enable         =  false
+reliability.enable         =  true
 reliability.threshold      =  0.9
-reliability.scaleKernel    =  0.4
+reliability.scaleKernel    =  0.5
 reliability.minSNR         =  3.0
 reliability.catalog        =  
 reliability.plot           =  true
@@ -117,7 +117,7 @@ reliability.debug          =  false
 dilation.enable            =  false
 dilation.iterationsXY      =  10
 dilation.iterationsZ       =  5
-dilation.threshold         =  0.001
+dilation.threshold         =  0.02
 
 
 # Parameterisation
@@ -131,14 +131,14 @@ parameter.offset           =  false
 
 # Output
 
-output.directory           =  
-output.filename            =  
+output.directory           =  ../data/sofia_output
+output.filename            =  sofia_1245mosC.fits
 output.writeCatASCII       =  true
-output.writeCatXML         =  true
+output.writeCatXML         =  false
 output.writeCatSQL         =  false
 output.writeNoise          =  false
 output.writeFiltered       =  false
-output.writeMask           =  false
+output.writeMask           =  true
 output.writeMask2d         =  false
 output.writeRawMask        =  false
 output.writeMoments        =  false
