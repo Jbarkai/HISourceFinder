@@ -19,9 +19,9 @@ import numpy as np
 
 def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
-    random_seed, train_size, loaded, model, opt, lr, inChannels,
+    random_seed, train_size, model, opt, lr, inChannels,
     classes, log_dir, dataset_name, terminal_show_freq, nEpochs,
-    cuda, scale, subsample, k_folds, load_test):
+    cuda, scale, subsample, k_folds):
     """Create training and validation datasets
 
     Args:
@@ -44,7 +44,6 @@ def main(
         nEpochs (int): The number of epochs
         scale (str): Loud or soft - S-N ratio
         subsample (int): Size of subset
-        loaded (bool): Whether to load pre-generated data
 
     Returns:
         The training and validation data loaders
@@ -176,9 +175,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train model",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--loaded', type=bool, nargs='?', const='default', default=False,
-        help='Whether to load pre-generated data')
-    parser.add_argument(
         '--batch_size', type=int, nargs='?', const='default', default=4,
         help='Batch size')
     parser.add_argument(
@@ -241,14 +237,11 @@ if __name__ == "__main__":
     parser.add_argument(
         '--k_folds', type=int, nargs='?', const='default', default=5,
         help='Number of folds for k folds cross-validations')
-    parser.add_argument(
-        '--load_test', type=bool, nargs='?', const='default', default=False,
-        help='Whether to load the list of test data')
     args = parser.parse_args()
 
     main(
         args.batch_size, args.shuffle, args.num_workers, args.dims,
-        args.overlaps, args.root, args.random_seed, args.train_size, args.loaded,
+        args.overlaps, args.root, args.random_seed, args.train_size,
         args.model, args.opt, args.lr, args.inChannels, args.classes,
         args.log_dir, args.dataset_name, args.terminal_show_freq,
-        args.nEpochs, args.cuda, args.scale, args.subsample, args.k_folds, args.load_test)
+        args.nEpochs, args.cuda, args.scale, args.subsample, args.k_folds)

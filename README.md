@@ -32,7 +32,49 @@ Install the required packages.
 ```bash
 pip --cache-dir /tmp/pipcache install -r requirements.txt
 ```
-
+## Data Directory Structure
+The data directories need to be created as follows, but only the fits files of the synthetic galaxies under `mock_gals` and the noisy mosaic fits files under `mosaics` need to be there to start, the rest will be created by the scripts below.
+```
+data 
+│
+└───mock_gals
+│   │   g1_model474.fits
+│   │   g1_model475.fits
+│   │   ...
+└───mosaics
+│   │   1245mosB.derip.fits
+│   │   1245mosC.derip.fits
+│   │   ...
+└───mto_output
+│   │   file011.txt
+│   │   file012.txt
+└───sofia_ouput
+│   │   sofia_loud_1245mosC_mask.fits
+│   │   sofia_loud_1245mosC_rel.eps
+│   └───sofia_loud_1245mosC_cubelets
+│       │   noisefree_1245mosB.fits
+│       │   noisefree_1245mosC.fits
+│       │   ...
+│   ...
+│   │   ...
+└───training
+│   └───Input
+│       │   noisefree_1245mosB.fits
+│       │   noisefree_1245mosC.fits
+│       │   ...
+│   └───Target
+│       │   mask_1245mosB.fits
+│       │   mask_1245mosC.fits
+│       │   ...
+│   └───loudInput
+│       │   loud_1245mosB.fits
+│       │   loud_1245mosC.fits
+│       │   ...
+│   └───softInput
+│       │   soft_1245mosB.fits
+│       │   soft_1245mosC.fits
+│       │   ...
+```
 ## Usage
 ### Create Mock Cubes (all scripts in data_generators/)
 1. Create the noise-free cubes and their masks by inserting 200-500 random smoothed and resampled mock galaxies randomly into a random noise-free equivalent of the mosaiced cubes.
@@ -63,7 +105,7 @@ optional arguments:
                         Directory to output plots to (default: ../plots/)
   --root [ROOT]         The root directory of the data (default: ../data/training/)
 ```
-3. Scale noise-free cubes and add to noise cubes:
+3. Scale noise-free cubes, add to noise cubes and replace missing values with gaussian noise:
 ```bash
 usage: scale_cubes.py [-h] [--filename [FILENAME]] [--scale [SCALE]]
 
@@ -72,40 +114,16 @@ Scale cubes
 optional arguments:
   -h, --help            show this help message and exit
   --filename [FILENAME]
-                        Filename (default: loud)
-  --scale [SCALE]       Scaling amount (default: noisefree_1245mosB.fits)
-```
-4. Run data loader to create training and validation sets, each of dimension 128x128x64 made with a sliding window iwth an overlap chosen to include the average size of a galaxy.
-```bash
-usage: data_loader.py [-h] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
-                      [--random_seed [RANDOM_SEED]] [--scale [SCALE]] [--train_size [TRAIN_SIZE]]
-
-Create training and validation datasets
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --batch_size [BATCH_SIZE]
-                        Batch size (default: 4)
-  --shuffle [SHUFFLE]   Whether or not to shuffle the train/val split (default: True)
-  --num_workers [NUM_WORKERS]
-                        The number of workers to use (default: 2)
-  --dims [DIMS]         The dimensions of the subcubes (default: [128, 128, 64])
-  --overlaps [OVERLAPS]
-                        The dimensions of the overlap of subcubes (default: [15, 20, 20])
-  --root [ROOT]         The root directory of the data (default: ../HISourceFinder/data/training/)
-  --random_seed [RANDOM_SEED]
-                        Random Seed (default: 42)
-  --scale [SCALE]       The scale of inserted galaxies to noise (default: loud)
-  --train_size [TRAIN_SIZE]
-                        Ratio of training to validation split (default: 0.8)
+                        Filename (default: noisefree_1245mosB.fits)
+  --scale [SCALE]       Scaling amount (default: loud)
 ```
 ### Train V-Net
-Train model on subcubes created from sliding window.
+Train model on subcubes created from sliding windows, each of dimension 128x128x64.
 ```bash
-usage: train_model.py [-h] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
-                      [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]]
-                      [--inModalities [INMODALITIES]] [--classes [CLASSES]] [--log_dir [LOG_DIR]] [--dataset_name [DATASET_NAME]]
-                      [--terminal_show_freq [TERMINAL_SHOW_FREQ]] [--nEpochs [NEPOCHS]] [--scale [SCALE]] [--subsample [SUBSAMPLE]] [--cuda [CUDA]]
+usage: train_model.py [-h] [--loaded [LOADED]] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
+                      [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--log_dir [LOG_DIR]]
+                      [--dataset_name [DATASET_NAME]] [--terminal_show_freq [TERMINAL_SHOW_FREQ]] [--nEpochs [NEPOCHS]] [--scale [SCALE]] [--subsample [SUBSAMPLE]] [--cuda [CUDA]]
+                      [--k_folds [K_FOLDS]] [--load_test [LOAD_TEST]]
 
 Train model
 
@@ -119,31 +137,36 @@ optional arguments:
   --dims [DIMS]         The dimensions of the subcubes (default: [128, 128, 64])
   --overlaps [OVERLAPS]
                         The dimensions of the overlap of subcubes (default: [15, 20, 20])
-  --root [ROOT]         The root directory of the data (default: ../HISourceFinder/data/training/)
+  --root [ROOT]         The root directory of the data (default: ./data/training/)
   --random_seed [RANDOM_SEED]
                         Random Seed (default: 42)
   --train_size [TRAIN_SIZE]
-                        Ratio of training to validation split (default: 0.6)
+                        Ratio of training to validation split (default: 0.8)
   --model [MODEL]       The 3D segmentation model to use (default: VNET)
-  --opt [OPT]           The type of optimizer (default: sgd)
+  --opt [OPT]           The type of optimizer (default: adam)
   --lr [LR]             The learning rate (default: 0.001)
   --inChannels [INCHANNELS]
                         The desired modalities/channels that you want to use (default: 1)
-  --inModalities [INMODALITIES]
-                        The desired number of modalities (default: 1)
-  --classes [CLASSES]   The number of classes (default: 1)
+  --classes [CLASSES]   The number of classes (default: 2)
   --log_dir [LOG_DIR]   The directory to output the logs (default: ./runs/)
   --dataset_name [DATASET_NAME]
                         The name of the dataset (default: hi_source)
   --terminal_show_freq [TERMINAL_SHOW_FREQ]
-                        The maximum number of galaxies to insert (default: 50)
+                        Show when to print progress (default: 500)
   --nEpochs [NEPOCHS]   The number of epochs (default: 10)
-  --scale [SCALE]       The scale of inserted galaxies to noise (default: loud)
+  --scale [SCALE]       The scale of inserted galaxies to noise (default: )
   --subsample [SUBSAMPLE]
-                        The size of subset to train on (default: 5)
+                        The size of subset to train on (default: 10)
   --cuda [CUDA]         Memory allocation (default: False)
+  --k_folds [K_FOLDS]   Number of folds for k folds cross-validations (default: 5)
 ```
-
+## Run SoFiA on cubes
+1. Install SoFiA from [here](https://github.com/SoFiA-Admin/SoFiA-2), the installation guide can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki).
+2. Make sure to edit the parameter files accordingly for each cube, an explanation of the parameters can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki/SoFiA-2-Control-Parameters).
+3. Run sofia on data cubes
+```bash
+sofia <parameter_file>
+```
 ## Install and Train LVQ with MTO
 Fork and then clone repository.
 ```bash
@@ -182,7 +205,7 @@ usage: ./mt-objects <nthreads> <levels> <input> <lambda>
 ```
 
 ## Compare methods
-Use the dice loss to compare the segmentation methods:
+Use the F1-score to compare the 3 segmentation methods:
 ```bash
 usage: compare_methods.py [-h] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--dataset_name [DATASET_NAME]]
                           [--save [SAVE]] [--pretrained [PRETRAINED]] [--cuda [CUDA]] [--test_dir [TEST_DIR]]
