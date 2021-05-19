@@ -11,6 +11,7 @@ from medzoo_imports import create_model, DiceLoss, Trainer
 from datetime import datetime
 from random import sample
 import random
+import copy
 from scipy import ndimage as ndi
 import gc
 import pickle
@@ -63,33 +64,21 @@ def main(
         }], fp)
     # input and target files
     model_name = model
-    inputs_test = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if "_1245mos" in x]
-    # inputs_train = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if "_1353mos" in x]
-    inputs_test = sample(inputs_test, subsample)
-    inputs_train = [root+scale+'Input/' + scale + '_1353mos' + x.split("mos")[-1] for x in inputs_test]
-    targets_test = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs_test]
-    targets_train = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs_train]
-    dataset_train_val = SegmentationDataSet(inputs=inputs_train,
-                                        targets=targets_train,
+    inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
+    targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
+    dataset_full = SegmentationDataSet(inputs=inputs,
+                                        targets=targets,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=False,
                                         root=root,
-                                        mode="train_val",
+                                        mode="full",
                                         save_name=save)
     # dataset validation
-    dataset_test = SegmentationDataSet(inputs=inputs_test,
-                                        targets=targets_test,
-                                        dims=dims,
-                                        overlaps=overlaps,
-                                        load=False,
-                                        root=root,
-                                        mode="test", 
-                                        save_name=save)
-    # dataset_train_val.list = dataset_train_val.list[:10]
+    dataset_test = copy.deepcopy(dataset_full)
+    dataset_test.list = [i for i in dataset_full.list if "_1245mos" in i[0][0]]
     # dataset_test.list = dataset_test.list[:10]
-    print(len(dataset_train_val.list))
-    cubes = [i.split("/")[-1] for i in inputs_train]
+    print(len(dataset_test.list))
+    cubes = [i.split("/")[-1] for i in inputs if "_1353mos" in i]
     # For fold results
     results = {}
     print('--------------------------------')
@@ -99,19 +88,20 @@ def main(
         args.save = (save + 'fold_' + str(k) + '_checkpoints/' + model_name + '_', dataset_name + "_" + date_str)[0]
         train_list, val_list = [], []
         for cube in cubes:
-            file_list = [i for i in dataset_train_val.list if cube in i[0][0]]
+            file_list = [i for i in dataset_full.list if cube in i[0][0]]
             random.shuffle(file_list)
-
             num_val = int(len(file_list)*(1 - train_size))
             num_train =int(len(file_list)*train_size)
             train_list +=(file_list[:num_train])
             val_list +=(file_list[num_train:num_train+num_val])
         # dataset training
-        dataset_train = dataset_train_val
+        dataset_train = copy.deepcopy(dataset_full)
         dataset_train.list = train_list
         # dataset validation
-        dataset_valid = dataset_train_val
+        dataset_valid = copy.deepcopy(dataset_full)
         dataset_valid.list = val_list
+        # dataset_train.list = dataset_train.list[:10]
+        # dataset_valid.list = dataset_valid.list[:10]
         # dataloader training
         params = {'batch_size': batch_size,
                 'shuffle': shuffle,

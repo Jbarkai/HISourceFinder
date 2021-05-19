@@ -24,7 +24,6 @@ class SegmentationDataSet(Dataset):
                  targets: list, # list of mask paths
                  dims=[128, 128, 64],
                  overlaps=[15, 20, 20],
-                 load=False,
                  root='./data/training/',
                  arr_shape=(1800, 2400, 652),
                  mode="train_val",
@@ -50,9 +49,7 @@ class SegmentationDataSet(Dataset):
         #         list_file = pickle.load(fp)
         #         self.list = list_file
         #     return
-        print(inputs)
         for f_in, f_tar in zip(self.inputs, self.targets):
-            print(f_in, f_tar)
             self.list += save_sliding_window(self.arr_shape, self.dims, self.overlaps, f_in, f_tar)
         # Save list of subcubes
         with open(self.save_name, "wb") as fp:
