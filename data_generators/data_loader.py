@@ -66,9 +66,9 @@ class SegmentationDataSet(Dataset):
         cube_files, x, y, z = self.list[index]
         subcube = np.moveaxis(fits.getdata(cube_files[0]), 0, 2)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
         # Get rid of nans in corners and Z scale normalise between 0 and 1 
-        dat = interval(np.nan_to_num(subcube, np.mean(subcube)))
+        # dat = interval(np.nan_to_num(subcube, np.mean(subcube)))
         seg_dat = np.moveaxis(fits.getdata(cube_files[1]), 0, 2)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
-        return torch.FloatTensor(dat.astype(self.inputs_dtype)).unsqueeze(0), torch.FloatTensor(seg_dat.astype(self.targets_dtype)).unsqueeze(0)
+        return torch.FloatTensor(subcube.astype(self.inputs_dtype)).unsqueeze(0), torch.FloatTensor(seg_dat.astype(self.targets_dtype)).unsqueeze(0)
 
 
 def save_sliding_window(arr_shape, dims, overlaps, f_in, f_tar):
