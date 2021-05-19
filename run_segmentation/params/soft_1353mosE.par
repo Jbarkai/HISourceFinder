@@ -15,7 +15,7 @@ pipeline.threads           =  10
 
 # Input
 
-input.data                 =  ../data/training/loudInput/loud_1245mosC.fits
+input.data                 =  ../data/training/loudInput/loud_1353mosE.fits
 input.region               =  
 input.gain                 =  
 input.noise                =  
@@ -132,7 +132,7 @@ parameter.offset           =  false
 # Output
 
 output.directory           =  ../data/sofia_output
-output.filename            =  sofia_loud_1245mosC.fits
+output.filename            =  sofia_loud_1353mosE.fits
 output.writeCatASCII       =  true
 output.writeCatXML         =  false
 output.writeCatSQL         =  false
