@@ -33,6 +33,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--scale', type=str, nargs='?', const='default', default='loud',
         help='Scaling amount')
+    parser.add_argument(
+        '--outputfile', type=str, nargs='?', const='default', default='./data/training/Input/loud_1245mosB.fits',
+        help='Output file')
     args = parser.parse_args()
 
     main(args.filename, args.scale)
