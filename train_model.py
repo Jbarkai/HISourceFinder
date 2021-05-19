@@ -87,10 +87,10 @@ def main(
                                         root=root,
                                         mode="test", 
                                         save_name=save)
-    dataset_train_val.list = dataset_train_val.list[:10]
-    dataset_test.list = dataset_test.list[:10]
+    # dataset_train_val.list = dataset_train_val.list[:10]
+    # dataset_test.list = dataset_test.list[:10]
     print(len(dataset_train_val.list))
-    cubes = [i.split("/")[-1] for i in dataset_train_val.list]
+    cubes = [i.split("/")[-1] for i in inputs_train]
     # For fold results
     results = {}
     print('--------------------------------')
