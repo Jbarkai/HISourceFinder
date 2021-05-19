@@ -46,8 +46,9 @@ data
 │   │   1245mosC.derip.fits
 │   │   ...
 └───mto_output
-│   │   file011.txt
-│   │   file012.txt
+│   │   mto_testcube_mask.fits
+│   │   mto_output.fits
+│   │   ...
 └───sofia_ouput
 │   │   sofia_loud_1245mosC_mask.fits
 │   │   sofia_loud_1245mosC_rel.eps
