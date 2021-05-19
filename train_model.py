@@ -76,9 +76,23 @@ def main(
     # dataset validation
     dataset_test = copy.deepcopy(dataset_full)
     dataset_test.list = [i for i in dataset_full.list if "_1245mos" in i[0][0]]
+    if subsample < 14:
+        test_cubes = [i.split("/")[-1] for i in inputs if "_1245mos" in i]
+        test_cubes = sample(test_cubes, subsample)
+        dataset_test.list = [j for j in dataset_test.list if j[0][0].split("/")[-1] in test_cubes]
+    print(len(dataset_test.list))
+    params = {'batch_size': 1,
+            'shuffle': shuffle,
+            'num_workers': num_workers}
+    # dataloader test
+    dataloader_test = DataLoader(dataset=dataset_test, **params)
+    with open(save+'test--hisource-list-slidingwindowindices.txt', "wb") as fp:
+        pickle.dump(dataset_test.list, fp)
     # dataset_test.list = dataset_test.list[:10]
     print(len(dataset_test.list))
     cubes = [i.split("/")[-1] for i in inputs if "_1353mos" in i]
+    if subsample < 14:
+        cubes = sample(cubes, subsample)
     # For fold results
     results = {}
     print('--------------------------------')
@@ -90,8 +104,10 @@ def main(
         for cube in cubes:
             file_list = [i for i in dataset_full.list if cube in i[0][0]]
             random.shuffle(file_list)
+            print(len(file_list))
             num_val = int(len(file_list)*(1 - train_size))
             num_train =int(len(file_list)*train_size)
+            print(num_train, num_val)
             train_list +=(file_list[:num_train])
             val_list +=(file_list[num_train:num_train+num_val])
         # dataset training
@@ -109,6 +125,7 @@ def main(
         dataloader_training = DataLoader(dataset=dataset_train, **params)
         # dataloader validation
         dataloader_validation = DataLoader(dataset=dataset_valid, **params)
+        print(dataloader_training.__len__(), dataloader_validation.__len__(), dataloader_test.__len__())
         model, optimizer = create_model(args)
         criterion = DiceLoss(classes=args.classes)
         trainer = Trainer(args, model, criterion, optimizer, train_data_loader=dataloader_training,
@@ -118,12 +135,6 @@ def main(
 
         # Evaluationfor this fold
         model.eval()
-        # dataloader training
-        params = {'batch_size': 1,
-                'shuffle': shuffle,
-                'num_workers': num_workers}
-        # dataloader test
-        dataloader_test = DataLoader(dataset=dataset_test, **params)
         intersections = 0
         all_or = 0
         with torch.no_grad():
