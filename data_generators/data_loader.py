@@ -30,7 +30,7 @@ class SegmentationDataSet(Dataset):
                  mode="train_val",
                  save_name="../saved_models/"
                  ):
-        self.list = list
+        self.list = []
         self.inputs = inputs
         self.targets = targets
         self.inputs_dtype = np.float32
@@ -41,16 +41,16 @@ class SegmentationDataSet(Dataset):
         self.mode = mode
         self.arr_shape = arr_shape
         self.save_name = save_name + self.mode + '-hisource-list-slidingwindowindices.txt'
-        if load:
-            ## load pre-generated data
-            # self.list = [(inputs[i], targets[i]) for i in range(len(inputs))]
-            if len(self.list) > 0:
-                return
-            with open(self.save_name, "rb") as fp:
-                list_file = pickle.load(fp)
-                self.list = list_file
-            return
-
+        # if load:
+        #     ## load pre-generated data
+        #     # self.list = [(inputs[i], targets[i]) for i in range(len(inputs))]
+        #     if len(self.list) > 0:
+        #         return
+        #     with open(self.save_name, "rb") as fp:
+        #         list_file = pickle.load(fp)
+        #         self.list = list_file
+        #     return
+        print(inputs)
         for f_in, f_tar in zip(self.inputs, self.targets):
             print(f_in, f_tar)
             self.list += save_sliding_window(self.arr_shape, self.dims, self.overlaps, f_in, f_tar)
