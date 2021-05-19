@@ -2,7 +2,6 @@ import torch
 from skimage.io import imread
 from torch.utils.data import Dataset
 from astropy.io import fits
-from astropy.visualization import ZScaleInterval
 from torch.utils.data import DataLoader
 from random import sample
 from sklearn.model_selection import train_test_split
@@ -28,7 +27,8 @@ class SegmentationDataSet(Dataset):
                  load=False,
                  root='./data/training/',
                  list = [],
-                 arr_shape=(1800, 2400, 652)
+                 arr_shape=(1800, 2400, 652),
+                 mode="train_val"
                  ):
         self.list = list
         self.inputs = inputs
@@ -39,7 +39,7 @@ class SegmentationDataSet(Dataset):
         self.overlaps = overlaps
         self.root = root
         self.arr_shape = arr_shape
-        self.save_name = self.root + 'hisource-list-slidingwindowindices.txt'
+        self.save_name = self.root + self.mode + '/hisource-list-slidingwindowindices.txt'
         if load:
             ## load pre-generated data
             # self.list = [(inputs[i], targets[i]) for i in range(len(inputs))]
@@ -62,7 +62,6 @@ class SegmentationDataSet(Dataset):
     def __getitem__(self,
                     index: int):
         # Select the sample and prepare
-        interval = ZScaleInterval()
         cube_files, x, y, z = self.list[index]
         subcube = np.moveaxis(fits.getdata(cube_files[0]), 0, 2)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
         # Get rid of nans in corners and Z scale normalise between 0 and 1 

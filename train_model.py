@@ -64,35 +64,31 @@ def main(
         }], fp)
     # input and target files
     model_name = model
-    inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
-    inputs = sample(inputs, subsample)
-    targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
-    dataset_full = SegmentationDataSet(inputs=inputs,
-                                        targets=targets,
+    inputs_test = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if "_1245mos" in x]
+    inputs_train = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if "_1353mos" in x]
+    # inputs = sample(inputs, subsample)
+    targets_test = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs_test]
+    targets_train = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs_train]
+    dataset_train_val = SegmentationDataSet(inputs=inputs_train,
+                                        targets=targets_train,
                                         dims=dims,
                                         overlaps=overlaps,
-                                        load=loaded,
-                                        root=root)
+                                        load=False,
+                                        root=root,
+                                        mode="train_val")
+    # dataset validation
+    dataset_test = SegmentationDataSet(inputs=inputs_test,
+                                        targets=targets_test,
+                                        dims=dims,
+                                        overlaps=overlaps,
+                                        load=False,
+                                        root=root,
+                                        mode="test")
         
-    cubes = [i.split("/")[-1] for i in inputs]
+    cubes = [i.split("/")[-1] for i in targets_train]
     # cubes = sample(cubes, subsample)
     # dataset_full.list = dataset_full.list[:10]
-    print(len(dataset_full.list))
-    # Get test set for all folds
-    if load_test:
-        with open(save+"test_list.txt", "rb") as fp:
-            test_list = pickle.load(fp)
-    else:
-        test_list = []
-        for cube in cubes:
-            file_list = [i for i in dataset_full.list if cube in i[0][0]]
-            num_test_val = int(len(file_list)*(1 - train_size)/2)
-            random.shuffle(file_list)
-            test_list += file_list[:num_test_val]
-            # Save list of testing cubes for comparison later
-        with open(save+"test_list.txt", "wb") as fp:
-            pickle.dump(test_list, fp)
-    dataset_full.list = [x for x in dataset_full.list if x not in test_list]
+    print(len(dataset_train_val.list))
     # For fold results
     results = {}
     print('--------------------------------')
@@ -102,38 +98,19 @@ def main(
         args.save = (save + 'fold_' + str(k) + '_checkpoints/' + model_name + '_', dataset_name + "_" + date_str)[0]
         train_list, val_list = [], []
         for cube in cubes:
-            file_list = [i for i in dataset_full.list if cube in i[0][0]]
+            file_list = [i for i in dataset_train_val.list if cube in i[0][0]]
             random.shuffle(file_list)
-            num_test_val = int(len(file_list)*(1 - train_size)/2)
+
+            num_val = int(len(file_list)*(1 - train_size))
             num_train =int(len(file_list)*train_size)
             train_list +=(file_list[:num_train])
-            val_list +=(file_list[num_train:num_train+num_test_val])
+            val_list +=(file_list[num_train:num_train+num_val])
         # dataset training
-        dataset_train = SegmentationDataSet(inputs=inputs,
-                                            targets=targets,
-                                            dims=dims,
-                                            overlaps=overlaps,
-                                            load=True,
-                                            root=root,
-                                            list=train_list)
-
+        dataset_train = dataset_train_val
+        dataset_train.list = train_list
         # dataset validation
-        dataset_valid = SegmentationDataSet(inputs=inputs,
-                                            targets=targets,
-                                            dims=dims,
-                                            overlaps=overlaps,
-                                            load=True,
-                                            root=root,
-                                            list=val_list)
-
-        # dataset validation
-        dataset_test = SegmentationDataSet(inputs=inputs,
-                                            targets=targets,
-                                            dims=dims,
-                                            overlaps=overlaps,
-                                            load=True,
-                                            root=root,
-                                            list=test_list)
+        dataset_valid = dataset_train_val
+        dataset_valid.list = val_list
         # dataloader training
         params = {'batch_size': batch_size,
                 'shuffle': shuffle,
@@ -141,16 +118,10 @@ def main(
         dataloader_training = DataLoader(dataset=dataset_train, **params)
         # dataloader validation
         dataloader_validation = DataLoader(dataset=dataset_valid, **params)
-        del dataset_train
-        del dataset_valid
-        gc.collect()
         model, optimizer = create_model(args)
         criterion = DiceLoss(classes=args.classes)
         trainer = Trainer(args, model, criterion, optimizer, train_data_loader=dataloader_training,
                                 valid_data_loader=dataloader_validation, lr_scheduler=None)
-        del dataloader_training
-        del dataloader_validation
-        gc.collect()
         print("START TRAINING...")
         trainer.training()
 
@@ -227,7 +198,7 @@ if __name__ == "__main__":
         '--random_seed', type=int, nargs='?', const='default', default=42,
         help='Random Seed')
     parser.add_argument(
-        '--train_size', type=float, nargs='?', const='default', default=0.6,
+        '--train_size', type=float, nargs='?', const='default', default=0.8,
         help='Ratio of training to validation split')
     parser.add_argument(
         '--model', type=str, nargs='?', const='default', default='VNET',
