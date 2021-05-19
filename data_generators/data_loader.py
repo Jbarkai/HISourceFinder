@@ -28,7 +28,8 @@ class SegmentationDataSet(Dataset):
                  root='./data/training/',
                  list = [],
                  arr_shape=(1800, 2400, 652),
-                 mode="train_val"
+                 mode="train_val",
+                 save_name="../saved_models/"
                  ):
         self.list = list
         self.inputs = inputs
@@ -38,8 +39,9 @@ class SegmentationDataSet(Dataset):
         self.dims = dims
         self.overlaps = overlaps
         self.root = root
+        self.mode = mode
         self.arr_shape = arr_shape
-        self.save_name = self.root + self.mode + '/hisource-list-slidingwindowindices.txt'
+        self.save_name = save_name + self.mode + 'hisource-list-slidingwindowindices.txt'
         if load:
             ## load pre-generated data
             # self.list = [(inputs[i], targets[i]) for i in range(len(inputs))]

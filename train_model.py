@@ -65,8 +65,9 @@ def main(
     # input and target files
     model_name = model
     inputs_test = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if "_1245mos" in x]
-    inputs_train = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if "_1353mos" in x]
-    # inputs = sample(inputs, subsample)
+    # inputs_train = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if "_1353mos" in x]
+    inputs_test = sample(inputs_test, subsample)
+    inputs_train = [root+scale+'Input/' + scale + '_1353mos' + x.split("mos")[-1] for x in inputs_test]
     targets_test = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs_test]
     targets_train = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs_train]
     dataset_train_val = SegmentationDataSet(inputs=inputs_train,
@@ -75,7 +76,8 @@ def main(
                                         overlaps=overlaps,
                                         load=False,
                                         root=root,
-                                        mode="train_val")
+                                        mode="train_val",
+                                        save_name=save)
     # dataset validation
     dataset_test = SegmentationDataSet(inputs=inputs_test,
                                         targets=targets_test,
@@ -83,12 +85,12 @@ def main(
                                         overlaps=overlaps,
                                         load=False,
                                         root=root,
-                                        mode="test")
-        
-    cubes = [i.split("/")[-1] for i in targets_train]
-    # cubes = sample(cubes, subsample)
-    # dataset_full.list = dataset_full.list[:10]
+                                        mode="test", 
+                                        save_name=save)
+    dataset_train_val.list = dataset_train_val.list[:10]
+    dataset_test.list = dataset_test.list[:10]
     print(len(dataset_train_val.list))
+    cubes = [i.split("/")[-1] for i in dataset_train_val.list]
     # For fold results
     results = {}
     print('--------------------------------')
