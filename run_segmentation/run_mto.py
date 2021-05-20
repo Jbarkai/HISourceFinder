@@ -7,29 +7,31 @@ import numpy as np
 from scipy import ndimage as ndi
 
 
-def mto_eval(window, mto_dir, param_file, empty_arr):
+def mto_eval(window, mto_dir, param_file, empty_arr, index):
     cube_files, x, y, z = window
-    subcube = fits.getdata("." + cube_files[0])[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
+    subcube = fits.getdata(cube_files[0])[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
     # Smooth and clip
     smoothed_gal = ndi.gaussian_filter(subcube, sigma=3)
     smoothed_gal[smoothed_gal < 0] = 0
     # Save as fits file
-    subcube_file = mto_dir + "/subcube_" + cube_files[0].split("/")[-1]
-    maskcube_file = mto_dir + "/masksubcube_" + cube_files[0].split("/")[-1]
-    output_file = "data/mto_output/outputcube_" + cube_files[0].split("/")[-1]
+    subcube_file = mto_dir + "/subcube_" + str(index) + cube_files[0].split("/")[-1]
+    maskcube_file = mto_dir + "/masksubcube_" + str(index) + cube_files[0].split("/")[-1]
+    output_file = "data/mto_output/outputcube_" + str(index) + cube_files[0].split("/")[-1]
     fits.writeto(subcube_file, subcube, overwrite=True)
     fits.writeto(maskcube_file, smoothed_gal, overwrite=True)
     # Run MTO on subcube
-    os.system('%s/mtobjects %s %s %s %s'%(mto_dir, subcube_file, maskcube_file, param_file, output_file))
+    success = os.system('%s/mtobjects %s %s %s %s > data/mto_output/mto_output.log'%(mto_dir, subcube_file, maskcube_file, param_file, output_file))
     # Delete outputted fits file
     os.remove(subcube_file)
     os.remove(maskcube_file)
+    if success != 0:
+        return
     # Load MTO output
     mto_output = fits.getdata(output_file)
     os.remove(output_file)
     # Convert it to binary
     mto_output[mto_output > 0] = 1
-    empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]] = mto_output
+    empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]] = np.nanmean(np.array(empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]], mto_output), axis=0)
     return
 
 
@@ -45,8 +47,8 @@ def main(mto_dir, test_file, param_file):
         cube_list = [i for i in test_list if cube in i[0][0]]
         empty_arr = np.zeros((652, 1800, 2400))
         for index, window in enumerate(cube_list):
-            print("\r", index*100/len(cube_list), end="")
-            mto_eval(window, mto_dir, param_file, empty_arr)
+            print("\r", index*100/len(cube_list), "%", end="")
+            mto_eval(window, mto_dir, param_file, empty_arr, index)
         out_cube_file = "data/mto_output/mtocubeout_" + cube.split("/")[-1]
         fits.writeto(out_cube_file, empty_arr)
         # Load ground truth to evaluate
