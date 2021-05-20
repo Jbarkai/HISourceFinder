@@ -7,50 +7,58 @@ import numpy as np
 from scipy import ndimage as ndi
 
 
-def mto_eval(index, test_list, mto_dir, param_file):
-    cube_files, x, y, z = test_list[index]
+def mto_eval(window, mto_dir, param_file, empty_arr):
+    cube_files, x, y, z = window
     subcube = fits.getdata("." + cube_files[0])[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
+    # Smooth and clip
     smoothed_gal = ndi.gaussian_filter(subcube, sigma=3)
+    smoothed_gal[smoothed_gal < 0] = 0
     # Save as fits file
-    subcube_file = mto_dir + "/subcube_" + str(index) + ".fits"
-    maskcube_file = mto_dir + "/masksubcube_" + str(index) + ".fits"
-    output_file = mto_dir + "/outputcube_" + str(index) + ".fits"
+    subcube_file = mto_dir + "/subcube_" + cube_files[0].split("/")[-1]
+    maskcube_file = mto_dir + "/masksubcube_" + cube_files[0].split("/")[-1]
+    output_file = "data/mto_output/outputcube_" + cube_files[0].split("/")[-1]
     fits.writeto(subcube_file, subcube, overwrite=True)
-    fits.writeto(subcube_file, smoothed_gal, overwrite=True)
+    fits.writeto(maskcube_file, smoothed_gal, overwrite=True)
     # Run MTO on subcube
-    os.system('%s/mtobjects %s %s %s mto_%s'%(mto_dir, subcube_file, maskcube_file, param_file, output_file))
-    # Load MTO output
-    mto_ouput = fits.getdata("mto_%s"%output_file)
-    # Convert it to binary
-    mto_ouput[mto_ouput > 0] = 1
+    os.system('%s/mtobjects %s %s %s %s'%(mto_dir, subcube_file, maskcube_file, param_file, output_file))
     # Delete outputted fits file
     os.remove(subcube_file)
     os.remove(maskcube_file)
-    # Load ground truth
-    seg_dat = fits.getdata("." + cube_files[1])[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
-    gt = (seg_dat).flatten().tolist()
-    pred = (mto_ouput).flatten().tolist()
-    intersection = np.nansum(np.logical_and(gt, pred).astype(int))
-    union_or = np.nansum(gt) + np.nansum(pred)
-    return intersection, union_or
+    # Load MTO output
+    mto_output = fits.getdata(output_file)
+    os.remove(output_file)
+    # Convert it to binary
+    mto_output[mto_output > 0] = 1
+    empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]] = mto_output
+    return
 
 
 def main(mto_dir, test_file, param_file):
     # Load test data
     with open(test_file, "rb") as fp:
         test_list = pickle.load(fp)
-    intersections = 0
-    all_or = 0
-    for index in range(len(test_list)):
-        print("\r", index*100/len(test_list), end="")
-        results = mto_eval(index, test_list, mto_dir, param_file)
-        intersections += results[0]
-        all_or += results[1]
-    tot_dice_loss = 2*intersections/all_or
+    cubes = np.unique([i[0][0] for i in test_list])
+    masks = np.unique([i[0][1] for i in test_list])
+    tot_dice_loss = []
+    for cube, mask in zip(cubes, masks):
+        print(cube)
+        cube_list = [i for i in test_list if cube in i[0][0]]
+        empty_arr = np.zeros((652, 1800, 2400))
+        for index, window in enumerate(cube_list):
+            print("\r", index*100/len(cube_list), end="")
+            mto_eval(window, mto_dir, param_file, empty_arr)
+        out_cube_file = "data/mto_output/mtocubeout_" + cube.split("/")[-1]
+        fits.writeto(out_cube_file, empty_arr)
+        # Load ground truth to evaluate
+        gt = (fits.getdata(mask)).flatten().tolist()
+        pred = (empty_arr).flatten().tolist()
+        intersections = np.nansum(np.logical_and(gt, pred).astype(int))
+        all_or = np.nansum(gt) + np.nansum(pred)
+        tot_dice_loss += [2*intersections/all_or]
     output_file = test_file.split("/")[-2] + "/" + "mto_dice.txt"
     with open(output_file, "wb") as fp:
         pickle.dump(tot_dice_loss, fp)
-    print('Total Dice Loss: ', 100*tot_dice_loss, "%")
+    print('Total Dice Loss: ', 100*np.mean(tot_dice_loss), "%")
     return
 
 
