@@ -31,7 +31,7 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
     os.remove(output_file)
     # Convert it to binary
     mto_output[mto_output > 0] = 1
-    empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]] = np.nanmean(np.array([empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]], mto_output]), axis=0)
+    empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]] = np.nanmax(np.array([empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]], mto_output]), axis=0)
     return
 
 
