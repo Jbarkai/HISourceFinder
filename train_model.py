@@ -22,7 +22,7 @@ def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
     random_seed, train_size, model, opt, lr, inChannels,
     classes, log_dir, dataset_name, terminal_show_freq, nEpochs,
-    cuda, scale, subsample, k_folds):
+    cuda, scale, subsample, k_folds, pretrained):
     """Create training and validation datasets
 
     Args:
@@ -41,10 +41,12 @@ def main(
         classes (int): The number of classes
         log_dir (str): The directory to output the logs
         dataset_name (str): The name of the dataset
-        terminal_show_freq (int): 
+        terminal_show_freq (int): How often it shows the output
         nEpochs (int): The number of epochs
         scale (str): Loud or soft - S-N ratio
         subsample (int): Size of subset
+        k_folds (int): The number of folds for cross validation
+        pretrained (str): The location of the pretrained model
 
     Returns:
         The training and validation data loaders
@@ -64,6 +66,9 @@ def main(
         }], fp)
     # input and target files
     model_name = model
+    model, optimizer = create_model(args)
+    if pretrained:
+        model.restore_checkpoint(pretrained)
     inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
     targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
     dataset_full = SegmentationDataSet(inputs=inputs,
@@ -126,7 +131,6 @@ def main(
         # dataloader validation
         dataloader_validation = DataLoader(dataset=dataset_valid, **params)
         print(dataloader_training.__len__(), dataloader_validation.__len__(), dataloader_test.__len__())
-        model, optimizer = create_model(args)
         criterion = DiceLoss(classes=args.classes)
         trainer = Trainer(args, model, criterion, optimizer, train_data_loader=dataloader_training,
                                 valid_data_loader=dataloader_validation, lr_scheduler=None)
@@ -238,6 +242,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--k_folds', type=int, nargs='?', const='default', default=5,
         help='Number of folds for k folds cross-validations')
+    parser.add_argument(
+        '--pretrained', type=str, nargs='?', const='default', default=None,
+        help='The location of the pretrained model')
     args = parser.parse_args()
 
     main(
@@ -245,4 +252,5 @@ if __name__ == "__main__":
         args.overlaps, args.root, args.random_seed, args.train_size,
         args.model, args.opt, args.lr, args.inChannels, args.classes,
         args.log_dir, args.dataset_name, args.terminal_show_freq,
-        args.nEpochs, args.cuda, args.scale, args.subsample, args.k_folds)
+        args.nEpochs, args.cuda, args.scale, args.subsample, args.k_folds,
+        args.pretrained)
