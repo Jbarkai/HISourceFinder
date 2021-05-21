@@ -27,7 +27,8 @@ class SegmentationDataSet(Dataset):
                  root='./data/training/',
                  arr_shape=(1800, 2400, 652),
                  mode="train_val",
-                 save_name="../saved_models/"
+                 save_name="../saved_models/",
+                 load=False
                  ):
         self.list = []
         self.inputs = inputs
@@ -39,16 +40,14 @@ class SegmentationDataSet(Dataset):
         self.root = root
         self.mode = mode
         self.arr_shape = arr_shape
+        if load:
+            self.save_name = save_name
+            ## load pre-generated data
+            with open(self.save_name, "rb") as fp:
+                list_file = pickle.load(fp)
+                self.list = list_file
+            return
         self.save_name = save_name + self.mode + '-hisource-list-slidingwindowindices.txt'
-        # if load:
-        #     ## load pre-generated data
-        #     # self.list = [(inputs[i], targets[i]) for i in range(len(inputs))]
-        #     if len(self.list) > 0:
-        #         return
-        #     with open(self.save_name, "rb") as fp:
-        #         list_file = pickle.load(fp)
-        #         self.list = list_file
-        #     return
         for f_in, f_tar in zip(self.inputs, self.targets):
             self.list += save_sliding_window(self.arr_shape, self.dims, self.overlaps, f_in, f_tar)
         # Save list of subcubes

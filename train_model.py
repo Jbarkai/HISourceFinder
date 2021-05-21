@@ -133,42 +133,42 @@ def main(
         print("START TRAINING...")
         trainer.training()
 
-        # Evaluationfor this fold
-        model.eval()
-        intersections = 0
-        all_or = 0
-        with torch.no_grad():
-            for batch_idx, input_tuple in enumerate(dataloader_test):
-                input_tensor, target = input_tuple
-                out_cube = model.inference(input_tensor)
-                out_np = out_cube.squeeze()[1].numpy()
-                target_np = target.squeeze().numpy()
-                # Turn probabilities to mask
-                smoothed_gal = ndi.gaussian_filter(out_np, sigma=2)
-                # Relabel each object seperately
-                t = np.nanmean(smoothed_gal) + np.nanstd(smoothed_gal)
-                new_mask = (smoothed_gal > t)
-                gt = (target_np).flatten().tolist()
-                pred = (new_mask).flatten().tolist()
-                intersections += np.nansum(np.logical_and(gt, pred).astype(int))
-                all_or += np.nansum(gt) + np.nansum(pred)
-            dice_losses = 2*intersections/all_or
-            # Print accuracy
-            print('Total dice loss for fold ', k , ":", (100.0*dice_losses), "%")
-            print('--------------------------------')
-            results[k] = 100.0*dice_losses
+        # Evaluation for this fold
+    #     model.eval()
+    #     intersections = 0
+    #     all_or = 0
+    #     with torch.no_grad():
+    #         for batch_idx, input_tuple in enumerate(dataloader_test):
+    #             input_tensor, target = input_tuple
+    #             out_cube = model.inference(input_tensor)
+    #             out_np = out_cube.squeeze()[1].numpy()
+    #             target_np = target.squeeze().numpy()
+    #             # Turn probabilities to mask
+    #             smoothed_gal = ndi.gaussian_filter(out_np, sigma=2)
+    #             # Relabel each object seperately
+    #             t = np.nanmean(smoothed_gal) + np.nanstd(smoothed_gal)
+    #             new_mask = (smoothed_gal > t)
+    #             gt = (target_np).flatten().tolist()
+    #             pred = (new_mask).flatten().tolist()
+    #             intersections += np.nansum(np.logical_and(gt, pred).astype(int))
+    #             all_or += np.nansum(gt) + np.nansum(pred)
+    #         dice_losses = 2*intersections/all_or
+    #         # Print accuracy
+    #         print('Total dice loss for fold ', k , ":", (100.0*dice_losses), "%")
+    #         print('--------------------------------')
+    #         results[k] = 100.0*dice_losses
     
-    with open(save + "vnet_dice.txt", "wb") as fp:
-        pickle.dump(results, fp)
-    # Print fold results
-    print('K-FOLD CROSS VALIDATION RESULTS FOR %s FOLDS'%k_folds)
-    print('--------------------------------')
-    for key, value in results.items():
-        print('Fold ', key, ":", value, " %")
-    av = np.mean([i for i in results.values()])
-    std = np.std([i for i in results.values()])
-    print('Average: ', av, "%")
-    print('Standard Deviation: ', std, "%")
+    # with open(save + "vnet_dice.txt", "wb") as fp:
+    #     pickle.dump(results, fp)
+    # # Print fold results
+    # print('K-FOLD CROSS VALIDATION RESULTS FOR %s FOLDS'%k_folds)
+    # print('--------------------------------')
+    # for key, value in results.items():
+    #     print('Fold ', key, ":", value, " %")
+    # av = np.mean([i for i in results.values()])
+    # std = np.std([i for i in results.values()])
+    # print('Average: ', av, "%")
+    # print('Standard Deviation: ', std, "%")
     return
 
 
