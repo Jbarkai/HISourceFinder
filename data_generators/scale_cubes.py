@@ -15,11 +15,11 @@ def main(filename, scale):
     hdul.close()
     dx = np.abs(hdr["CDELT1"]*u.deg)
     sigma_x = (dx/np.sqrt(8*np.log(2))).to(u.deg).value
-    noise_data = hdul[0].data
-    if scale == "soft":
-        cube_data += noise_data*1e-1
-    elif scale == "loud":
-        cube_data += noise_data*4e-1
+    # noise_data = hdul[0].data
+    # if scale == "soft":
+    #     cube_data += noise_data*1e-1
+    # elif scale == "loud":
+    #     cube_data += noise_data*4e-1
     noise_corner = np.random.normal(scale=sigma_x, size=cube_data.shape)
     cube_data[np.isnan(cube_data)] = noise_corner[np.isnan(cube_data)]
     fits.writeto("./data/training/"+scale+"Input/"+scale+"_"+filename.split("_")[-1], cube_data, header=hdr, overwrite=True)
