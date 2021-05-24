@@ -48,7 +48,7 @@ contsub.padding            =  3
 scaleNoise.enable          =  true
 scaleNoise.mode            =  spectral
 scaleNoise.statistic       =  mad
-scaleNoise.fluxRange       =  all
+scaleNoise.fluxRange       =  full
 scaleNoise.windowXY        =  25
 scaleNoise.windowZ         =  15
 scaleNoise.gridXY          =  0
@@ -76,7 +76,7 @@ scfind.kernelsZ            =  0, 2, 4, 8, 0, 2, 4, 8
 scfind.threshold           =  3.5
 scfind.replacement         =  2.0
 scfind.statistic           =  mad
-scfind.fluxRange           =  all
+scfind.fluxRange           =  full
 
 
 # Threshold finder
@@ -95,7 +95,7 @@ linker.radiusXY            =  3
 linker.radiusZ             =  3
 linker.minSizeXY           =  3
 linker.minSizeZ            =  2
-linker.maxSizeXY           =  -1
+linker.maxSizeXY           =  0
 linker.maxSizeZ            =  300
 linker.positivity          =  false
 linker.keepNegative        =  false
