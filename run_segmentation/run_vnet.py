@@ -37,8 +37,9 @@ def main(args, test_file):
         print(cube)
         cube_list = [i for i in test_list if cube in i[0][0]]
         empty_arr = vnet_eval(cube_list, model)
-        out_cube_file = "data/sofia_output/sofia_cubeout_" + cube.split("/")[-1]
-        fits.writeto(out_cube_file, empty_arr)
+        binary_im = empty_arr > 0
+        out_cube_file = "data/vnet_output/vnet_cubeout_" + cube.split("/")[-1]
+        fits.writeto(out_cube_file, binary_im)
     return
 
 
@@ -61,7 +62,7 @@ if __name__ == "__main__":
         '--classes', type=int, nargs='?', const='default', default=2,
         help='The number of classes')
     parser.add_argument(
-        '--pretrained', type=str, nargs='?', const='default', default=None,
+        '--pretrained', type=str, nargs='?', const='default', default="saved_models/fold_0_checkpoints/VNET_/VNET__BEST.pth",
         help='The location of the pretrained model')
     parser.add_argument(
         '--test_file', type=str, nargs='?', const='default', default="../HISourceFinder/saved_models/test_list.txt",

@@ -70,6 +70,7 @@ def main(mto_dir, param_file, input_dir):
             mto_eval(window, mto_dir, param_file, empty_arr, index)
         out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
         fits.writeto(out_cube_file, empty_arr)
+        os.system("zip %s %s"%(out_cube_file.replace(".fits", ".zip"), out_cube_file))
     return
 
 
