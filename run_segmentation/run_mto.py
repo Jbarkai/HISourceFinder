@@ -6,7 +6,7 @@ from astropy.io import fits
 import numpy as np
 from scipy import ndimage as ndi
 
-def save_sliding_window(arr_shape, dims, overlaps, f_in, f_tar):
+def save_sliding_window(arr_shape, dims, overlaps, f_in):
     x, y, z =(((np.array(arr_shape) - np.array(dims))
                       // np.array(np.array(dims)-np.array(overlaps))) + 1)
 
@@ -18,7 +18,7 @@ def save_sliding_window(arr_shape, dims, overlaps, f_in, f_tar):
                 x1, x2 = dims[0]*i-overlaps[0]*i, dims[0]*(i+1)-overlaps[0]*i
                 y1, y2 = dims[1]*j-overlaps[1]*j, dims[1]*(j+1)-overlaps[1]*j
                 z1, z2 = dims[2]*k-overlaps[2]*k, dims[2]*(k+1)-overlaps[2]*k
-                sliding_window_indices.append(([f_in, f_tar], [x1, x2], [y1, y2], [z1, z2]))
+                sliding_window_indices.append(([f_in], [x1, x2], [y1, y2], [z1, z2]))
                 count += 1
                 print("\r", count*100/(x*y*z), end="")
     print()
@@ -55,16 +55,15 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
     return
 
 
-def main(mto_dir, param_file, input_dir, target_dir):
+def main(mto_dir, param_file, input_dir):
     # Load test data
     arr_shape = (652, 1800, 2400)
-    dims = [163, 450, 600]
+    dims = [652, 450, 600]
     overlaps = [20, 15, 20]
     cubes = [x for x in listdir(input_dir) if ".fits" in x]
-    masks = [x.split("/")[0] + 'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in cubes]
-    for f_in, f_tar in zip(cubes, masks):
+    for f_in in cubes:
         print(f_in)
-        cube_list = save_sliding_window(arr_shape, dims, overlaps, f_in, f_tar)
+        cube_list = save_sliding_window(arr_shape, dims, overlaps, f_in)
         empty_arr = np.zeros(arr_shape)
         for index, window in enumerate(cube_list):
             print("\r", index*100/len(cube_list), "%", end="")
@@ -78,12 +77,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run MTO",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--mto_dir', type=str, nargs='?', const='default', default="./mto-lvq",
-        help='The directory where MTO lives')
+        '--mto_dir', type=str, nargs='?', const='default', default="../mtobjects",
+        help='The directory of the MTO executable')
     parser.add_argument(
-        '--param_file', type=str, nargs='?', const='default', default="../HISourceFinder/saved_models/test_list.txt",
-        help='The file listing the test sliding window pieces')
+        '--param_file', type=str, nargs='?', const='default', default="../mtobjects/radio_smoothed-00_F.txt",
+        help='The parameter file')
+    parser.add_argument(
+        '--input_dir', type=str, nargs='?', const='default', default="data/training/loudInput",
+        help='The directory of the input data')
     args = parser.parse_args()
 
-    main(args.mto_dir, args.param_file)
+    main(args.mto_dir, args.param_file, args.input_dir)
 

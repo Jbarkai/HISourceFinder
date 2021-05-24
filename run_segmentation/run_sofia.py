@@ -17,7 +17,7 @@ def main(sofia_loc, cube_dir, param_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run MTO",
+    parser = argparse.ArgumentParser(description="Run SoFiA",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--sofia_loc', type=str, nargs='?', const='default', default="/net/blaauw/data2/users/vdhulst/SoFiA-2/sofia",
