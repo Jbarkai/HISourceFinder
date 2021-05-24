@@ -60,7 +60,7 @@ def main(mto_dir, param_file, input_dir):
     arr_shape = (652, 1800, 2400)
     dims = [652, 450, 600]
     overlaps = [20, 15, 20]
-    cubes = [x for x in listdir(input_dir) if ".fits" in x]
+    cubes = [input_dir + "/" + x for x in listdir(input_dir) if ".fits" in x]
     for f_in in cubes:
         print(f_in)
         cube_list = save_sliding_window(arr_shape, dims, overlaps, f_in)
