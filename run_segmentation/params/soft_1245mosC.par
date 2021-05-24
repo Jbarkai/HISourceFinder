@@ -71,8 +71,8 @@ rippleFilter.interpolate   =  false
 # S+C finder
 
 scfind.enable              =  true
-scfind.kernelsXY           =  0, 3, 6
-scfind.kernelsZ            =  0, 3, 7, 15
+scfind.kernelsXY           =  0, 0, 0, 0, 6.5, 6.5, 6.5, 6.5
+scfind.kernelsZ            =  0, 2, 4, 8, 0, 2, 4, 8
 scfind.threshold           =  3.5
 scfind.replacement         =  2.0
 scfind.statistic           =  mad
@@ -96,7 +96,7 @@ linker.radiusZ             =  3
 linker.minSizeXY           =  3
 linker.minSizeZ            =  2
 linker.maxSizeXY           =  -1
-linker.maxSizeZ            =  -1
+linker.maxSizeZ            =  300
 linker.positivity          =  false
 linker.keepNegative        =  false
 
