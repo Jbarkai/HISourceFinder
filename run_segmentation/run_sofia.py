@@ -12,7 +12,7 @@ def main(sofia_loc, cube_dir, param_dir):
     for cube in cubes:
         print(cube)
         param_file = [i for i in listdir(param_dir) if cube in i][0]
-        success = os.system('%s %s'%(sofia_loc, param_file))
+        success = os.system('%s %s >> data/sofia_output/sofia_output.log'%(sofia_loc, param_file))
     return
 
 
@@ -31,3 +31,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.sofia_loc, args.cube_dir, args.param_dir)
+
