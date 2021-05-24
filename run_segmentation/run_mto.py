@@ -48,7 +48,7 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
         return
     # Load MTO output
     mto_output = fits.getdata(output_file)
-    os.remove(output_file)
+    os.system("zip %s %s"%(output_file.replace(".fits", ".zip"), output_file))
     # Convert it to binary
     mto_output[mto_output > 0] = 1
     empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]] = np.nanmax(np.array([empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]], mto_output]), axis=0)
