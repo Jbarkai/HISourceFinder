@@ -242,6 +242,10 @@ class Trainer:
             if (batch_idx + 1) % self.terminal_show_freq == 0:
                 partial_epoch = epoch + batch_idx / self.len_epoch - 1
                 self.writer.display_terminal(partial_epoch, epoch, 'train')
+                val_loss = self.writer.data['val']['loss'] / self.writer.data['val']['count']
+                name_checkpoint = self.model.save_checkpoint(self.args.save,
+                                           partial_epoch, val_loss,
+                                           optimizer=self.optimizer)
 
         self.writer.display_terminal(self.len_epoch, epoch, mode='train', summary=True)
 
