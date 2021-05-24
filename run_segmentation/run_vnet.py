@@ -14,7 +14,7 @@ import torch
 def vnet_eval(cube_list, model):
     arr_shape = (652, 1800, 2400)
     empty_arr = np.zeros(arr_shape)*np.nan
-    for window in cube_list:
+    for index, window in enumerate(cube_list):
         cube_files, x, y, z = window
         subcube = np.moveaxis(fits.getdata(cube_files[0]), 0, 2)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
         input_tensor = torch.FloatTensor(subcube.astype(np.float32)).unsqueeze(0)[None, ...]
@@ -22,6 +22,7 @@ def vnet_eval(cube_list, model):
             out_cube = model.inference(input_tensor)
             out_np = np.moveaxis(out_cube.squeeze()[1].numpy(), 2, 0)
             empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]] = np.nanmean(np.array([empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]], out_np]), axis=0)
+            print("\r", index*100/len(cube_list), "%", end="")
     return empty_arr
 
 
