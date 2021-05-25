@@ -39,7 +39,7 @@ def main(args, test_file):
         empty_arr = vnet_eval(cube_list, model)
         binary_im = empty_arr > 0
         out_cube_file = "data/vnet_output/vnet_cubeout_" + cube.split("/")[-1]
-        fits.writeto(out_cube_file, binary_im)
+        fits.writeto(out_cube_file, binary_im.astype(int))
     return
 
 

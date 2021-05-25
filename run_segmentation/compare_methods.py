@@ -5,109 +5,291 @@ from scipy import ndimage as ndi
 import matplotlib.pyplot as plt
 from medzoo_imports import create_model, DiceLoss
 import skimage.measure as skmeas
+from scipy import stats
+from astropy.io import fits
 import gc
+import pickle
+import numpy as np
 
 
-def load_vnet(args, data_loader_tensor):
-    """Run inference with VNet
-
-    Args:
-        args (str): The model arguments
-        data_loader_tensor (tensor): The input tensor
-
-    Returns:
-        The training and validation data loaders
+class Evaluator:
     """
-    model, optimizer = create_model(args)
-    model.restore_checkpoint(args.pretrained)
-    model.eval()
-    with torch.no_grad():
-        # Infer probabilities from model
-        out_cube = model.inference(data_loader_tensor)
-    # Grab in numpy array
-    out_np = out_cube.squeeze()[0].numpy()
-    # Turn probabilities to mask
-    smoothed_gal = ndi.gaussian_filter(out_np, sigma=2)
-    # Relabel each object seperately
-    t = np.abs(np.mean(smoothed_gal))- np.std(smoothed_gal)
-    new_mask = (smoothed_gal > t)
-    object_labels = skmeas.label(new_mask)
-    target = torch.FloatTensor(object_labels.astype(np.float32)).unsqueeze(0)[None, ...]
-    return target
+    Code was adapted and mofified from https://gitlab.com/michaelvandeweerd/mto-lvq
+    A class to hold the ground truth segment properties
+    """
 
-def main(args):
-    interval = ZScaleInterval()
-    orig_data = fits.getdata(args.test_dir+"Input/"+file)[:64, :128, :128]
-    prepared_data = interval(np.nan_to_num(np.moveaxis(orig_data, 0, 2)))
-    del orig_data
-    gc.collect()
-    data_loader_tensor = torch.FloatTensor(prepared_data.astype(np.float32)).unsqueeze(0)[None, ...]
-    del prepared_data
-    gc.collect()
-    realseg_data = fits.getdata(args.test_dir+"Target/mask_"+file.split("_")[-1])[:64, :128, :128]
-    mask_object_labels = skmeas.label(np.moveaxis(realseg_data.astype(bool), 0, 2))
-    del realseg_data
-    gc.collect()
-    classes = len(np.unique(mask_object_labels))
-    mask_tensor = torch.FloatTensor(mask_object_labels.astype(np.float32)).unsqueeze(0)[None, ...]
-    del mask_object_labels
-    gc.collect()
-    shape = list(mask_tensor.long().size())
-    shape[1] = classes
-    mask_tensor = torch.zeros(shape).to(mask_tensor.long()).scatter_(1, mask_tensor.long(), 1)
+    def __init__(self, img, gt, opt_method=0):
+        self.method = opt_method
+        self.original_img = img
 
-    criterion = DiceLoss(classes=classes)
-    # VNET
-    vnet_out_tensor = load_vnet(args, data_loader_tensor)
-    vnet_out_tensor = torch.zeros(shape).to(tarvnet_out_tensorget.long()).scatter_(1, vnet_out_tensor.long(), 1)
-    vnet_loss_dice = float(compute_per_channel_dice(vnet_out_tensor, mask_tensor)[0])
-    del vnet_out_tensor
-    gc.collect()
-    # MTO
-    mto_seg_data = fits.getdata(args.test_dir+"MTO/c%s_mto_lvq"%(file.split("_")[-1]))[:64, :128, :128]
-    mto_out_tensor = torch.FloatTensor(mto_seg_data.astype(np.float32)).unsqueeze(0)[None, ...]
-    del mto_seg_data
-    gc.collect()
-    mto_loss_dice = float(compute_per_channel_dice(mto_out_tensor, mask_tensor)[0])
+        img_shape = self.original_img.shape
 
-    return vnet_loss_dice, mto_loss_dice
+        self.target_map = gt.ravel()
+        
+        # Sort the target ID map for faster pixel retrieval
+        sorted_ids = self.target_map.argsort()
+        id_set = np.unique(self.target_map)
+        id_set.sort()
+
+        # Get the locations in sorted_ids of the matching pixels
+        right_indices = np.searchsorted(self.target_map, id_set, side='right', sorter=sorted_ids)
+        left_indices = np.searchsorted(self.target_map, id_set, side='left', sorter=sorted_ids)
+
+        # Create an id-max_index dictionary
+        self.id_to_max = {}
+
+        # Create an id - area dictionary (for merging error comparisons)
+        self.id_to_area = {}
+
+        # Iterate over object IDs
+        for n in range(len(id_set)):
+            # Find the location of the brightest pixel in each object
+            pixel_indices = np.unravel_index(sorted_ids[left_indices[n]:right_indices[n]], img_shape)
+
+            m = np.argmax(self.original_img[pixel_indices])
+            max_pixel_index = (pixel_indices[0][m], pixel_indices[1][m], pixel_indices[2][m])
+
+            # Save the location and area in dictionaries
+            self.id_to_max[id_set[n]] = max_pixel_index
+            self.id_to_area[id_set[n]] = right_indices[n] - left_indices[n]
+
+    def match_to_bp_list(self, detection_map):
+        """Match at most one detection to each target object"""
+
+        # Reverse to ensure 1:1 mapping
+        det_to_target = {}
+        target_ids = list(self.id_to_max.keys())
+
+        # Find the id of the background detection (0 or -1)
+        det_min = detection_map.min()
+        det_to_target[det_min] = -1
+        target_ids.remove(det_min)
+
+        # Map each id to the detection containing it
+        for t_id in target_ids:
+            max_loc = self.id_to_max[t_id]
+            d_id = detection_map[max_loc]
+
+            if d_id == det_min:
+                continue
+
+            # Assign detections covering multiple maxima to the object with the largest maximum
+            if d_id in det_to_target:
+                old_max_val = self.original_img[self.id_to_max[det_to_target[d_id]]]
+                new_max_val = self.original_img[max_loc]
+
+                if old_max_val < new_max_val:
+                    det_to_target[d_id] = t_id
+
+            else:
+                det_to_target[d_id] = t_id
+
+        return det_to_target
+
+    def get_basic_stats(self, detection_map, det_to_target):
+        """Calculate statistics for F-score"""
+
+        tp = len(det_to_target)
+        fp = len(set(detection_map.ravel())) - tp
+        fn = len(self.id_to_max) - tp
+
+        print("OUTSTAT True positive:", tp)
+        print("OUTSTAT False negative:", fn)
+        print("OUTSTAT False positive:", fp)
+
+        try:
+            r = tp / (tp + fn)
+        except ZeroDivisionError:
+            r = 0
+
+        try:
+            p = tp / (tp + fp)
+        except ZeroDivisionError:
+            p = 0
+
+        print("OUTSTAT Recall:", r)
+        print("OUTSTAT Precision:", p)
+
+        try:
+            f_score = 2 * ((p * r) / (p + r))
+        except ZeroDivisionError:
+            f_score = 0
+
+        print("OUTSTAT F score:", f_score)
+
+        return f_score, tp, fp, fn
+
+    def get_merging_scores(self, detection_map):
+        """Calculate overmerging and undermerging scores."""
+
+        t_map = self.target_map
+        d_map = detection_map.ravel()
+
+        # Sort the detection ID map for faster pixel retrieval
+        sorted_ids = d_map.argsort()
+        id_set = np.unique(d_map)
+        id_set.sort()
+
+        # Get the locations in sorted_ids of the matching pixels
+        right_indices = np.searchsorted(d_map, id_set, side='right', sorter=sorted_ids)
+        left_indices = np.searchsorted(d_map, id_set, side='left', sorter=sorted_ids)
+
+        # Calculate under-merging score
+        um_score = 0.0
+        om_score = 0.0
+
+        d_id_to_area = {}
+
+        # UNDER-MERGING - match to target map
+        for n in range(len(id_set)):
+            # Find the target labels of the pixels with detection label n
+            target_vals = t_map[sorted_ids[left_indices[n]:right_indices[n]]]
+
+            d_id_to_area[id_set[n]] = right_indices[n] - left_indices[n]
+
+            # Find the number of pixels with each ID in the target map
+            t_ids, t_counts = np.unique(target_vals, return_counts=True)
+
+            # Find the area of the object with the most overlap 
+            target_area = self.id_to_area[t_ids[np.argmax(t_counts)]]
+
+            # Find overlap area
+            correct_area = np.max(t_counts)
+
+            um_score += (np.double(target_area - correct_area) * correct_area) / target_area
+
+        # Sort the target ID map for faster pixel retrieval
+        sorted_ids = t_map.argsort()
+        id_set = np.unique(t_map)
+        id_set.sort()
+
+        # Get the locations in sorted_ids of the matching pixels
+        right_indices = np.searchsorted(t_map, id_set, side='right', sorter=sorted_ids)
+        left_indices = np.searchsorted(t_map, id_set, side='left', sorter=sorted_ids)
+
+        # OVER-MERGING (modified) - match to detection map
+        for n in range(len(id_set)):
+            # Find the target labels of the pixels with detection label n
+            detection_vals = d_map[sorted_ids[left_indices[n]:right_indices[n]]]
+
+            # Find the number of pixels with each ID in the target map
+            d_ids, d_counts = np.unique(detection_vals, return_counts=True)
+
+            # Find the area of the object with the most overlap 
+            detection_area = d_id_to_area[d_ids[np.argmax(d_counts)]]
+
+            # Find overlap area
+            correct_area = np.max(d_counts)
+
+            om_score += (np.double(detection_area - correct_area) * correct_area) / detection_area
+
+        # Calculate over-merging score        
+        print("OUTSTAT Undermerging score:", um_score / detection_map.size)
+
+        # Calculate over-merging score        
+        print("OUTSTAT Overmerging score:", om_score / detection_map.size)
+
+        total_score = np.sqrt((om_score ** 2) + (um_score ** 2)) / detection_map.size
+        print("OUTSTAT Total area score:", total_score)
+
+        return um_score / detection_map.size, om_score / detection_map.size, total_score
+
+    def bg_distribution_test(self, detection_map):
+        """Calculate the properties of the background pixels of the image."""
+        bg_id = detection_map.min()
+        bg_pixels = self.original_img[np.where(detection_map == bg_id)].ravel()
+
+        s, p = stats.skewtest(bg_pixels)
+        k, p = stats.kurtosistest(bg_pixels)
+        bg_mean = bg_pixels.mean()
+
+        print("OUTSTAT Background skew score:", s)
+        print("OUTSTAT Background kurtosis score:", k)
+        print("OUTSTAT Background mean score:", bg_mean)
+
+        return s, k, bg_mean
+
+    def get_p_score(self, detection_map):
+        """Calculate all the scores for an image, and return them (+ one to optimise on)"""
+
+        # Match detected ids to target ids
+        det_to_target = self.match_to_bp_list(detection_map)
+
+        # F score
+        f_score, tp, fp, fn = self.get_basic_stats(detection_map, det_to_target)
+
+        # Area score
+        um, om, area_score = self.get_merging_scores(detection_map)
+
+        # Background skew score
+        s, k, bg_mean = self.bg_distribution_test(detection_map)
+
+        # Combined scores
+        combined_one = np.sqrt((f_score ** 2) + (area_score ** 2))
+        combined_two = np.cbrt((1 - om) * (1 - um) * f_score)
+
+        print("OUTSTAT Combined A:", combined_one)
+        print("OUTSTAT Combined B:", combined_two)
+
+        eval_stats = [tp, fp, fn, f_score, um, om, area_score, s, k, bg_mean, combined_one, combined_two]
+
+        # matches = list(det_to_target.items())
+        return eval_stats
+
+
+def eval_cube(mto_binary, vnet_binary, sofia_nonbinary, real_subcube, orig_subcube):
+    mask_labels = skmeas.label(real_subcube)
+    eve = Evaluator(orig_subcube, mask_labels)
+
+    # SOFIA EVAL
+    sofia_eval = eve.get_p_score(sofia_nonbinary, 0)
+    # MTO EVAL
+    mto_labels = skmeas.label(mto_binary)
+    mto_eval = eve.get_p_score(mto_labels, 0)
+    # VNET EVAL
+    vnet_labels = skmeas.label(vnet_binary)
+    vnet_eval = eve.get_p_score(vnet_labels, 0)
+    return sofia_eval, mto_eval, vnet_eval
+
+
+def main(data_dir="data/", scale="loud", output_dir="results/"):
+    cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+scale+"Input") if "_1245mos" in i]
+    sofia_eval_stats = []
+    mto_eval_stats = []
+    vnet_eval_stats = []
+    for cube_file in cube_files:
+        orig_cube = fits.getdata(cube_file)
+        target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
+        target_cube = fits.getdata(target_file)
+        mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
+        mto_binary = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
+        vnet_binary = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
+        sofia_nonbinary = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
+        sofia_eval, mto_eval, vnet_eval = eval_cube(mto_binary, vnet_binary, sofia_nonbinary, target_cube, orig_cube)
+        sofia_eval_stats += sofia_eval
+        mto_eval_stats += mto_eval
+        vnet_eval_stats += vnet_eval
+    with open(output_dir+scale+'_sofia_eval.txt', "wb") as fp:
+        pickle.dump(sofia_eval_stats, fp)
+    with open(output_dir+scale+'_mto_eval.txt', "wb") as fp:
+        pickle.dump(mto_eval_stats, fp)
+    with open(output_dir+scale+'_vnet_eval.txt', "wb") as fp:
+        pickle.dump(vnet_eval_stats, fp)
+    return
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train model",
+    parser = argparse.ArgumentParser(description="Compare Methods",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--model', type=str, nargs='?', const='default', default='VNET',
-        help='The 3D segmentation model to use')
+        '--data_dir', type=str, nargs='?', const='default', default='VNET',
+        help='The directory containing the data')
     parser.add_argument(
-        '--opt', type=str, nargs='?', const='default', default='sgd',
-        help='The type of optimizer')
+        '--scale', type=str, nargs='?', const='default', default='sgd',
+        help='The scale of the inserted galaxies')
     parser.add_argument(
-        '--lr', type=float, nargs='?', const='default', default=1e-3,
-        help='The learning rate')
-    parser.add_argument(
-        '--inChannels', type=int, nargs='?', const='default', default=1,
-        help='The desired modalities/channels that you want to use')
-    parser.add_argument(
-        '--classes', type=int, nargs='?', const='default', default=1,
-        help='The number of classes')
-    parser.add_argument(
-        '--dataset_name', type=str, nargs='?', const='default', default='hi_source',
-        help='The name of the dataset')
-    parser.add_argument(
-        '--save', type=str, nargs='?', const='default',
-        default='./inference_checkpoints/VNET_checkpoints/VNET_hi_source',
-        help='The checkpoint location')
-    parser.add_argument(
-        '--pretrained', type=str, nargs='?', const='default',
-        default="../saved_models/VNET_checkpoints/VNET_/VNET__BEST.pth",
-        help='The checkpoint location')
-    parser.add_argument(
-        '--cuda', type=bool, nargs='?', const='default', default=False,
-        help='Memory allocation')
-    parser.add_argument(
-        '--test_dir', type=bool, nargs='?', const='default', default=False,
-        help='Memory allocation')
+        '--output_dir', type=float, nargs='?', const='default', default=1e-3,
+        help='The output directory for the results')
     args = parser.parse_args()
 
-    main(args)
+    main(args.data_dir, args.scale, args.output_dir)
