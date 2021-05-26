@@ -21,7 +21,7 @@ def vnet_eval(cube_list, model):
         with torch.no_grad():
             out_cube = model.inference(input_tensor)
             out_np = np.moveaxis(out_cube.squeeze()[0].numpy(), 2, 0)
-            empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]] = np.nanmean(np.array([empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]], out_np]), axis=0)
+            empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]] = np.nanmean(np.array([empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]], out_np]), axis=0)
             print("\r", index*100/len(cube_list), "%", end="")
     return empty_arr
 

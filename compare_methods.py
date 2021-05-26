@@ -233,12 +233,17 @@ class Evaluator:
 
 
 def eval_cube(cube_file, data_dir, scale, method):
+    print("loading cube")
     orig_cube = fits.getdata(cube_file)
     target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
+    print("loading target")
     target_cube = fits.getdata(target_file)
+    print("numbering output")
     mask_labels = skmeas.label(target_cube)
     mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
+    print("creating evaluator...")
     eve = Evaluator(orig_cube, mask_labels, mos_name)
+    print("evaluating method")
     if method == "MTO":
         binary_im = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
         nonbinary_im = skmeas.label(binary_im)
@@ -252,12 +257,15 @@ def eval_cube(cube_file, data_dir, scale, method):
 
 
 def main(data_dir, scale, output_dir, method):
-    cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+scale+"Input") if "_1245mos" in i]
+    out_file = output_dir+scale+'_' + method + '_eval.txt'
+    print(out_file)
+    cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if "_1245mos" in i]
     eval_stats = []
     for cube_file in cube_files:
+        print(cube_file)
         final_eval = eval_cube(cube_file, data_dir, scale, method)
         eval_stats += final_eval
-    with open(output_dir+scale+'_' + method + '_eval.txt', "wb") as fp:
+    with open(out_file, "wb") as fp:
         pickle.dump(eval_stats, fp)
     return
 

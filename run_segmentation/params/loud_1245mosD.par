@@ -132,7 +132,7 @@ parameter.offset           =  false
 # Output
 
 output.directory           =  ../../data/sofia_output
-output.filename            =  sofia_loud_1245mosB.fits
+output.filename            =  sofia_loud_1245mosD.fits
 output.writeCatASCII       =  true
 output.writeCatXML         =  false
 output.writeCatSQL         =  false
