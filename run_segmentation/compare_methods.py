@@ -1,13 +1,8 @@
 import argparse
 from os import listdir
-from astropy.visualization import ZScaleInterval
-from scipy import ndimage as ndi
-import matplotlib.pyplot as plt
-from medzoo_imports import create_model, DiceLoss
 import skimage.measure as skmeas
 from scipy import stats
 from astropy.io import fits
-import gc
 import pickle
 import numpy as np
 
@@ -18,10 +13,10 @@ class Evaluator:
     A class to hold the ground truth segment properties
     """
 
-    def __init__(self, img, gt, opt_method=0):
+    def __init__(self, img, gt, mos_name, opt_method=0):
         self.method = opt_method
         self.original_img = img
-
+        self.mos_name = mos_name
         img_shape = self.original_img.shape
 
         self.target_map = gt.ravel()
@@ -234,21 +229,21 @@ class Evaluator:
         eval_stats = [tp, fp, fn, f_score, um, om, area_score, s, k, bg_mean, combined_one, combined_two]
 
         # matches = list(det_to_target.items())
-        return eval_stats
+        return [self.mos_name, eval_stats]
 
 
-def eval_cube(mto_binary, vnet_binary, sofia_nonbinary, real_subcube, orig_subcube):
+def eval_cube(mto_binary, vnet_binary, sofia_nonbinary, real_subcube, orig_subcube, mos_name):
     mask_labels = skmeas.label(real_subcube)
-    eve = Evaluator(orig_subcube, mask_labels)
+    eve = Evaluator(orig_subcube, mask_labels, mos_name)
 
     # SOFIA EVAL
-    sofia_eval = eve.get_p_score(sofia_nonbinary, 0)
+    sofia_eval = eve.get_p_score(sofia_nonbinary)
     # MTO EVAL
     mto_labels = skmeas.label(mto_binary)
-    mto_eval = eve.get_p_score(mto_labels, 0)
+    mto_eval = eve.get_p_score(mto_labels)
     # VNET EVAL
     vnet_labels = skmeas.label(vnet_binary)
-    vnet_eval = eve.get_p_score(vnet_labels, 0)
+    vnet_eval = eve.get_p_score(vnet_labels)
     return sofia_eval, mto_eval, vnet_eval
 
 
@@ -265,7 +260,7 @@ def main(data_dir="data/", scale="loud", output_dir="results/"):
         mto_binary = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
         vnet_binary = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
         sofia_nonbinary = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
-        sofia_eval, mto_eval, vnet_eval = eval_cube(mto_binary, vnet_binary, sofia_nonbinary, target_cube, orig_cube)
+        sofia_eval, mto_eval, vnet_eval = eval_cube(mto_binary, vnet_binary, sofia_nonbinary, target_cube, orig_cube, mos_name)
         sofia_eval_stats += sofia_eval
         mto_eval_stats += mto_eval
         vnet_eval_stats += vnet_eval
