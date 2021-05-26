@@ -232,44 +232,33 @@ class Evaluator:
         return [self.mos_name, eval_stats]
 
 
-def eval_cube(mto_binary, vnet_binary, sofia_nonbinary, real_subcube, orig_subcube, mos_name):
-    mask_labels = skmeas.label(real_subcube)
-    eve = Evaluator(orig_subcube, mask_labels, mos_name)
+def eval_cube(cube_file, data_dir, scale, method):
+    orig_cube = fits.getdata(cube_file)
+    target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
+    target_cube = fits.getdata(target_file)
+    mask_labels = skmeas.label(target_cube)
+    mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
+    eve = Evaluator(orig_cube, mask_labels, mos_name)
+    if method == "MTO":
+        binary_im = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
+        nonbinary_im = skmeas.label(binary_im)
+    elif method == "VNET":
+        binary_im = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
+        nonbinary_im = skmeas.label(binary_im)
+    elif method == "SOFIA":
+        nonbinary_im = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
+    evaluated = eve.get_p_score(nonbinary_im)
+    return evaluated
 
-    # SOFIA EVAL
-    sofia_eval = eve.get_p_score(sofia_nonbinary)
-    # MTO EVAL
-    mto_labels = skmeas.label(mto_binary)
-    mto_eval = eve.get_p_score(mto_labels)
-    # VNET EVAL
-    vnet_labels = skmeas.label(vnet_binary)
-    vnet_eval = eve.get_p_score(vnet_labels)
-    return sofia_eval, mto_eval, vnet_eval
 
-
-def main(data_dir="data/", scale="loud", output_dir="results/"):
+def main(data_dir, scale, output_dir, method):
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+scale+"Input") if "_1245mos" in i]
-    sofia_eval_stats = []
-    mto_eval_stats = []
-    vnet_eval_stats = []
+    eval_stats = []
     for cube_file in cube_files:
-        orig_cube = fits.getdata(cube_file)
-        target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
-        target_cube = fits.getdata(target_file)
-        mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
-        mto_binary = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
-        vnet_binary = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
-        sofia_nonbinary = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
-        sofia_eval, mto_eval, vnet_eval = eval_cube(mto_binary, vnet_binary, sofia_nonbinary, target_cube, orig_cube, mos_name)
-        sofia_eval_stats += sofia_eval
-        mto_eval_stats += mto_eval
-        vnet_eval_stats += vnet_eval
-    with open(output_dir+scale+'_sofia_eval.txt', "wb") as fp:
-        pickle.dump(sofia_eval_stats, fp)
-    with open(output_dir+scale+'_mto_eval.txt', "wb") as fp:
-        pickle.dump(mto_eval_stats, fp)
-    with open(output_dir+scale+'_vnet_eval.txt', "wb") as fp:
-        pickle.dump(vnet_eval_stats, fp)
+        final_eval = eval_cube(cube_file, data_dir, scale, method)
+        eval_stats += final_eval
+    with open(output_dir+scale+'_' + method + '_eval.txt', "wb") as fp:
+        pickle.dump(eval_stats, fp)
     return
 
 
@@ -277,14 +266,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare Methods",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--data_dir', type=str, nargs='?', const='default', default='VNET',
+        '--data_dir', type=str, nargs='?', const='default', default="data/",
         help='The directory containing the data')
     parser.add_argument(
-        '--scale', type=str, nargs='?', const='default', default='sgd',
+        '--method', type=str, nargs='?', const='default', default='MTO',
+        help='The segmentation method being evaluated')
+    parser.add_argument(
+        '--scale', type=str, nargs='?', const='default', default='loud',
         help='The scale of the inserted galaxies')
     parser.add_argument(
-        '--output_dir', type=float, nargs='?', const='default', default=1e-3,
+        '--output_dir', type=str, nargs='?', const='default', default="results/",
         help='The output directory for the results')
     args = parser.parse_args()
 
-    main(args.data_dir, args.scale, args.output_dir)
+    main(args.data_dir, args.scale, args.output_dir, args.method)
