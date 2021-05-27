@@ -10,6 +10,7 @@ sys.path.insert(0,'..')
 import skimage.measure as skmeas
 from medzoo_imports import create_model
 import torch
+from datetime import datetime
 
 
 def vnet_eval(cube_list, model):
@@ -29,6 +30,7 @@ def vnet_eval(cube_list, model):
 
 
 def main(args, test_file):
+    time_taken = {}
     with open(test_file, "rb") as fp:
         test_list = pickle.load(fp)
     cubes = np.unique([i[0][0] for i in test_list])
@@ -36,6 +38,7 @@ def main(args, test_file):
     model.restore_checkpoint(args.pretrained)
     model.eval()
     for cube in cubes:
+        before = datetime.now()
         print(cube)
         cube_list = [i for i in test_list if cube in i[0][0]]
         empty_arr = vnet_eval(cube_list, model)
@@ -43,6 +46,12 @@ def main(args, test_file):
         nonbinary_im = skmeas.label(binary_im)
         out_cube_file = "data/vnet_output/vnet_cubeout_" + cube.split("/")[-1]
         fits.writeto(out_cube_file, nonbinary_im.astype(int))
+        after = datetime.now()
+        difference = (after - before).total_seconds()
+        time_taken.update({cube: difference})
+    out_file = "vnet_performance_" + test_file.split("/")[0] + ".txt"
+    with open(out_file, "wb") as fp:
+        pickle.dump(time_taken, fp)
     return
 
 

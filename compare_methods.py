@@ -229,7 +229,7 @@ class Evaluator:
         eval_stats = [tp, fp, fn, f_score, um, om, area_score, s, k, bg_mean, combined_one, combined_two]
 
         # matches = list(det_to_target.items())
-        return [{self.mos_name: eval_stats}]
+        return {self.mos_name: eval_stats}
 
 
 def eval_cube(cube_file, data_dir, scale, method):
@@ -258,11 +258,11 @@ def main(data_dir, scale, output_dir, method):
     out_file = output_dir+scale+'_' + method + '_eval.txt'
     print(out_file)
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if "_1245mos" in i]
-    eval_stats = []
+    eval_stats = {}
     for cube_file in cube_files:
         print(cube_file)
         final_eval = eval_cube(cube_file, data_dir, scale, method)
-        eval_stats += final_eval
+        eval_stats.update(final_eval)
     with open(out_file, "wb") as fp:
         pickle.dump(eval_stats, fp)
     return

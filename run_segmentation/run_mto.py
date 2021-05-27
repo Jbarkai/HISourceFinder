@@ -6,6 +6,7 @@ from astropy.io import fits
 import numpy as np
 from scipy import ndimage as ndi
 import skimage.measure as skmeas
+from datetime import datetime
 
 
 def save_sliding_window(arr_shape, dims, overlaps, f_in):
@@ -60,12 +61,14 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
 
 
 def main(mto_dir, param_file, input_dir):
+    time_taken = {}
     # Load test data
     arr_shape = (652, 1800, 2400)
     dims = [652, 450, 600]
     overlaps = [20, 15, 20]
     cubes = [input_dir + "/" + x for x in listdir(input_dir) if ".fits" in x]
     for f_in in cubes:
+        before = datetime.now()
         print(f_in)
         cube_list = save_sliding_window(arr_shape, dims, overlaps, f_in)
         empty_arr = np.zeros(arr_shape)
@@ -75,7 +78,13 @@ def main(mto_dir, param_file, input_dir):
         out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
         nonbinary_im = skmeas.label(empty_arr)
         fits.writeto(out_cube_file, nonbinary_im, overwrite=True)
+        after = datetime.now()
+        difference = (after - before).total_seconds()
+        time_taken.update({f_in: difference})
         os.system("zip %s %s"%(out_cube_file.replace(".fits", ".zip"), out_cube_file))
+    out_file = "mto_performance_" + input_dir.split("/")[-1] + ".txt"
+    with open(out_file, "wb") as fp:
+        pickle.dump(time_taken, fp)
     return
 
 
