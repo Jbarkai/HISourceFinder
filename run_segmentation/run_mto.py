@@ -5,6 +5,8 @@ import pickle
 from astropy.io import fits
 import numpy as np
 from scipy import ndimage as ndi
+import skimage.measure as skmeas
+
 
 def save_sliding_window(arr_shape, dims, overlaps, f_in):
     x, y, z =(((np.array(arr_shape) - np.array(dims))
@@ -71,7 +73,8 @@ def main(mto_dir, param_file, input_dir):
             print("\r", index*100/len(cube_list), "%", end="")
             mto_eval(window, mto_dir, param_file, empty_arr, index)
         out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
-        fits.writeto(out_cube_file, empty_arr, overwrite=True)
+        nonbinary_im = skmeas.label(empty_arr)
+        fits.writeto(out_cube_file, nonbinary_im, overwrite=True)
         os.system("zip %s %s"%(out_cube_file.replace(".fits", ".zip"), out_cube_file))
     return
 

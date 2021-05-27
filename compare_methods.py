@@ -245,11 +245,9 @@ def eval_cube(cube_file, data_dir, scale, method):
     eve = Evaluator(orig_cube, mask_labels, mos_name)
     print("evaluating method")
     if method == "MTO":
-        binary_im = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
-        nonbinary_im = skmeas.label(binary_im)
+        nonbinary_im = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
     elif method == "VNET":
-        binary_im = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
-        nonbinary_im = skmeas.label(binary_im)
+        nonbinary_im = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
     elif method == "SOFIA":
         nonbinary_im = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
     evaluated = eve.get_p_score(nonbinary_im)

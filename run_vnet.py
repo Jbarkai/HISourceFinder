@@ -7,6 +7,7 @@ import numpy as np
 from scipy import ndimage as ndi
 import sys
 sys.path.insert(0,'..')
+import skimage.measure as skmeas
 from medzoo_imports import create_model
 import torch
 
@@ -21,7 +22,8 @@ def vnet_eval(cube_list, model):
         with torch.no_grad():
             out_cube = model.inference(input_tensor)
             out_np = np.moveaxis(out_cube.squeeze()[0].numpy(), 2, 0)
-            empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]] = np.nanmean(np.array([empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]], out_np]), axis=0)
+            binary_im = out_np > 0
+            empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]] = np.nanmax(np.array([empty_arr[z[0]:z[1], x[0]:x[1], y[0]:y[1]], binary_im.astype(int)]), axis=0)
             print("\r", index*100/len(cube_list), "%", end="")
     return empty_arr
 
@@ -38,8 +40,9 @@ def main(args, test_file):
         cube_list = [i for i in test_list if cube in i[0][0]]
         empty_arr = vnet_eval(cube_list, model)
         binary_im = empty_arr > 0
+        nonbinary_im = skmeas.label(binary_im)
         out_cube_file = "data/vnet_output/vnet_cubeout_" + cube.split("/")[-1]
-        fits.writeto(out_cube_file, binary_im.astype(int))
+        fits.writeto(out_cube_file, nonbinary_im.astype(int))
     return
 
 
