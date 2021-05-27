@@ -229,7 +229,7 @@ class Evaluator:
         eval_stats = [tp, fp, fn, f_score, um, om, area_score, s, k, bg_mean, combined_one, combined_two]
 
         # matches = list(det_to_target.items())
-        return [self.mos_name, eval_stats]
+        return [{self.mos_name: eval_stats}]
 
 
 def eval_cube(cube_file, data_dir, scale, method):
