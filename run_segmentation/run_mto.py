@@ -99,7 +99,7 @@ def main(mto_dir, param_file, input_dir):
             print("\r", index*100/len(cube_list), "%", end="")
             mto_eval(window, mto_dir, param_file, empty_arr, index)
         out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
-        nonbinary_im = skmeas.label(empty_arr, connectivity=6)
+        nonbinary_im = skmeas.label(empty_arr)
         fits.writeto(out_cube_file, nonbinary_im, overwrite=True)
         after = datetime.now()
         difference = (after - before).total_seconds()
