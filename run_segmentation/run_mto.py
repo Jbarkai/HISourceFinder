@@ -72,13 +72,13 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
     # Delete outputted fits file
     os.remove(subcube_file)
     os.remove(maskcube_file)
-    os.remove(output_file.split(".")[0] + "_attributes.fits.gz")
+    # os.remove(output_file.split(".")[0] + "_attributes.fits.gz")
     if success != 0:
         return
     # Load MTO output
     mto_output = fits.getdata(output_file)
     os.remove(output_file)
-    os.remove(output_file.replace(".fits", "_statistics.fits.gz"))
+    # os.remove(output_file.replace(".fits", "_statistics.fits.gz"))
     # os.system("zip %s %s"%(output_file.replace(".fits", ".zip"), output_file))
     # Convert it to binary
     mto_output[mto_output > 0] = 1
