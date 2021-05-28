@@ -239,7 +239,7 @@ def eval_cube(cube_file, data_dir, scale, method):
     print("loading target")
     target_cube = fits.getdata(target_file)
     print("numbering output")
-    mask_labels = skmeas.label(target_cube)
+    mask_labels = skmeas.label(target_cube, connectivity=6)
     mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
     print("creating evaluator...")
     eve = Evaluator(orig_cube, mask_labels, mos_name)

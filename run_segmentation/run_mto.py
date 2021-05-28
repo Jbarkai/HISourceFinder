@@ -28,19 +28,45 @@ def save_sliding_window(arr_shape, dims, overlaps, f_in):
     return sliding_window_indices
 
 
+def _inv(image_gradient, scale):
+    return 1 / (1 + (np.absolute(image_gradient)/scale)**2)
+
+def anisotropic_diffusion(image, num_iters=10, K=2,  
+    stepsize_lambda=0.2):
+    if stepsize_lambda > 0.25:
+        raise ValueError('step_size parameter must be <= 0.25 for numerical stability.')
+    image = image.copy()
+    # simplistic boundary conditions -- no diffusion at the boundary
+    central = image[1:-1, 1:-1]
+    n = image[:-2, 1:-1]
+    s = image[2:, 1:-1]
+    e = image[1:-1, :-2]
+    w = image[1:-1, 2:]
+    directions = [s,e,w]
+    for i in range(num_iters):
+        di = n - central
+        accumulator = _inv(di, K)*di
+    for direction in directions:
+        di = direction - central
+        accumulator += _inv(di, K)*di
+    accumulator *= stepsize_lambda
+    central += accumulator
+    return image
+
 
 def mto_eval(window, mto_dir, param_file, empty_arr, index):
     cube_files, x, y, z = window
     subcube = fits.getdata(cube_files[0])[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
     # Smooth and clip
-    smoothed_gal = ndi.gaussian_filter(subcube, sigma=3)
-    smoothed_gal[smoothed_gal < 0] = 0
+    smoothed = ndi.gaussian_filter(subcube, sigma=0.85)
+    diffused = anisotropic_diffusion(smoothed)
+    diffused[diffused < 0] = 0
     # Save as fits file
     subcube_file = mto_dir + "/subcube_" + str(index) + cube_files[0].split("/")[-1]
     maskcube_file = mto_dir + "/masksubcube_" + str(index) + cube_files[0].split("/")[-1]
     output_file = "data/mto_output/outputcube_" + str(index) + cube_files[0].split("/")[-1]
     fits.writeto(subcube_file, subcube, overwrite=True)
-    fits.writeto(maskcube_file, smoothed_gal, overwrite=True)
+    fits.writeto(maskcube_file, diffused, overwrite=True)
     # Run MTO on subcube
     success = os.system('%s/mtobjects %s %s %s %s >> data/mto_output/mto_output.log'%(mto_dir, subcube_file, maskcube_file, param_file, output_file))
     # Delete outputted fits file
@@ -76,7 +102,7 @@ def main(mto_dir, param_file, input_dir):
             print("\r", index*100/len(cube_list), "%", end="")
             mto_eval(window, mto_dir, param_file, empty_arr, index)
         out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
-        nonbinary_im = skmeas.label(empty_arr)
+        nonbinary_im = skmeas.label(empty_arr, connectivity=6)
         fits.writeto(out_cube_file, nonbinary_im, overwrite=True)
         after = datetime.now()
         difference = (after - before).total_seconds()
