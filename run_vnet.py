@@ -41,9 +41,6 @@ def main(args, test_file):
         before = datetime.now()
         print(cube)
         cube_list = [i for i in test_list if cube in i[0][0]]
-        cube_list = [i for i in cube_list if (i[3] in [[176, 240], [220, 284]]) & 
-               (i[2] in [[0, 128],[108, 236], [216, 344]]) &
-              (i[1] in [[0, 128],[113, 241], [226, 354]])]
         empty_arr = vnet_eval(cube_list, model)
         nonbinary_im = skmeas.label(empty_arr)
         out_cube_file = "data/vnet_output/vnet_cubeout_" + cube.split("/")[-1]
