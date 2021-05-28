@@ -51,7 +51,7 @@ def main(args, test_file):
         after = datetime.now()
         difference = (after - before).total_seconds()
         time_taken.update({cube: difference})
-    out_file = "vnet_performance_" + test_file.split("/")[0] + ".txt"
+    out_file = "vnet_performance_" + test_file.split("/")[0]
     with open(out_file, "wb") as fp:
         pickle.dump(time_taken, fp)
     return

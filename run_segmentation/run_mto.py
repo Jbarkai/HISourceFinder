@@ -28,9 +28,6 @@ def save_sliding_window(arr_shape, dims, overlaps, f_in):
     return sliding_window_indices
 
 
-def _inv(image_gradient, scale):
-    return 1 / (1 + (np.absolute(image_gradient)/scale)**2)
-
 def anisotropic_diffusion(image, num_iters=10, K=2,  
     stepsize_lambda=0.2):
     if stepsize_lambda > 0.25:
@@ -45,10 +42,10 @@ def anisotropic_diffusion(image, num_iters=10, K=2,
     directions = [s,e,w]
     for i in range(num_iters):
         di = n - central
-        accumulator = _inv(di, K)*di
+        accumulator = di/(1 + (np.absolute(di)/K)**2)
     for direction in directions:
         di = direction - central
-        accumulator += _inv(di, K)*di
+        accumulator += di/(1 + (np.absolute(di)/K)**2)
     accumulator *= stepsize_lambda
     central += accumulator
     return image
