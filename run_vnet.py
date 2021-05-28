@@ -45,7 +45,7 @@ def main(args, test_file):
                (i[2] in [[0, 128],[108, 236], [216, 344]]) &
               (i[1] in [[0, 128],[113, 241], [226, 354]])]
         empty_arr = vnet_eval(cube_list, model)
-        nonbinary_im = skmeas.label(empty_arr, connectivity=6)
+        nonbinary_im = skmeas.label(empty_arr)
         out_cube_file = "data/vnet_output/vnet_cubeout_" + cube.split("/")[-1]
         fits.writeto(out_cube_file, nonbinary_im, overwrite=True)
         after = datetime.now()
