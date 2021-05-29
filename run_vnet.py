@@ -15,7 +15,7 @@ from datetime import datetime
 
 def vnet_eval(cube_list, model):
     arr_shape = (652, 1800, 2400)
-    empty_arr = np.zeros(arr_shape)*np.nan
+    empty_arr = np.zeros(arr_shape)
     for index, window in enumerate(cube_list):
         cube_files, x, y, z = window
         subcube = fits.getdata(cube_files[0])[z[0]:z[1], x[0]:x[1], y[0]:y[1]]
