@@ -5,6 +5,14 @@ from scipy import stats
 from astropy.io import fits
 import pickle
 import numpy as np
+import pandas as pd
+import astropy.constants as const
+from astropy.wcs import WCS
+from astropy.coordinates import SkyCoord
+from spectral_cube import SpectralCube
+from astropy.wcs import WCS
+from astropy import units as u
+import csv
 
 
 class Evaluator:
@@ -227,12 +235,57 @@ class Evaluator:
         print("OUTSTAT Combined B:", combined_two)
 
         eval_stats = [tp, fp, fn, f_score, um, om, area_score, s, k, bg_mean, combined_one, combined_two]
-
+        eval_stats += [self.mos_name]
         # matches = list(det_to_target.items())
-        return {self.mos_name: eval_stats}
+        return eval_stats
+
+def cross_reference(nonbinary_im, mask_labels, catalog_loc="./PP_redshifts_8x8.csv"):
+    # CREATE CATALOG 
+    h_0 = 70*u.km/(u.Mpc*u.s)
+    rest_freq = 1.420405758000E+09
+    catalog_df = pd.read_csv(catalog_loc)
+    catalog_df['dist'] = [(const.c*i/h_0).to(u.Mpc) for i in catalog_df.Z_VALUE]
+    catalog_df["RA_d"] = [i*u.deg for i in catalog_df.RA_d]
+    catalog_df["DEC_d"] = [i*u.deg for i in catalog_df.DEC_d]
+    catalog_df["freq"] = [rest_freq*u.Hz/(i+1) for i in catalog_df.Z_VALUE]
+    hi_data = fits.open("../data/training/loudInput/loud_1245mosC.fits")
+    hi_data[0].header['CTYPE3'] = 'FREQ'
+    hi_data[0].header['CUNIT3'] = 'Hz'
+    cube = SpectralCube.read(hi_data) 
+    hi_data.close()
+    # GET PIXEL CO-ORDS
+    co_ords = SkyCoord(ra=catalog_df.RA_d, dec=catalog_df.DEC_d, distance=catalog_df.freq).to_pixel(cube.wcs)
+    catalog_df["pixels_x"] = co_ords[0]
+    catalog_df["pixels_y"] = co_ords[1]
+    # TAKE ONLY SOURCES WITHIN CUBE
+    cube_freqs = []
+    for freq in catalog_df.freq:
+        matching = cube.spectral_axis[(cube.spectral_axis <= freq + hi_data[0].header['CDELT3']*u.Hz) & (cube.spectral_axis >= freq - hi_data[0].header['CDELT3']*u.Hz)]
+        if len(matching) < 1:
+            cube_freq = np.nan
+        else:
+            cube_freq = np.where(cube.spectral_axis == min(matching, key=lambda x:abs(x-freq)))[0][0]
+        cube_freqs.append(cube_freq)
+    catalog_df["z_pos"] = cube_freqs
+
+    # MATCH FALSE POSITIVES
+    vnet_props = skmeas.regionprops_table(nonbinary_im, properties=['label', 'centroid', 'bbox'])
+    vnet_df = pd.DataFrame(vnet_props)
+    for i, row in vnet_df.iterrows():
+        b0, b1, b2, b3, b4, b5 = int(row['bbox-0']), int(row['bbox-1']), int(row['bbox-2']), int(row['bbox-3']), int(row['bbox-4']), int(row['bbox-5'])
+        # IF LABELLED FALSE POSITIVE
+        if len(np.unique(mask_labels[b0:b3, b1:b4, b2:b5])) < 2:
+            match_catalog = ((catalog_df.pixels_x < b4) & (catalog_df.pixels_x > b1) &
+            (catalog_df.pixels_y < b5) & (catalog_df.pixels_y > b2) &
+            (catalog_df.z_pos < b3) & (catalog_df.z_pos > b0)
+            )
+            if match_catalog.any() > 0:
+                print(catalog_df[match_catalog].MAIN_ID, " inserted")
+                mask_labels[b0:b3, b1:b4, b2:b5] += nonbinary_im[b0:b3, b1:b4, b2:b5]
+    return mask_labels
 
 
-def eval_cube(cube_file, data_dir, scale, method):
+def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False):
     print("loading cube")
     orig_cube = fits.getdata(cube_file)
     target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
@@ -241,8 +294,6 @@ def eval_cube(cube_file, data_dir, scale, method):
     print("numbering output")
     mask_labels = skmeas.label(target_cube)
     mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
-    print("creating evaluator...")
-    eve = Evaluator(orig_cube, mask_labels, mos_name)
     print("evaluating method")
     if method == "MTO":
         nonbinary_im = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
@@ -250,21 +301,31 @@ def eval_cube(cube_file, data_dir, scale, method):
         nonbinary_im = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
     elif method == "SOFIA":
         nonbinary_im = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
+    if catalog:
+        print("cross-referencing with catalog ...")
+        mask_labels = cross_reference(nonbinary_im, mask_labels, catalog_loc)
+    print("creating evaluator...")
+    eve = Evaluator(orig_cube, mask_labels, mos_name)
+    print("evaluating method ...")
     evaluated = eve.get_p_score(nonbinary_im)
     return evaluated
 
 
-def main(data_dir, scale, output_dir, method):
+def main(data_dir, scale, output_dir, method, catalog_loc):
     out_file = output_dir+scale+'_' + method + '_eval.txt'
+    out_cat_file = output_dir+scale+'_' + method + '_catalog_eval.txt'
     print(out_file)
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if "_1245mos" in i]
-    eval_stats = {}
     for cube_file in cube_files:
         print(cube_file)
-        final_eval = eval_cube(cube_file, data_dir, scale, method)
-        eval_stats.update(final_eval)
-    with open(out_file, "wb") as fp:
-        pickle.dump(eval_stats, fp)
+        final_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc)
+        final_cat_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=True)
+        with open(out_file, 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(final_eval)
+        with open(out_cat_file, 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(final_cat_eval)
     return
 
 
@@ -283,6 +344,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--output_dir', type=str, nargs='?', const='default', default="results/",
         help='The output directory for the results')
+    parser.add_argument(
+        '--catalog_loc', type=str, nargs='?', const='default', default="results/",
+        help='The file containing the catalog for cross-referencing')
     args = parser.parse_args()
 
-    main(args.data_dir, args.scale, args.output_dir, args.method)
+    main(args.data_dir, args.scale, args.output_dir, args.method, args.catalog_loc)
