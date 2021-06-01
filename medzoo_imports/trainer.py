@@ -9,6 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 from .dice import DiceLoss
 import os
 import shutil
+import csv   
 import skimage.measure as skmeas
 
 
@@ -146,7 +147,7 @@ class Trainer:
     """
 
     def __init__(self, args, model, criterion, optimizer, train_data_loader,
-                 valid_data_loader=None, lr_scheduler=None, patience=5, min_delta=0):
+                 valid_data_loader=None, lr_scheduler=None, patience=5, min_delta=0, start_epoch=1):
 
         self.args = args
         self.model = model
@@ -163,7 +164,7 @@ class Trainer:
 
         self.save_frequency = 10
         self.terminal_show_freq = self.args.terminal_show_freq
-        self.start_epoch = 1
+        self.start_epoch = start_epoch
 
         self.patience = patience
         self.min_delta = min_delta
@@ -187,6 +188,15 @@ class Trainer:
                 print("Saved at ", name_checkpoint)
 
             self.writer.write_end_of_epoch(epoch)
+            save_to_file = [epoch,
+                self.data['train']['loss']/self.data['train']['count'],
+                self.data['train']['dsc'] / self.data['train']['count'],
+                self.data['val']['loss'] / self.data['val']['count'],
+                self.data['val']['dsc'] / self.data['val']['count']
+                ]
+            with open(self.args.save + "/results.csv", 'a') as f:
+                writer = csv.writer(f)
+                writer.writerow(save_to_file)
             # Early stopping
             if self.best_loss == None:
                 self.best_loss = val_loss
@@ -246,6 +256,7 @@ class Trainer:
                 name_checkpoint = self.model.save_checkpoint(self.args.save,
                                            partial_epoch, val_loss,
                                            optimizer=self.optimizer)
+                                           
 
         self.writer.display_terminal(self.len_epoch, epoch, mode='train', summary=True)
 

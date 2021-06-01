@@ -68,7 +68,13 @@ def main(
     model_name = model
     model, optimizer = create_model(args)
     if pretrained:
-        model.restore_checkpoint(pretrained)
+        # model.restore_checkpoint(pretrained)
+        checkpoint = torch.load(pretrained)
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        start_epoch = checkpoint['epoch']
+    else:
+        start_epoch = 1
     inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
     targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
     dataset_full = SegmentationDataSet(inputs=inputs,
@@ -133,7 +139,7 @@ def main(
         print(dataloader_training.__len__(), dataloader_validation.__len__(), dataloader_test.__len__())
         criterion = DiceLoss(classes=args.classes)
         trainer = Trainer(args, model, criterion, optimizer, train_data_loader=dataloader_training,
-                                valid_data_loader=dataloader_validation, lr_scheduler=None)
+                                valid_data_loader=dataloader_validation, lr_scheduler=None, start_epoch=start_epoch)
         print("START TRAINING...")
         trainer.training()
 
