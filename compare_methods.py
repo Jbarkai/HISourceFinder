@@ -239,7 +239,7 @@ class Evaluator:
         # matches = list(det_to_target.items())
         return eval_stats
 
-def cross_reference(nonbinary_im, mask_labels, catalog_loc="./PP_redshifts_8x8.csv"):
+def cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc="./PP_redshifts_8x8.csv"):
     # CREATE CATALOG 
     h_0 = 70*u.km/(u.Mpc*u.s)
     rest_freq = 1.420405758000E+09
@@ -248,11 +248,6 @@ def cross_reference(nonbinary_im, mask_labels, catalog_loc="./PP_redshifts_8x8.c
     catalog_df["RA_d"] = [i*u.deg for i in catalog_df.RA_d]
     catalog_df["DEC_d"] = [i*u.deg for i in catalog_df.DEC_d]
     catalog_df["freq"] = [rest_freq*u.Hz/(i+1) for i in catalog_df.Z_VALUE]
-    hi_data = fits.open("../data/training/loudInput/loud_1245mosC.fits")
-    hi_data[0].header['CTYPE3'] = 'FREQ'
-    hi_data[0].header['CUNIT3'] = 'Hz'
-    cube = SpectralCube.read(hi_data) 
-    hi_data.close()
     # GET PIXEL CO-ORDS
     co_ords = SkyCoord(ra=catalog_df.RA_d, dec=catalog_df.DEC_d, distance=catalog_df.freq).to_pixel(cube.wcs)
     catalog_df["pixels_x"] = co_ords[0]
@@ -260,7 +255,7 @@ def cross_reference(nonbinary_im, mask_labels, catalog_loc="./PP_redshifts_8x8.c
     # TAKE ONLY SOURCES WITHIN CUBE
     cube_freqs = []
     for freq in catalog_df.freq:
-        matching = cube.spectral_axis[(cube.spectral_axis <= freq + hi_data[0].header['CDELT3']*u.Hz) & (cube.spectral_axis >= freq - hi_data[0].header['CDELT3']*u.Hz)]
+        matching = cube.spectral_axis[(cube.spectral_axis <= freq + orig_header['CDELT3']*u.Hz) & (cube.spectral_axis >= freq - orig_header['CDELT3']*u.Hz)]
         if len(matching) < 1:
             cube_freq = np.nan
         else:
@@ -287,14 +282,19 @@ def cross_reference(nonbinary_im, mask_labels, catalog_loc="./PP_redshifts_8x8.c
 
 def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False):
     print("loading cube")
-    orig_cube = fits.getdata(cube_file)
+    hi_data = fits.open(cube_file)
+    hi_data[0].header['CTYPE3'] = 'FREQ'
+    hi_data[0].header['CUNIT3'] = 'Hz'
+    orig_header = hi_data[0].header
+    cube = SpectralCube.read(hi_data)
+    orig_cube = hi_data[0].data
+    hi_data.close()
     target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
     print("loading target")
     target_cube = fits.getdata(target_file)
     print("numbering output")
     mask_labels = skmeas.label(target_cube)
     mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
-    print("evaluating method")
     if method == "MTO":
         nonbinary_im = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
     elif method == "VNET":
@@ -303,7 +303,7 @@ def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False):
         nonbinary_im = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
     if catalog:
         print("cross-referencing with catalog ...")
-        mask_labels = cross_reference(nonbinary_im, mask_labels, catalog_loc)
+        mask_labels = cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc)
     print("creating evaluator...")
     eve = Evaluator(orig_cube, mask_labels, mos_name)
     print("evaluating method ...")
