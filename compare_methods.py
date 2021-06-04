@@ -21,40 +21,47 @@ class Evaluator:
     A class to hold the ground truth segment properties
     """
 
-    def __init__(self, img, gt, mos_name, opt_method=0):
+    def __init__(self, img, gt, mos_name, opt_method=0, load=False):
         self.method = opt_method
         self.original_img = img
         self.mos_name = mos_name
         img_shape = self.original_img.shape
 
         self.target_map = gt.ravel()
+        if load:
+            with open(mos_name + "eval_props.txt", "rb") as fp:
+                self.id_to_max, self.id_to_area = pickle.load(fp)
         
-        # Sort the target ID map for faster pixel retrieval
-        sorted_ids = self.target_map.argsort()
-        id_set = np.unique(self.target_map)
-        id_set.sort()
+        else:
+            # Sort the target ID map for faster pixel retrieval
+            sorted_ids = self.target_map.argsort()
+            id_set = np.unique(self.target_map)
+            id_set.sort()
 
-        # Get the locations in sorted_ids of the matching pixels
-        right_indices = np.searchsorted(self.target_map, id_set, side='right', sorter=sorted_ids)
-        left_indices = np.searchsorted(self.target_map, id_set, side='left', sorter=sorted_ids)
+            # Get the locations in sorted_ids of the matching pixels
+            right_indices = np.searchsorted(self.target_map, id_set, side='right', sorter=sorted_ids)
+            left_indices = np.searchsorted(self.target_map, id_set, side='left', sorter=sorted_ids)
 
-        # Create an id-max_index dictionary
-        self.id_to_max = {}
+            # Create an id-max_index dictionary
+            self.id_to_max = {}
 
-        # Create an id - area dictionary (for merging error comparisons)
-        self.id_to_area = {}
+            # Create an id - area dictionary (for merging error comparisons)
+            self.id_to_area = {}
 
-        # Iterate over object IDs
-        for n in range(len(id_set)):
-            # Find the location of the brightest pixel in each object
-            pixel_indices = np.unravel_index(sorted_ids[left_indices[n]:right_indices[n]], img_shape)
+            # Iterate over object IDs
+            for n in range(len(id_set)):
+                # Find the location of the brightest pixel in each object
+                pixel_indices = np.unravel_index(sorted_ids[left_indices[n]:right_indices[n]], img_shape)
 
-            m = np.argmax(self.original_img[pixel_indices])
-            max_pixel_index = (pixel_indices[0][m], pixel_indices[1][m], pixel_indices[2][m])
+                m = np.argmax(self.original_img[pixel_indices])
+                max_pixel_index = (pixel_indices[0][m], pixel_indices[1][m], pixel_indices[2][m])
 
-            # Save the location and area in dictionaries
-            self.id_to_max[id_set[n]] = max_pixel_index
-            self.id_to_area[id_set[n]] = right_indices[n] - left_indices[n]
+                # Save the location and area in dictionaries
+                self.id_to_max[id_set[n]] = max_pixel_index
+                self.id_to_area[id_set[n]] = right_indices[n] - left_indices[n]
+
+            with open(mos_name + "eval_props.txt", "wb") as fp:
+                pickle.dump([self.id_to_max, self.id_to_area], fp)
 
     def match_to_bp_list(self, detection_map):
         """Match at most one detection to each target object"""
@@ -74,6 +81,7 @@ class Evaluator:
             d_id = detection_map[max_loc]
 
             if d_id == det_min:
+                # Ignore background
                 continue
 
             # Assign detections covering multiple maxima to the object with the largest maximum
@@ -294,15 +302,15 @@ def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False):
     target_cube = fits.getdata(target_file)
     print("numbering output")
     mask_labels = skmeas.label(target_cube)
-    if catalog:
-        print("cross-referencing with catalog ...")
-        hi_data = fits.open(cube_file)
-        hi_data[0].header['CTYPE3'] = 'FREQ'
-        hi_data[0].header['CUNIT3'] = 'Hz'
-        orig_header = hi_data[0].header
-        cube = SpectralCube.read(hi_data)
-        hi_data.close()
-        mask_labels = cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc)
+    # if catalog:
+    #     print("cross-referencing with catalog ...")
+    #     hi_data = fits.open(cube_file)
+    #     hi_data[0].header['CTYPE3'] = 'FREQ'
+    #     hi_data[0].header['CUNIT3'] = 'Hz'
+    #     orig_header = hi_data[0].header
+    #     cube = SpectralCube.read(hi_data)
+    #     hi_data.close()
+    #     mask_labels = cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc)
     print("loading cube")
     orig_cube = fits.getdata(cube_file)
     print("creating evaluator...")
