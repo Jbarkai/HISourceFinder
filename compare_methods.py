@@ -288,7 +288,7 @@ def cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc=".
     return mask_labels
 
 
-def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False):
+def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False, load=True):
     mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
     print("loading output cube")
     if method == "MTO":
@@ -314,27 +314,27 @@ def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False):
     print("loading cube")
     orig_cube = fits.getdata(cube_file)
     print("creating evaluator...")
-    eve = Evaluator(orig_cube, mask_labels, mos_name)
+    eve = Evaluator(orig_cube, mask_labels, mos_name, load)
     print("evaluating method ...")
     evaluated = eve.get_p_score(nonbinary_im)
     return evaluated
 
 
-def main(data_dir, scale, output_dir, method, catalog_loc):
+def main(data_dir, scale, output_dir, method, catalog_loc, load):
     out_file = output_dir+scale+'_' + method + '_eval.txt'
     out_cat_file = output_dir+scale+'_' + method + '_catalog_eval.txt'
     print(out_file)
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if "_1245mos" in i]
     for cube_file in cube_files:
         print(cube_file)
-        final_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc)
-        final_cat_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=True)
+        final_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc, load)
+        # final_cat_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=True)
         with open(out_file, 'a') as f:
             writer = csv.writer(f)
             writer.writerow(final_eval)
-        with open(out_cat_file, 'a') as f:
-            writer = csv.writer(f)
-            writer.writerow(final_cat_eval)
+        # with open(out_cat_file, 'a') as f:
+        #     writer = csv.writer(f)
+        #     writer.writerow(final_cat_eval)
     return
 
 
@@ -356,6 +356,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--catalog_loc', type=str, nargs='?', const='default', default="results/",
         help='The file containing the catalog for cross-referencing')
+    parser.add_argument(
+        '--load', type=bool, nargs='?', const='default', default=True,
+        help='Wheather to load properties of evaluator or not')
     args = parser.parse_args()
 
-    main(args.data_dir, args.scale, args.output_dir, args.method, args.catalog_loc)
+    main(args.data_dir, args.scale, args.output_dir, args.method, args.catalog_loc, args.load)
