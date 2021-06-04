@@ -26,8 +26,8 @@ class Evaluator:
         self.original_img = img
         self.mos_name = mos_name
         img_shape = self.original_img.shape
-        self.gt = gt
-        self.target_map = self.gt.ravel()
+
+        self.target_map = gt.ravel()
         
         # Sort the target ID map for faster pixel retrieval
         sorted_ids = self.target_map.argsort()
@@ -280,76 +280,53 @@ def cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc=".
     return mask_labels
 
 
-def save_evaluator(orig_cube, target_cube, mos_name, catalog=False):
+def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False):
+    mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
+    print("loading output cube")
+    if method == "MTO":
+        nonbinary_im = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
+    elif method == "VNET":
+        nonbinary_im = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
+    elif method == "SOFIA":
+        nonbinary_im = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
+    target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
+    print("loading target")
+    target_cube = fits.getdata(target_file)
     print("numbering output")
     mask_labels = skmeas.label(target_cube)
     if catalog:
         print("cross-referencing with catalog ...")
-        mask_labels = cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc)
-    print("creating evaluator...")
-    eve = Evaluator(orig_cube, mask_labels, mos_name)
-    obj_output = mos_name+".obj"
-    with open(obj_output, "wb") as fp:
-        pickle.dump(eve, fp)
-    return obj_output
-
-
-def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False, save_evaluator=True):
-    print("loading cube")
-    hi_data = fits.open(cube_file)
-    hi_data[0].header['CTYPE3'] = 'FREQ'
-    hi_data[0].header['CUNIT3'] = 'Hz'
-    orig_header = hi_data[0].header
-    orig_cube = hi_data[0].data
-    print("loading target")
-    target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
-    target_cube = fits.getdata(target_file)
-    mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
-    if save_evaluator:
-        hi_data.close()
-        print("numbering output")
-        mask_labels = skmeas.label(target_cube)
-        # if catalog:
-        #     print("cross-referencing with catalog ...")
-        #     mask_labels = cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc)
-        print("creating evaluator...")
-        eve = Evaluator(orig_cube, mask_labels, mos_name)
-        obj_output = mos_name+".obj"
-        with open(obj_output, "wb") as fp:
-            pickle.dump(eve, fp)
-    else:
+        hi_data = fits.open(cube_file)
+        hi_data[0].header['CTYPE3'] = 'FREQ'
+        hi_data[0].header['CUNIT3'] = 'Hz'
+        orig_header = hi_data[0].header
         cube = SpectralCube.read(hi_data)
         hi_data.close()
-        if method == "MTO":
-            nonbinary_im = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
-        elif method == "VNET":
-            nonbinary_im = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
-        elif method == "SOFIA":
-            nonbinary_im = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
-        print("loading evaluator...")
-        obj_output = mos_name+".obj"
-        with open(obj_output, "rb") as fp:
-            eve = pickle.load(fp)
-        print("evaluating method ...")
-        evaluated = eve.get_p_score(nonbinary_im)
+        mask_labels = cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc)
+    print("loading cube")
+    orig_cube = fits.getdata(cube_file)
+    print("creating evaluator...")
+    eve = Evaluator(orig_cube, mask_labels, mos_name)
+    print("evaluating method ...")
+    evaluated = eve.get_p_score(nonbinary_im)
     return evaluated
 
 
-def main(data_dir, scale, output_dir, method, catalog_loc, save_evaluator):
+def main(data_dir, scale, output_dir, method, catalog_loc):
     out_file = output_dir+scale+'_' + method + '_eval.txt'
     out_cat_file = output_dir+scale+'_' + method + '_catalog_eval.txt'
     print(out_file)
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if "_1245mos" in i]
     for cube_file in cube_files:
         print(cube_file)
-        final_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc, save_evaluator)
-        # final_cat_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=True)
+        final_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc)
+        final_cat_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=True)
         with open(out_file, 'a') as f:
             writer = csv.writer(f)
             writer.writerow(final_eval)
-        # with open(out_cat_file, 'a') as f:
-        #     writer = csv.writer(f)
-        #     writer.writerow(final_cat_eval)
+        with open(out_cat_file, 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(final_cat_eval)
     return
 
 
@@ -371,9 +348,6 @@ if __name__ == "__main__":
     parser.add_argument(
         '--catalog_loc', type=str, nargs='?', const='default', default="results/",
         help='The file containing the catalog for cross-referencing')
-    parser.add_argument(
-        '--save_evaluator', type=bool, nargs='?', const='default', default=True,
-        help='Whether to just create and save evaluator object or to actually load it and evaluate')
     args = parser.parse_args()
 
-    main(args.data_dir, args.scale, args.output_dir, args.method, args.catalog_loc, args.save_evaluator)
+    main(args.data_dir, args.scale, args.output_dir, args.method, args.catalog_loc)
