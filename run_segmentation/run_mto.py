@@ -82,29 +82,33 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
     empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]] = np.nanmax(np.array([empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]], mto_output]), axis=0)
     return
 
+def make_cube(f_in, mto_dir, param_file):
+    arr_shape = (652, 1800, 2400)
+    dims = [652, 450, 600]
+    overlaps = [20, 15, 20]
+    cube_list = save_sliding_window(arr_shape, dims, overlaps, f_in)
+    empty_arr = np.zeros(arr_shape)
+    for index, window in enumerate(cube_list):
+        print("\r", index*100/len(cube_list), "%", end="")
+        mto_eval(window, mto_dir, param_file, empty_arr, index)
+    out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
+    nonbinary_im = skmeas.label(empty_arr)
+    fits.writeto(out_cube_file, nonbinary_im, overwrite=True)
+    return
+
 
 def main(mto_dir, param_file, input_dir):
     time_taken = {}
     # Load test data
-    arr_shape = (652, 1800, 2400)
-    dims = [652, 450, 600]
-    overlaps = [20, 15, 20]
-    cubes = [input_dir + "/" + x for x in listdir(input_dir) if ".fits" in x]
+    cubes = [input_dir + "/" + x for x in listdir(input_dir) if "1245mos" in x]
     for f_in in cubes:
         before = datetime.now()
         print(f_in)
-        cube_list = save_sliding_window(arr_shape, dims, overlaps, f_in)
-        empty_arr = np.zeros(arr_shape)
-        for index, window in enumerate(cube_list):
-            print("\r", index*100/len(cube_list), "%", end="")
-            mto_eval(window, mto_dir, param_file, empty_arr, index)
-        out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
-        nonbinary_im = skmeas.label(empty_arr)
-        fits.writeto(out_cube_file, nonbinary_im, overwrite=True)
+        make_cube(f_in, mto_dir, param_file)
         after = datetime.now()
         difference = (after - before).total_seconds()
         time_taken.update({f_in: difference})
-        os.system("zip %s %s"%(out_cube_file.replace(".fits", ".zip"), out_cube_file))
+        # os.system("zip %s %s"%(out_cube_file.replace(".fits", ".zip"), out_cube_file))
     out_file = "mto_performance_" + input_dir.split("/")[-1] + ".txt"
     with open(out_file, "wb") as fp:
         pickle.dump(time_taken, fp)
