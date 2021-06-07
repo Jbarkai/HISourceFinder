@@ -122,6 +122,8 @@ def main(
                 print(num_train, num_val)
                 train_list +=(file_list[:num_train])
                 val_list +=(file_list[num_train:num_train+num_val])
+            if not os.path.exists(save + 'fold_' + str(k) + '_checkpoints'):
+                os.mkdir(save + 'fold_' + str(k) + '_checkpoints')
             with open(save + 'fold_' + str(k) + '_checkpoints/train_windows.txt', "wb") as fp:
                 pickle.dump(train_list, fp)
             with open(save + 'fold_' + str(k) + '_checkpoints/val_windows.txt', "wb") as fp:
