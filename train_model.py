@@ -22,7 +22,7 @@ def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
     random_seed, train_size, model, opt, lr, inChannels,
     classes, log_dir, dataset_name, terminal_show_freq, nEpochs,
-    cuda, scale, subsample, k_folds, pretrained):
+    cuda, scale, subsample, k_folds, pretrained, load_data_loc):
     """Create training and validation datasets
 
     Args:
@@ -111,16 +111,26 @@ def main(
         print('FOLD %s'%k)
         print('--------------------------------')
         args.save = (save + 'fold_' + str(k) + '_checkpoints/' + model_name + '_', dataset_name + "_" + date_str)[0]
-        train_list, val_list = [], []
-        for cube in cubes:
-            file_list = [i for i in dataset_full.list if cube in i[0][0]]
-            random.shuffle(file_list)
-            print(len(file_list))
-            num_val = int(len(file_list)*(1 - train_size))
-            num_train =int(len(file_list)*train_size)
-            print(num_train, num_val)
-            train_list +=(file_list[:num_train])
-            val_list +=(file_list[num_train:num_train+num_val])
+        if load_data_loc == "":
+            train_list, val_list = [], []
+            for cube in cubes:
+                file_list = [i for i in dataset_full.list if cube in i[0][0]]
+                random.shuffle(file_list)
+                print(len(file_list))
+                num_val = int(len(file_list)*(1 - train_size))
+                num_train =int(len(file_list)*train_size)
+                print(num_train, num_val)
+                train_list +=(file_list[:num_train])
+                val_list +=(file_list[num_train:num_train+num_val])
+            with open(save + 'fold_' + str(k) + '_checkpoints/train_windows.txt', "wb") as fp:
+                pickle.dump(train_list, fp)
+            with open(save + 'fold_' + str(k) + '_checkpoints/val_windows.txt', "wb") as fp:
+                pickle.dump(val_list, fp)
+        else:
+            with open(load_data_loc + '/train_windows.txt', "rb") as fp:
+                train_list = pickle.load(fp)
+            with open(load_data_loc + '/val_windows.txt', "rb") as fp:
+                val_list = pickle.load(fp)
         # dataset training
         dataset_train = copy.deepcopy(dataset_full)
         dataset_train.list = train_list
@@ -251,6 +261,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--pretrained', type=str, nargs='?', const='default', default=None,
         help='The location of the pretrained model')
+    parser.add_argument(
+        '--load_data_loc', type=str, nargs='?', const='default', default="",
+        help='The location of the data windows')
     args = parser.parse_args()
 
     main(
@@ -259,4 +272,4 @@ if __name__ == "__main__":
         args.model, args.opt, args.lr, args.inChannels, args.classes,
         args.log_dir, args.dataset_name, args.terminal_show_freq,
         args.nEpochs, args.cuda, args.scale, args.subsample, args.k_folds,
-        args.pretrained)
+        args.pretrained, args.load_data_loc)
