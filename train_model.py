@@ -70,11 +70,11 @@ def main(
     if pretrained:
         # model.restore_checkpoint(pretrained)
         checkpoint = torch.load(pretrained)
-        model.load_state_dict(checkpoint['state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch']
     else:
-        start_epoch = 1
+        start_epoch = 0
     inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
     targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
     dataset_full = SegmentationDataSet(inputs=inputs,
