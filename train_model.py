@@ -87,7 +87,7 @@ def main(
     # dataset validation
     dataset_test = copy.deepcopy(dataset_full)
     dataset_test.list = [i for i in dataset_full.list if "_1245mos" in i[0][0]]
-    if subsample < 14:
+    if subsample < 7:
         test_cubes = [i.split("/")[-1] for i in inputs if "_1245mos" in i]
         test_cubes = sample(test_cubes, subsample)
         dataset_test.list = [j for j in dataset_test.list if j[0][0].split("/")[-1] in test_cubes]
@@ -102,7 +102,7 @@ def main(
     # dataset_test.list = dataset_test.list[:10]
     print(len(dataset_test.list))
     cubes = [i.split("/")[-1] for i in inputs if "_1353mos" in i]
-    if subsample < 14:
+    if subsample < 7:
         cubes = sample(cubes, subsample)
     # For fold results
     results = {}
