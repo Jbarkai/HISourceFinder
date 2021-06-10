@@ -23,8 +23,10 @@ def create_single_catalog(output_file, mask_file, real_file):
     seg_output = fits.getdata(output_file)
     orig_data = fits.getdata(real_file)
     # Number mask
+    print("numbering mask...")
     mask_labels = skmeas.label(mask_data)
     # Catalog mask
+    print("cataloging mask...")
     mask_df = pd.DataFrame(
         skmeas.regionprops_table(
         mask_labels, orig_data, properties=['label','inertia_tensor_eigvals', 'centroid', 'bbox', 'area'],
@@ -41,6 +43,7 @@ def create_single_catalog(output_file, mask_file, real_file):
         max_locs.append([i[correct] for i in x])
     mask_df['max_loc'] = max_locs
     # Catalog segmentation
+    print("cataloging segmentation...")
     source_props_df = pd.DataFrame(
         skmeas.regionprops_table(seg_output, orig_data,
         properties=['label','inertia_tensor_eigvals', 'centroid', 'bbox', 'area'],
@@ -68,6 +71,7 @@ def main(data_dir, method, scale, out_dir):
        'true_positive_mocks'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
+        print(mos_name)
         if method == "MTO":
             nonbinary_im = data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits"
         elif method == "VNET":
