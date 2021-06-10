@@ -64,11 +64,12 @@ def create_single_catalog(output_file, mask_file, real_file):
     source_props_df['brightest_pix'] = brightest_pix
     source_props_df['max_loc'] = max_locs
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
+    print(len(source_props_df))
     return source_props_df
 
 def main(data_dir, method, scale, out_dir):
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if "_1245mos" in i]
-    source_props_df = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0', 'inertia_tensor_eigvals-1',
+    source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0', 'inertia_tensor_eigvals-1',
        'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1', 'centroid-2',
        'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area', 'flux', 'peak_flux', 'brightest_pix', 'max_loc', 'file',
        'true_positive_mocks'])
@@ -82,10 +83,11 @@ def main(data_dir, method, scale, out_dir):
         elif method == "SOFIA":
             nonbinary_im = data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits"
         target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
-        source_props_df.append(create_single_catalog(nonbinary_im, target_file, cube_file))
+        source_props_df = create_single_catalog(nonbinary_im, target_file, cube_file)
+        source_props_df_full.append(source_props_df)
     out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
     with open(out_file, "wb") as fp:
-        pickle.dump(source_props_df, fp)
+        pickle.dump(source_props_df_full, fp)
 
 
 if __name__ == "__main__":
