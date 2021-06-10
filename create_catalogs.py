@@ -69,11 +69,11 @@ def main(data_dir, method, scale, out_dir):
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
         if method == "MTO":
-            nonbinary_im = fits.getdata(data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits")
+            nonbinary_im = data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits"
         elif method == "VNET":
-            nonbinary_im = fits.getdata(data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits")
+            nonbinary_im = data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits"
         elif method == "SOFIA":
-            nonbinary_im = fits.getdata(data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits")
+            nonbinary_im = data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits"
         target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
         source_props_df.append(create_single_catalog(nonbinary_im, target_file, cube_file))
     out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
