@@ -73,6 +73,8 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
             int(row['bbox-0']):int(row['bbox-3']),
             int(row['bbox-1']):int(row['bbox-4']),
             int(row['bbox-2']):int(row['bbox-5'])]
+        mask_subcube[mask_subcube > 0] = 1
+        gt_subcube[gt_subcube > 0] = 1
         xyz = [row['bbox-0'], row['bbox-1'], row['bbox-2']]
         brightest_pix.append(np.nanmax(subcube))
         max_locs.append([int(i)+k for i, k in zip(np.where(subcube == np.nanmax(subcube)), xyz)])
