@@ -163,6 +163,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--output_dir', type=str, nargs='?', const='default', default="results/",
         help='The output directory for the results')
+    parser.add_argument(
+        '--catalog_loc', type=str, nargs='?', const='default', default="PP_redshifts_8x8.csv",
+        help='The real catalog file')
     args = parser.parse_args()
 
-    main(args.data_dir, args.method, args.scale, args.output_dir)
+    main(args.data_dir, args.method, args.scale, args.output_dir, args.catalog_loc)
