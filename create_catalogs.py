@@ -5,6 +5,8 @@ from os import listdir
 import pickle
 from astropy.io import fits
 import numpy as np
+from astropy import units as u
+import astropy.constants as const
 import pandas as pd
 
 
@@ -67,8 +69,53 @@ def create_single_catalog(output_file, mask_file, real_file):
     print(len(source_props_df))
     return source_props_df
 
-def main(data_dir, method, scale, out_dir):
+
+def get_pixel_coords(cube_file, catalog_df):
+    # Load reference cube
+    hi_data = fits.open(cube_file)
+    hi_data[0].header['CTYPE3'] = 'FREQ'
+    hi_data[0].header['CUNIT3'] = 'Hz'
+    orig_header = hi_data[0].header
+    cube = SpectralCube.read(hi_data)
+    hi_data.close()
+    # Find frequencies withing cube
+    cube_freqs = []
+    for freq in catalog_df.freq:
+        matching = cube.spectral_axis[
+            (cube.spectral_axis <= freq*u.Hz + orig_header['CDELT3']*u.Hz) 
+            & (cube.spectral_axis >= freq *u.Hz- orig_header['CDELT3']*u.Hz)
+        ]
+        if len(matching) < 1:
+            cube_freq = np.nan
+        else:
+            # Find channel
+            cube_freq = np.where(cube.spectral_axis == min(matching, key=lambda x:abs(x-freq*u.Hz)))[0][0]
+        cube_freqs.append(cube_freq)
+    # Allocate channels to galaxies in cube
+    catalog_df.loc[~np.isnan(cube_freqs), 'z_pos'] = np.array(cube_freqs)[~np.isnan(cube_freqs)]
+    catalog_df.loc[~np.isnan(cube_freqs), "file_name"] = cube_file.split("/")[-1].split(".")[0]
+    # Get x-y co-ords
+    co_ords = SkyCoord(ra=catalog_df.loc[~np.isnan(cube_freqs), 'RA_d'].values*u.deg,
+               dec=catalog_df.loc[~np.isnan(cube_freqs), 'DEC_d'].values*u.deg,
+               distance=catalog_df.loc[~np.isnan(cube_freqs), 'freq'].values*u.Hz
+                      ).to_pixel(cube.wcs)
+    catalog_df.loc[~np.isnan(cube_freqs), 'pixels_x'] = co_ords[0]
+    catalog_df.loc[~np.isnan(cube_freqs), 'pixels_y'] = co_ords[1]
+    return
+
+
+def main(data_dir, method, scale, out_dir, catalog_loc):
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if "_1245mos" in i]
+    catalog_loc = "../PP_redshifts_8x8.csv"
+    h_0 = 70*u.km/(u.Mpc*u.s)
+    rest_freq = 1.420405758000E+09
+    catalog_df = pd.read_csv(catalog_loc)
+    catalog_df['dist'] = [(const.c*i/h_0).to(u.Mpc) for i in catalog_df.Z_VALUE]
+    catalog_df["freq"] = [rest_freq/(i+1) for i in catalog_df.Z_VALUE]
+    catalog_df["z_pos"] = np.nan
+    catalog_df["pixels_x"] = np.nan
+    catalog_df["pixels_y"] = np.nan
+    catalog_df["file_name"] = np.nan
     source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0', 'inertia_tensor_eigvals-1',
        'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1', 'centroid-2',
        'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area', 'flux', 'peak_flux', 'brightest_pix', 'max_loc', 'file',
@@ -84,10 +131,21 @@ def main(data_dir, method, scale, out_dir):
             nonbinary_im = data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits"
         target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
         source_props_df = create_single_catalog(nonbinary_im, target_file, cube_file)
-        source_props_df_full.append(source_props_df)
+        source_props_df['true_positive_real'] = False
+        # Update real catalog with pixel values
+        get_pixel_coords(cube_file, catalog_df)
+        real_cat = catalog_df[catalog_df.file_name == cube_file]
+        source_cat = (source_props_df.file.str.contains(cube_file)) & (~source_props_df.true_positive_mocks)
+        for i, row in real_cat.iterrows():
+            source_cond = (source_props_df
+                (row.z_pos >= source_props_df[source_cat]['bbox-0']) & (row.z_pos >= source_props_df[source_cat]['bbox-3'])
+                & (row.pixels_x >= source_props_df[source_cat]['bbox-1']) & (row.pixels_x >= source_props_df[source_cat]['bbox-4'])
+                & (row.pixels_y >= source_props_df[source_cat]['bbox-2']) & (row.pixels_y >= source_props_df[source_cat]['bbox-5'])
+            )
+            source_props_df.loc[source_cat, 'true_positive_real'] = source_cond
+        source_props_df_full = source_props_df_full.append(source_props_df)
     out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
-    with open(out_file, "wb") as fp:
-        pickle.dump(source_props_df_full, fp)
+    source_props_df_full.to_csv(out_file)
 
 
 if __name__ == "__main__":

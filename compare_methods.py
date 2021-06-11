@@ -21,47 +21,39 @@ class Evaluator:
     A class to hold the ground truth segment properties
     """
 
-    def __init__(self, img, gt, mos_name, opt_method=0, load=False):
+    def __init__(self, img, gt, mos_name, opt_method=0):
         self.method = opt_method
         self.original_img = img
         self.mos_name = mos_name
         img_shape = self.original_img.shape
 
         self.target_map = gt.ravel()
-        if load:
-            with open(mos_name + "eval_props.txt", "rb") as fp:
-                self.id_to_max, self.id_to_area = pickle.load(fp)
-        
-        else:
-            # Sort the target ID map for faster pixel retrieval
-            sorted_ids = self.target_map.argsort()
-            id_set = np.unique(self.target_map)
-            id_set.sort()
+        # Sort the target ID map for faster pixel retrieval
+        sorted_ids = self.target_map.argsort()
+        id_set = np.unique(self.target_map)
+        id_set.sort()
 
-            # Get the locations in sorted_ids of the matching pixels
-            right_indices = np.searchsorted(self.target_map, id_set, side='right', sorter=sorted_ids)
-            left_indices = np.searchsorted(self.target_map, id_set, side='left', sorter=sorted_ids)
+        # Get the locations in sorted_ids of the matching pixels
+        right_indices = np.searchsorted(self.target_map, id_set, side='right', sorter=sorted_ids)
+        left_indices = np.searchsorted(self.target_map, id_set, side='left', sorter=sorted_ids)
 
-            # Create an id-max_index dictionary
-            self.id_to_max = {}
+        # Create an id-max_index dictionary
+        self.id_to_max = {}
 
-            # Create an id - area dictionary (for merging error comparisons)
-            self.id_to_area = {}
+        # Create an id - area dictionary (for merging error comparisons)
+        self.id_to_area = {}
 
-            # Iterate over object IDs
-            for n in range(len(id_set)):
-                # Find the location of the brightest pixel in each object
-                pixel_indices = np.unravel_index(sorted_ids[left_indices[n]:right_indices[n]], img_shape)
+        # Iterate over object IDs
+        for n in range(len(id_set)):
+            # Find the location of the brightest pixel in each object
+            pixel_indices = np.unravel_index(sorted_ids[left_indices[n]:right_indices[n]], img_shape)
 
-                m = np.argmax(self.original_img[pixel_indices])
-                max_pixel_index = (pixel_indices[0][m], pixel_indices[1][m], pixel_indices[2][m])
+            m = np.argmax(self.original_img[pixel_indices])
+            max_pixel_index = (pixel_indices[0][m], pixel_indices[1][m], pixel_indices[2][m])
 
-                # Save the location and area in dictionaries
-                self.id_to_max[id_set[n]] = max_pixel_index
-                self.id_to_area[id_set[n]] = right_indices[n] - left_indices[n]
-
-            with open(mos_name + "eval_props.txt", "wb") as fp:
-                pickle.dump([self.id_to_max, self.id_to_area], fp)
+            # Save the location and area in dictionaries
+            self.id_to_max[id_set[n]] = max_pixel_index
+            self.id_to_area[id_set[n]] = right_indices[n] - left_indices[n]
 
     def match_to_bp_list(self, detection_map):
         """Match at most one detection to each target object"""
@@ -247,48 +239,8 @@ class Evaluator:
         # matches = list(det_to_target.items())
         return eval_stats
 
-def cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc="./PP_redshifts_8x8.csv"):
-    # CREATE CATALOG 
-    h_0 = 70*u.km/(u.Mpc*u.s)
-    rest_freq = 1.420405758000E+09
-    catalog_df = pd.read_csv(catalog_loc)
-    catalog_df['dist'] = [(const.c*i/h_0).to(u.Mpc) for i in catalog_df.Z_VALUE]
-    catalog_df["RA_d"] = [i*u.deg for i in catalog_df.RA_d]
-    catalog_df["DEC_d"] = [i*u.deg for i in catalog_df.DEC_d]
-    catalog_df["freq"] = [rest_freq*u.Hz/(i+1) for i in catalog_df.Z_VALUE]
-    # GET PIXEL CO-ORDS
-    co_ords = SkyCoord(ra=catalog_df.RA_d, dec=catalog_df.DEC_d, distance=catalog_df.freq).to_pixel(cube.wcs)
-    catalog_df["pixels_x"] = co_ords[0]
-    catalog_df["pixels_y"] = co_ords[1]
-    # TAKE ONLY SOURCES WITHIN CUBE
-    cube_freqs = []
-    for freq in catalog_df.freq:
-        matching = cube.spectral_axis[(cube.spectral_axis <= freq + orig_header['CDELT3']*u.Hz) & (cube.spectral_axis >= freq - orig_header['CDELT3']*u.Hz)]
-        if len(matching) < 1:
-            cube_freq = np.nan
-        else:
-            cube_freq = np.where(cube.spectral_axis == min(matching, key=lambda x:abs(x-freq)))[0][0]
-        cube_freqs.append(cube_freq)
-    catalog_df["z_pos"] = cube_freqs
 
-    # MATCH FALSE POSITIVES
-    vnet_props = skmeas.regionprops_table(nonbinary_im, properties=['label', 'centroid', 'bbox'])
-    vnet_df = pd.DataFrame(vnet_props)
-    for i, row in vnet_df.iterrows():
-        b0, b1, b2, b3, b4, b5 = int(row['bbox-0']), int(row['bbox-1']), int(row['bbox-2']), int(row['bbox-3']), int(row['bbox-4']), int(row['bbox-5'])
-        # IF LABELLED FALSE POSITIVE
-        if len(np.unique(mask_labels[b0:b3, b1:b4, b2:b5])) < 2:
-            match_catalog = ((catalog_df.pixels_x < b4) & (catalog_df.pixels_x > b1) &
-            (catalog_df.pixels_y < b5) & (catalog_df.pixels_y > b2) &
-            (catalog_df.z_pos < b3) & (catalog_df.z_pos > b0)
-            )
-            if match_catalog.any() > 0:
-                print(catalog_df[match_catalog].MAIN_ID, " inserted")
-                mask_labels[b0:b3, b1:b4, b2:b5] += nonbinary_im[b0:b3, b1:b4, b2:b5]
-    return mask_labels
-
-
-def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False, load=True):
+def eval_cube(cube_file, data_dir, scale, method):
     mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
     print("loading output cube")
     if method == "MTO":
@@ -302,39 +254,24 @@ def eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=False, lo
     target_cube = fits.getdata(target_file)
     print("numbering output")
     mask_labels = skmeas.label(target_cube)
-    # if catalog:
-    #     print("cross-referencing with catalog ...")
-    #     hi_data = fits.open(cube_file)
-    #     hi_data[0].header['CTYPE3'] = 'FREQ'
-    #     hi_data[0].header['CUNIT3'] = 'Hz'
-    #     orig_header = hi_data[0].header
-    #     cube = SpectralCube.read(hi_data)
-    #     hi_data.close()
-    #     mask_labels = cross_reference(nonbinary_im, cube, orig_header, mask_labels, catalog_loc)
     print("loading cube")
     orig_cube = fits.getdata(cube_file)
     print("creating evaluator...")
-    eve = Evaluator(orig_cube, mask_labels, mos_name, load)
+    eve = Evaluator(orig_cube, mask_labels, mos_name)
     print("evaluating method ...")
     evaluated = eve.get_p_score(nonbinary_im)
     return evaluated
 
 
-def main(data_dir, scale, output_dir, method, catalog_loc, load):
+def main(data_dir, scale, output_dir, method):
     out_file = output_dir+scale+'_' + method + '_eval.txt'
-    out_cat_file = output_dir+scale+'_' + method + '_catalog_eval.txt'
     print(out_file)
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if "_1245mos" in i]
     for cube_file in cube_files:
         print(cube_file)
-        final_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc, load)
-        # final_cat_eval = eval_cube(cube_file, data_dir, scale, method, catalog_loc, catalog=True)
-        with open(out_file, 'a') as f:
-            writer = csv.writer(f)
-            writer.writerow(final_eval)
-        # with open(out_cat_file, 'a') as f:
-        #     writer = csv.writer(f)
-        #     writer.writerow(final_cat_eval)
+        final_eval = eval_cube(cube_file, data_dir, scale, method)
+    with open(out_file, "wb") as fp:
+        pickle.dump(final_eval, fp)
     return
 
 
@@ -353,12 +290,6 @@ if __name__ == "__main__":
     parser.add_argument(
         '--output_dir', type=str, nargs='?', const='default', default="results/",
         help='The output directory for the results')
-    parser.add_argument(
-        '--catalog_loc', type=str, nargs='?', const='default', default="results/",
-        help='The file containing the catalog for cross-referencing')
-    parser.add_argument(
-        '--load', type=bool, nargs='?', const='default', default=True,
-        help='Wheather to load properties of evaluator or not')
     args = parser.parse_args()
 
-    main(args.data_dir, args.scale, args.output_dir, args.method, args.catalog_loc, args.load)
+    main(args.data_dir, args.scale, args.output_dir, args.method)
