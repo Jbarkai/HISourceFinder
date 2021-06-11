@@ -8,6 +8,8 @@ import numpy as np
 from astropy import units as u
 import astropy.constants as const
 import pandas as pd
+from astropy.coordinates import SkyCoord
+from spectral_cube import SpectralCube
 
 
 def peak_flux(regionmask, intensity):
@@ -17,7 +19,7 @@ def tot_flux(regionmask, intensity):
     return np.nansum(intensity[regionmask])
 
 
-def create_single_catalog(output_file, mask_file, real_file):
+def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     # Load segmentation, real and mask cubes
     mask_data = fits.getdata(mask_file)
     seg_output = fits.getdata(output_file)
@@ -66,6 +68,19 @@ def create_single_catalog(output_file, mask_file, real_file):
     source_props_df['brightest_pix'] = brightest_pix
     source_props_df['max_loc'] = max_locs
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
+    source_props_df['true_positive_real'] = False
+    # Update real catalog with pixel values
+    print("cross-referencing with real catalog")
+    get_pixel_coords(real_file, catalog_df)
+    real_cat = catalog_df[catalog_df.file_name == real_file]
+    source_cat = (source_props_df.file.str.contains(real_file)) & (~source_props_df.true_positive_mocks)
+    for i, row in real_cat.iterrows():
+        source_cond = (source_props_df
+            (row.z_pos >= source_props_df[source_cat]['bbox-0']) & (row.z_pos >= source_props_df[source_cat]['bbox-3'])
+            & (row.pixels_x >= source_props_df[source_cat]['bbox-1']) & (row.pixels_x >= source_props_df[source_cat]['bbox-4'])
+            & (row.pixels_y >= source_props_df[source_cat]['bbox-2']) & (row.pixels_y >= source_props_df[source_cat]['bbox-5'])
+        )
+        source_props_df.loc[source_cat, 'true_positive_real'] = source_cond
     print(len(source_props_df))
     return source_props_df
 
@@ -106,7 +121,6 @@ def get_pixel_coords(cube_file, catalog_df):
 
 def main(data_dir, method, scale, out_dir, catalog_loc):
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if "_1245mos" in i]
-    catalog_loc = "../PP_redshifts_8x8.csv"
     h_0 = 70*u.km/(u.Mpc*u.s)
     rest_freq = 1.420405758000E+09
     catalog_df = pd.read_csv(catalog_loc)
@@ -119,7 +133,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
     source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0', 'inertia_tensor_eigvals-1',
        'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1', 'centroid-2',
        'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area', 'flux', 'peak_flux', 'brightest_pix', 'max_loc', 'file',
-       'true_positive_mocks'])
+       'true_positive_mocks', 'true_positive_real'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
         print(mos_name)
@@ -130,20 +144,9 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
         elif method == "SOFIA":
             nonbinary_im = data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits"
         target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
-        source_props_df = create_single_catalog(nonbinary_im, target_file, cube_file)
-        source_props_df['true_positive_real'] = False
-        # Update real catalog with pixel values
-        get_pixel_coords(cube_file, catalog_df)
-        real_cat = catalog_df[catalog_df.file_name == cube_file]
-        source_cat = (source_props_df.file.str.contains(cube_file)) & (~source_props_df.true_positive_mocks)
-        for i, row in real_cat.iterrows():
-            source_cond = (source_props_df
-                (row.z_pos >= source_props_df[source_cat]['bbox-0']) & (row.z_pos >= source_props_df[source_cat]['bbox-3'])
-                & (row.pixels_x >= source_props_df[source_cat]['bbox-1']) & (row.pixels_x >= source_props_df[source_cat]['bbox-4'])
-                & (row.pixels_y >= source_props_df[source_cat]['bbox-2']) & (row.pixels_y >= source_props_df[source_cat]['bbox-5'])
-            )
-            source_props_df.loc[source_cat, 'true_positive_real'] = source_cond
+        source_props_df = create_single_catalog(nonbinary_im, target_file, cube_file, catalog_df)
         source_props_df_full = source_props_df_full.append(source_props_df)
+    print("saving file...")
     out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
     source_props_df_full.to_csv(out_file)
 
