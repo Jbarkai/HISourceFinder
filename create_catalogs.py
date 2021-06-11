@@ -171,7 +171,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
         source_props_df_full = source_props_df_full.append(source_props_df)
     print("saving file...")
     out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
-    source_props_df_full.to_csv(out_file)
+    source_props_df.to_pickle(out_file)
 
 
 if __name__ == "__main__":
