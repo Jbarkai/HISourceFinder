@@ -65,7 +65,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
             int(row['bbox-0']):int(row['bbox-3']),
             int(row['bbox-1']):int(row['bbox-4']),
             int(row['bbox-2']):int(row['bbox-5'])]
-        mask_subcube = mask_labels[
+        mask_subcube = seg_output[
             int(row['bbox-0']):int(row['bbox-3']),
             int(row['bbox-1']):int(row['bbox-4']),
             int(row['bbox-2']):int(row['bbox-5'])]
@@ -80,7 +80,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
         gt_masks.append(gt_subcube)
     source_props_df['brightest_pix'] = brightest_pix
     source_props_df['max_loc'] = max_locs
-    source_props_df['mask'] = masks
+    source_props_df['seg_mask'] = masks
     source_props_df['gt_mask'] = gt_masks
     source_props_df["file"] = output_file
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
