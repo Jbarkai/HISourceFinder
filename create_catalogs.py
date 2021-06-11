@@ -92,7 +92,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     real_cat = catalog_df[catalog_df.file_name == file_abb]
     source_cat = (source_props_df.file.str.contains(file_abb)) & (~source_props_df.true_positive_mocks)
     for i, row in real_cat.iterrows():
-        source_cond = (source_props_df
+        source_cond = (
             (row.z_pos >= source_props_df[source_cat]['bbox-0']) & (row.z_pos >= source_props_df[source_cat]['bbox-3'])
             & (row.pixels_x >= source_props_df[source_cat]['bbox-1']) & (row.pixels_x >= source_props_df[source_cat]['bbox-4'])
             & (row.pixels_y >= source_props_df[source_cat]['bbox-2']) & (row.pixels_y >= source_props_df[source_cat]['bbox-5'])
