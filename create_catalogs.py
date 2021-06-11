@@ -83,6 +83,9 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
             & (row.pixels_y >= source_props_df[source_cat]['bbox-2']) & (row.pixels_y >= source_props_df[source_cat]['bbox-5'])
         )
         source_props_df.loc[source_cat, 'true_positive_real'] = source_cond
+    source_props_df['n_channels'] = source_props_df['bbox-3']-source_props_df['bbox-0']
+    source_props_df['nx'] = source_props_df['bbox-4']-source_props_df['bbox-1']
+    source_props_df['ny'] = source_props_df['bbox-5']-source_props_df['bbox-2']
     print(len(source_props_df))
     return source_props_df
 
@@ -135,7 +138,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
     source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0', 'inertia_tensor_eigvals-1',
        'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1', 'centroid-2',
        'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area', 'flux', 'peak_flux', 'eccentricity',
-       'flatness', 'brightest_pix', 'max_loc', 'file', 'true_positive_mocks', 'true_positive_real'])
+       'flatness', 'brightest_pix', 'max_loc', 'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'nx', 'ny'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
         print(mos_name)
