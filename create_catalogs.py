@@ -74,8 +74,9 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     # Update real catalog with pixel values
     print("cross-referencing with real catalog")
     get_pixel_coords(real_file, catalog_df)
-    real_cat = catalog_df[catalog_df.file_name == real_file]
-    source_cat = (source_props_df.file.str.contains(real_file)) & (~source_props_df.true_positive_mocks)
+    file_abb = real_file.split("/")[-1].split(".")[0]
+    real_cat = catalog_df[catalog_df.file_name == file_abb]
+    source_cat = (source_props_df.file.str.contains(file_abb)) & (~source_props_df.true_positive_mocks)
     for i, row in real_cat.iterrows():
         source_cond = (source_props_df
             (row.z_pos >= source_props_df[source_cat]['bbox-0']) & (row.z_pos >= source_props_df[source_cat]['bbox-3'])
