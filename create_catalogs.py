@@ -54,7 +54,8 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
         properties=['label','inertia_tensor_eigvals', 'centroid', 'bbox', 'area'],
         extra_properties=(tot_flux, peak_flux))
     )
-    source_props_df["file"] = output_file
+    source_props_df['eccentricity'] = source_props_df['inertia_tensor_eigvals-0']/source_props_df['inertia_tensor_eigvals-1']
+    source_props_df['flatness'] = source_props_df['inertia_tensor_eigvals-1']/source_props_df['inertia_tensor_eigvals-2']
     max_locs = []
     brightest_pix = []
     for i, row in source_props_df.iterrows():
@@ -67,6 +68,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
         max_locs.append([int(i)+k for i, k in zip(np.where(subcube == np.nanmax(subcube)), xyz)])
     source_props_df['brightest_pix'] = brightest_pix
     source_props_df['max_loc'] = max_locs
+    source_props_df["file"] = output_file
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
     source_props_df['true_positive_real'] = False
     # Update real catalog with pixel values
@@ -132,8 +134,8 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
     catalog_df["file_name"] = np.nan
     source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0', 'inertia_tensor_eigvals-1',
        'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1', 'centroid-2',
-       'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area', 'flux', 'peak_flux', 'brightest_pix', 'max_loc', 'file',
-       'true_positive_mocks', 'true_positive_real'])
+       'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area', 'flux', 'peak_flux', 'eccentricity',
+       'flatness', 'brightest_pix', 'max_loc', 'file', 'true_positive_mocks', 'true_positive_real'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
         print(mos_name)
