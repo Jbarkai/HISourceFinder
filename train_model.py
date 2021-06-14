@@ -52,18 +52,7 @@ def main(
         The training and validation data loaders
     """
     now = datetime.now() # current date and time
-    date_str = now.strftime("%d%m%Y_%H%M%S")
-    save = "./saved_models_%s_%s_%s/"%(date_str, scale, subsample)
-    if not os.path.exists(save):
-        os.mkdir(save)
-    with open(save+"params.txt", "wb") as fp:
-        pickle.dump([{
-            "scale": scale,
-            "subsample": subsample,
-            "opt":opt,
-            "lr": lr,
-            "batch_size": batch_size
-        }], fp)
+    date_str = now.strftime("%d%m%Y_%H%M%S")s
     # input and target files
     model_name = model
     model, optimizer = create_model(args)
@@ -73,8 +62,20 @@ def main(
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch']
+        save = pretrained.split("/")[0]
     else:
         start_epoch = 0
+        save = "./saved_models_%s_%s_%s/"%(date_str, scale, subsample)
+        if not os.path.exists(save):
+            os.mkdir(save)
+        with open(save+"params.txt", "wb") as fp:
+            pickle.dump([{
+                "scale": scale,
+                "subsample": subsample,
+                "opt":opt,
+                "lr": lr,
+                "batch_size": batch_size
+            }], fp)
     inputs = [root+scale+'Input/' + x for x in listdir(root+scale+'Input') if ".fits" in x]
     targets = [root+'Target/mask_' + x.split("/")[-1].split("_")[-1] for x in inputs]
     dataset_full = SegmentationDataSet(inputs=inputs,
