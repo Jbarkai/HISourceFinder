@@ -52,7 +52,7 @@ def main(
         The training and validation data loaders
     """
     now = datetime.now() # current date and time
-    date_str = now.strftime("%d%m%Y_%H%M%S")s
+    date_str = now.strftime("%d%m%Y_%H%M%S")
     # input and target files
     model_name = model
     model, optimizer = create_model(args)
