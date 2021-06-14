@@ -1,0 +1,2 @@
+Summary train Epoch  1:  Loss:0.4061     DSC:59.3919    background : 0.9910     galaxy : 0.1968
+Summary val Epoch  1:  Loss:0.3691       DSC:63.0903    background : 0.9998     galaxy : 0.2620
