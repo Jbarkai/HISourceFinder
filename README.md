@@ -46,17 +46,16 @@ data
 │   │   1245mosC.derip.fits
 │   │   ...
 └───mto_output
-│   │   mto_testcube_mask.fits
-│   │   mto_output.fits
+│   │   mtocubeout_loud_1245mosB.fits
+│   │   mtocubeout_loud_1245mosC.fits
+│   │   ...
+└───vnet_output
+│   │   vnet_cubeout_loud_1245mosB.fits
+│   │   vnet_cubeout_loud_1245mosC.fits
 │   │   ...
 └───sofia_ouput
 │   │   sofia_loud_1245mosC_mask.fits
 │   │   sofia_loud_1245mosC_rel.eps
-│   └───sofia_loud_1245mosC_cubelets
-│       │   noisefree_1245mosB.fits
-│       │   noisefree_1245mosC.fits
-│       │   ...
-│   ...
 │   │   ...
 └───training
 │   └───Input
@@ -118,8 +117,45 @@ optional arguments:
                         Filename (default: noisefree_1245mosB.fits)
   --scale [SCALE]       Scaling amount (default: loud)
 ```
-### Train V-Net
-Train model on subcubes created from sliding windows, each of dimension 128x128x64.
+### Run SoFiA on cubes
+1. Install SoFiA from [here](https://github.com/SoFiA-Admin/SoFiA-2), the installation guide can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki).
+2. Make sure to edit the parameter files accordingly for each cube, an explanation of the parameters can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki/SoFiA-2-Control-Parameters).
+3. Run sofia on data cubes
+```bash
+sofia <parameter_file>
+```
+or if you want to store the time taken:
+```bash
+usage: run_sofia.py [-h] [--sofia_loc [SOFIA_LOC]] [--cube_dir [CUBE_DIR]] [--param_dir [PARAM_DIR]]
+
+Run SoFiA
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --sofia_loc [SOFIA_LOC]
+                        The sofia executable location (default: /net/blaauw/data2/users/vdhulst/SoFiA-2/sofia)
+  --cube_dir [CUBE_DIR]
+                        The directory of the cubes (default: ./data/training/loudInput)
+  --param_dir [PARAM_DIR]
+                        The directory containing the parameter files (default: ./run_segmentation/params)
+```
+### Run MTObjects
+Run MTO with sliding window on all cubes (for memory purposes):
+```bash
+usage: run_mto.py [-h] [--mto_dir [MTO_DIR]] [--param_file [PARAM_FILE]] [--input_dir [INPUT_DIR]]
+
+Run MTO
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --mto_dir [MTO_DIR]   The directory of the MTO executable (default: ../mtobjects)
+  --param_file [PARAM_FILE]
+                        The parameter file (default: ../mtobjects/radio_smoothed-00_F.txt)
+  --input_dir [INPUT_DIR]
+                        The directory of the input data (default: data/training/loudInput)
+```
+### Run V-Net
+1. Train model on subcubes created from sliding windows, each of dimension 128x128x64.
 ```bash
 usage: train_model.py [-h] [--loaded [LOADED]] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
                       [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--log_dir [LOG_DIR]]
@@ -161,72 +197,59 @@ optional arguments:
   --cuda [CUDA]         Memory allocation (default: False)
   --k_folds [K_FOLDS]   Number of folds for k folds cross-validations (default: 5)
 ```
-## Run SoFiA on cubes
-1. Install SoFiA from [here](https://github.com/SoFiA-Admin/SoFiA-2), the installation guide can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki).
-2. Make sure to edit the parameter files accordingly for each cube, an explanation of the parameters can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki/SoFiA-2-Control-Parameters).
-3. Run sofia on data cubes
+2. Run now trained V-Net on images with sliding window:
 ```bash
-sofia <parameter_file>
-```
-## Install and Train LVQ with MTO
-Fork and then clone repository.
-```bash
-git clone https://gitlab.com/michaelvandeweerd/mto-lvq.git
-cd mto-lvq
-```
-Fix out-of-date dependency: replace "GLVQClassifier" with just "GLVQ" in src/lvq.c
+usage: run_vnet.py [-h] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--pretrained [PRETRAINED]] [--test_file [TEST_FILE]]
 
-Run MTO and LVQ on all files:
-```bash
-mv ../HISourceFinder/test_mto.sh ./test_mto.sh
-bash test_mto.sh
-```
-MTO usage:
-```bash
-usage: ./mt-objects <nthreads> <levels> <input> <lambda>
-                    [<classifier> [<labels> [<bits> [<mul>
-                    [<output> [<3d> [<sigma> [<factor>]]]]]]]]
-
-    nthreads    Numer of threads for sorting and quantizing
-    levels      Number of quantized levels and threads for
-                refining
-    input       Input image
-    lambda      
-    classifier  LVQ classifier, prompts LVQ segmentation
-    labels      Ground truth (FITS) for the input image,
-                prompts LVQ training
-    bits        Amount of bits per pixel
-    mul         Mulfactor bpp(input image) + mulfactor = bits
-                per pixel
-    output      Output image
-    3d          Whether the input image is in 3D
-    sigma       Standard deviation
-    factor      Move up factor
-
-```
-
-## Compare methods
-Use the F1-score to compare the 3 segmentation methods:
-```bash
-usage: compare_methods.py [-h] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--dataset_name [DATASET_NAME]]
-                          [--save [SAVE]] [--pretrained [PRETRAINED]] [--cuda [CUDA]] [--test_dir [TEST_DIR]]
-
-Train model
+INFERENCE VNET
 
 optional arguments:
   -h, --help            show this help message and exit
   --model [MODEL]       The 3D segmentation model to use (default: VNET)
-  --opt [OPT]           The type of optimizer (default: sgd)
+  --opt [OPT]           The type of optimizer (default: adam)
   --lr [LR]             The learning rate (default: 0.001)
   --inChannels [INCHANNELS]
                         The desired modalities/channels that you want to use (default: 1)
-  --classes [CLASSES]   The number of classes (default: 1)
-  --dataset_name [DATASET_NAME]
-                        The name of the dataset (default: hi_source)
-  --save [SAVE]         The checkpoint location (default: ./inference_checkpoints/VNET_checkpoints/VNET_hi_source)
+  --classes [CLASSES]   The number of classes (default: 2)
   --pretrained [PRETRAINED]
-                        The checkpoint location (default: ../saved_models/VNET_checkpoints/VNET_/VNET__BEST.pth)
-  --cuda [CUDA]         Memory allocation (default: False)
-  --test_dir [TEST_DIR]
-                        Memory allocation (default: False)
+                        The location of the pretrained model (default: ./VNET__last_epoch.pth)
+  --test_file [TEST_FILE]
+                        The file listing the test sliding window pieces (default: ./notebooks/loud_1245mosC-slidingwindowindices.txt)
+```
+### Add real sources to mask
+1. Create a catalog for the results of each method and cross-reference it with the mask of the inserted galaxies and a catalog of known sources (to mark true or false positives):
+```bash
+usage: create_catalogs.py [-h] [--data_dir [DATA_DIR]] [--method [METHOD]] [--scale [SCALE]] [--output_dir [OUTPUT_DIR]] [--catalog_loc [CATALOG_LOC]]
+
+Create catalog from output
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --data_dir [DATA_DIR]
+                        The directory containing the data (default: data/)
+  --method [METHOD]     The segmentation method being evaluated (default: MTO)
+  --scale [SCALE]       The scale of the inserted galaxies (default: loud)
+  --output_dir [OUTPUT_DIR]
+                        The output directory for the results (default: results/)
+  --catalog_loc [CATALOG_LOC]
+                        The real catalog file (default: PP_redshifts_8x8.csv)
+```
+2. Once run for each method, combine the false positives of each result, matching them based on the location of the brightest voxel and taking that with the largest area. These segmented masks are then added to the original masks containing only the mock galaxies.
+3. Re-train V-Net with newly labelled masks
+4. Train machine learning algorithms with true and false positives from combined catalog.
+### Evaluate results
+Evaluate each method one by one and output a csv of the evaluation metrics to compare later:
+```bash
+usage: compare_methods.py [-h] [--data_dir [DATA_DIR]] [--method [METHOD]] [--scale [SCALE]] [--output_dir [OUTPUT_DIR]]
+
+Compare Methods
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --data_dir [DATA_DIR]
+                        The directory containing the data (default: data/)
+  --method [METHOD]     The segmentation method being evaluated (default: MTO)
+  --scale [SCALE]       The scale of the inserted galaxies (default: loud)
+  --output_dir [OUTPUT_DIR]
+                        The output directory for the results (default: results/)
 ```
