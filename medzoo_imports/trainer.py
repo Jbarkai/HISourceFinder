@@ -188,15 +188,15 @@ class Trainer:
                 print("Saved at ", name_checkpoint)
 
             self.writer.write_end_of_epoch(epoch)
-            save_to_file = [epoch,
-                self.data['train']['loss']/self.data['train']['count'],
-                self.data['train']['dsc'] / self.data['train']['count'],
-                self.data['val']['loss'] / self.data['val']['count'],
-                self.data['val']['dsc'] / self.data['val']['count']
-                ]
-            with open(self.args.save + "/results.csv", 'a') as f:
-                writer = csv.writer(f)
-                writer.writerow(save_to_file)
+            # save_to_file = [epoch,
+            #     self.data['train']['loss']/self.data['train']['count'],
+            #     self.data['train']['dsc'] / self.data['train']['count'],
+            #     self.data['val']['loss'] / self.data['val']['count'],
+            #     self.data['val']['dsc'] / self.data['val']['count']
+            #     ]
+            # with open(self.args.save + "/results.csv", 'a') as f:
+            #     writer = csv.writer(f)
+            #     writer.writerow(save_to_file)
             # Early stopping
             if self.best_loss == None:
                 self.best_loss = val_loss
