@@ -58,32 +58,32 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     source_props_df['flatness'] = source_props_df['inertia_tensor_eigvals-1']/source_props_df['inertia_tensor_eigvals-2']
     max_locs = []
     brightest_pix = []
-    masks = []
-    gt_masks = []
+    # masks = []
+    # gt_masks = []
     for i, row in source_props_df.iterrows():
         subcube = orig_data[
             int(row['bbox-0']):int(row['bbox-3']),
             int(row['bbox-1']):int(row['bbox-4']),
             int(row['bbox-2']):int(row['bbox-5'])]
-        mask_subcube = seg_output[
-            int(row['bbox-0']):int(row['bbox-3']),
-            int(row['bbox-1']):int(row['bbox-4']),
-            int(row['bbox-2']):int(row['bbox-5'])]
-        gt_subcube = mask_labels[
-            int(row['bbox-0']):int(row['bbox-3']),
-            int(row['bbox-1']):int(row['bbox-4']),
-            int(row['bbox-2']):int(row['bbox-5'])]
-        mask_subcube[mask_subcube > 0] = 1
-        gt_subcube[gt_subcube > 0] = 1
+        # mask_subcube = seg_output[
+        #     int(row['bbox-0']):int(row['bbox-3']),
+        #     int(row['bbox-1']):int(row['bbox-4']),
+        #     int(row['bbox-2']):int(row['bbox-5'])]
+        # gt_subcube = mask_labels[
+        #     int(row['bbox-0']):int(row['bbox-3']),
+        #     int(row['bbox-1']):int(row['bbox-4']),
+        #     int(row['bbox-2']):int(row['bbox-5'])]
+        # mask_subcube[mask_subcube > 0] = 1
+        # gt_subcube[gt_subcube > 0] = 1
         xyz = [row['bbox-0'], row['bbox-1'], row['bbox-2']]
         brightest_pix.append(np.nanmax(subcube))
         max_locs.append([int(i)+k for i, k in zip(np.where(subcube == np.nanmax(subcube)), xyz)])
-        masks.append(mask_subcube)
-        gt_masks.append(gt_subcube)
+        # masks.append(mask_subcube)
+        # gt_masks.append(gt_subcube)
     source_props_df['brightest_pix'] = brightest_pix
     source_props_df['max_loc'] = max_locs
-    source_props_df['seg_mask'] = masks
-    source_props_df['gt_mask'] = gt_masks
+    # source_props_df['seg_mask'] = masks
+    # source_props_df['gt_mask'] = gt_masks
     source_props_df["file"] = output_file
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
     source_props_df['true_positive_real'] = False
@@ -155,7 +155,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
     source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0',
     'inertia_tensor_eigvals-1', 'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1',
     'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
-    'flux', 'peak_flux', 'eccentricity', 'flatness', 'brightest_pix', 'max_loc', 'mask', 'gt_mask',
+    'flux', 'peak_flux', 'eccentricity', 'flatness', 'brightest_pix', 'max_loc',
     'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'nx', 'ny'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
@@ -171,7 +171,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
         source_props_df_full = source_props_df_full.append(source_props_df)
     print("saving file...")
     out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
-    source_props_df.to_pickle(out_file)
+    source_props_df_full.to_csv(out_file)
 
 
 if __name__ == "__main__":
