@@ -84,7 +84,7 @@ def main(scale, output_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Create catalog from output",
+    parser = argparse.ArgumentParser(description="Combine catalogs and add to masks",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--scale', type=str, nargs='?', const='default', default='loud',

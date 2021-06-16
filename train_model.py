@@ -62,7 +62,7 @@ def main(
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch']
-        save = pretrained.split("/")[0]
+        save = pretrained.split("/")[0] + "/"
     else:
         start_epoch = 0
         save = "./saved_models_%s_%s_%s/"%(date_str, scale, subsample)

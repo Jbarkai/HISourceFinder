@@ -235,6 +235,17 @@ optional arguments:
                         The real catalog file (default: PP_redshifts_8x8.csv)
 ```
 2. Once run for each method, combine the false positives of each result, matching them based on the location of the brightest voxel and taking that with the largest area. These segmented masks are then added to the original masks containing only the mock galaxies.
+```bash
+usage: combine_catalogs.py [-h] [--scale [SCALE]] [--output_dir [OUTPUT_DIR]]
+
+Combine catalogs and add to masks
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --scale [SCALE]       The scale of the inserted galaxies (default: loud)
+  --output_dir [OUTPUT_DIR]
+                        The output directory for the results (default: results/)
+```
 3. Re-train V-Net with newly labelled masks
 4. Train machine learning algorithms with true and false positives from combined catalog.
 ### Evaluate results
