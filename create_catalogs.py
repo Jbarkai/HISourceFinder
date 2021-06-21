@@ -113,8 +113,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     hi_data[0].header['CUNIT3'] = 'Hz'
     spec_cube = (SpectralCube.read(hi_data)).spectral_axis
     hi_data.close()
-    source_props_df["redshift"] = [((rest_freq/spec_cube[i])-1).value for i in source_props_df['centroid-0'].astype(int)]
-    source_props_df["dist"] = ((const.c*source_props_df.redshift/h_0).to(u.Mpc)).values
+    source_props_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in source_props_df['centroid-0'].astype(int)]
     source_props_df["nx_mpc"] = 2*source_props_df.dist*np.tan(np.deg2rad(source_props_df.nx/2))
     source_props_df['ny'] = source_props_df['bbox-5']-source_props_df['bbox-2']
     source_props_df["ny_mpc"] = 2*source_props_df.dist*np.tan(np.deg2rad(source_props_df.ny/2))
@@ -172,7 +171,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
     'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
     'flux', 'peak_flux', 'elongation', 'flatness', 'brightest_pix', 'max_loc',
     'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'n_freq', 'nx',
-    'redshift', 'dist', 'nx_mpc', 'ny', 'ny_mpc'])
+    'dist', 'nx_mpc', 'ny', 'ny_mpc'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
         print(mos_name)
