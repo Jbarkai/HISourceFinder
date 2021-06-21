@@ -86,12 +86,6 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     # source_props_df['gt_mask'] = gt_masks
     source_props_df["file"] = output_file
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
-    source_props_df['gt_area'] = [
-        mask_df[mask_df.max_loc == i].area.values[0] 
-        if i in list(mask_df.max_loc.values) 
-        else np.nan 
-        for i in source_props_df.max_loc
-    ]
     source_props_df['true_positive_real'] = False
     # Update real catalog with pixel values
     print("cross-referencing with real catalog")
@@ -177,7 +171,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
     'inertia_tensor_eigvals-1', 'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1',
     'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
     'flux', 'peak_flux', 'elongation', 'flatness', 'brightest_pix', 'max_loc',
-    'file', 'true_positive_mocks', 'gt_area', 'true_positive_real', 'n_channels', 'n_freq', 'nx',
+    'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'n_freq', 'nx',
     'redshift', 'dist', 'nx_mpc', 'ny', 'ny_mpc'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
