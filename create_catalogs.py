@@ -54,7 +54,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
         properties=['label','inertia_tensor_eigvals', 'centroid', 'bbox', 'area'],
         extra_properties=(tot_flux, peak_flux))
     )
-    source_props_df['eccentricity'] = source_props_df['inertia_tensor_eigvals-0']/source_props_df['inertia_tensor_eigvals-1']
+    source_props_df['elongation'] = source_props_df['inertia_tensor_eigvals-0']/source_props_df['inertia_tensor_eigvals-1']
     source_props_df['flatness'] = source_props_df['inertia_tensor_eigvals-1']/source_props_df['inertia_tensor_eigvals-2']
     max_locs = []
     brightest_pix = []
@@ -101,8 +101,23 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
         )
         source_props_df.loc[source_cat, 'true_positive_real'] = source_cond
     source_props_df['n_channels'] = source_props_df['bbox-3']-source_props_df['bbox-0']
+    # Convert to physical values
+    d_channels = 36621.09375*u.Hz
+    rest_freq = 1.420405758000E+09*u.Hz
+    source_props_df["n_freq"] = [(i*d_channels*const.c/rest_freq).to(u.km/u.s).value for i in source_props_df.n_channels]
     source_props_df['nx'] = source_props_df['bbox-4']-source_props_df['bbox-1']
+    h_0 = 70*u.km/(u.Mpc*u.s)
+    # Load reference cube
+    hi_data = fits.open(real_file)
+    hi_data[0].header['CTYPE3'] = 'FREQ'
+    hi_data[0].header['CUNIT3'] = 'Hz'
+    spec_cube = (SpectralCube.read(hi_data)).spectral_axis
+    hi_data.close()
+    source_props_df["redshift"] = [((rest_freq/spec_cube.spectral_axis[i])-1).value for i in source_props_df['centroid-0'].astype(int)]
+    source_props_df["dist"] = ((const.c*source_props_df.redshift/h_0).to(u.Mpc)).values
+    source_props_df["nx_mpc"] = 2*source_props_df.dist*np.tan(np.deg2rad(source_props_df.nx/2))
     source_props_df['ny'] = source_props_df['bbox-5']-source_props_df['bbox-2']
+    source_props_df["ny_mpc"] = 2*source_props_df.dist*np.tan(np.deg2rad(source_props_df.ny/2))
     print(len(source_props_df))
     return source_props_df
 
@@ -155,8 +170,8 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
     source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0',
     'inertia_tensor_eigvals-1', 'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1',
     'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
-    'flux', 'peak_flux', 'eccentricity', 'flatness', 'brightest_pix', 'max_loc',
-    'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'nx', 'ny'])
+    'flux', 'peak_flux', 'elongation', 'flatness', 'brightest_pix', 'max_loc',
+    'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'n_freq', 'nx', 'ny'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
         print(mos_name)
