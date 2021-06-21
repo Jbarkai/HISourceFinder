@@ -113,7 +113,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     hi_data[0].header['CUNIT3'] = 'Hz'
     spec_cube = (SpectralCube.read(hi_data)).spectral_axis
     hi_data.close()
-    source_props_df["redshift"] = [((rest_freq/spec_cube.spectral_axis[i])-1).value for i in source_props_df['centroid-0'].astype(int)]
+    source_props_df["redshift"] = [((rest_freq/spec_cube[i])-1).value for i in source_props_df['centroid-0'].astype(int)]
     source_props_df["dist"] = ((const.c*source_props_df.redshift/h_0).to(u.Mpc)).values
     source_props_df["nx_mpc"] = 2*source_props_df.dist*np.tan(np.deg2rad(source_props_df.nx/2))
     source_props_df['ny'] = source_props_df['bbox-5']-source_props_df['bbox-2']
