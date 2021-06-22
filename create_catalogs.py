@@ -19,6 +19,55 @@ def tot_flux(regionmask, intensity):
     return np.nansum(intensity[regionmask])
 
 
+def create_mask_catalog(mask_file, real_file):
+    # Load segmentation, real and mask cubes
+    mask_data = fits.getdata(mask_file)
+    orig_data = fits.getdata(real_file)
+    # Number mask
+    print("numbering mask...")
+    mask_labels = skmeas.label(mask_data)
+    # Catalog mask
+    print("cataloging mask...")
+    mask_df = pd.DataFrame(
+        skmeas.regionprops_table(
+        mask_labels, orig_data, properties=['label','inertia_tensor_eigvals', 'centroid', 'bbox', 'area'],
+        extra_properties=(tot_flux, peak_flux))
+    )
+    max_locs = []
+    brightest_pix = []
+    for i, row in mask_df.iterrows():
+        subcube = orig_data[
+            int(row['bbox-0']):int(row['bbox-3']),
+            int(row['bbox-1']):int(row['bbox-4']),
+            int(row['bbox-2']):int(row['bbox-5'])]
+        xyz = [row['bbox-0'], row['bbox-1'], row['bbox-2']]
+        brightest_pix.append(np.nanmax(subcube))
+        max_locs.append([int(i)+k for i, k in zip(np.where(subcube == np.nanmax(subcube)), xyz)])
+    mask_df['brightest_pix'] = brightest_pix
+    mask_df['max_loc'] = max_locs
+    mask_df["file"] = mask_file
+    mask_df['n_channels'] = mask_df['bbox-3']-mask_df['bbox-0']
+    # Convert to physical values
+    d_channels = 36621.09375*u.Hz
+    rest_freq = 1.420405758000E+09*u.Hz
+    d_width = 0.065000001573*u.deg
+    mask_df["n_vel"] = [(i*d_channels*const.c/rest_freq).to(u.km/u.s).value for i in mask_df.n_channels]
+    mask_df['nx'] = mask_df['bbox-4']-mask_df['bbox-1']
+    h_0 = 70*u.km/(u.Mpc*u.s)
+    # Load reference cube
+    hi_data = fits.open(real_file)
+    hi_data[0].header['CTYPE3'] = 'FREQ'
+    hi_data[0].header['CUNIT3'] = 'Hz'
+    spec_cube = (SpectralCube.read(hi_data)).spectral_axis
+    hi_data.close()
+    mask_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in mask_df['centroid-0'].astype(int)]
+    mask_df["nx_mpc"] = 2*mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.nx/2))
+    mask_df['ny'] = mask_df['bbox-5']-mask_df['bbox-2']
+    mask_df["ny_mpc"] = 2*mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.ny/2))
+    print(len(mask_df))
+    return mask_df
+
+
 def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     # Load segmentation, real and mask cubes
     mask_data = fits.getdata(mask_file)
@@ -156,8 +205,24 @@ def get_pixel_coords(cube_file, catalog_df):
     return
 
 
-def main(data_dir, method, scale, out_dir, catalog_loc):
+def main(data_dir, method, scale, out_dir, catalog_loc, mask):
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if ".fits" in i]
+    if mask:
+        source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0',
+        'inertia_tensor_eigvals-1', 'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1',
+        'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
+        'flux', 'peak_flux', 'elongation', 'flatness', 'brightest_pix', 'max_loc',
+        'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'n_vel', 'nx',
+        'dist', 'nx_mpc', 'ny', 'ny_mpc'])
+        for cube_file in cube_files:
+            print(cube_file)
+            target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
+            source_props_df = create_mask_catalog(target_file, cube_file)
+            source_props_df_full = source_props_df_full.append(source_props_df)
+        print("saving file...")
+        out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
+        source_props_df_full.to_csv(out_file)
+        return
     h_0 = 70*u.km/(u.Mpc*u.s)
     rest_freq = 1.420405758000E+09
     catalog_df = pd.read_csv(catalog_loc)
@@ -188,6 +253,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc):
     print("saving file...")
     out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
     source_props_df_full.to_csv(out_file)
+    return
 
 
 if __name__ == "__main__":
@@ -208,6 +274,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--catalog_loc', type=str, nargs='?', const='default', default="PP_redshifts_8x8.csv",
         help='The real catalog file')
+    parser.add_argument(
+        '--mask', type=bool, nargs='?', const='default', default=False,
+        help='Whether to create mask catalog')
     args = parser.parse_args()
 
-    main(args.data_dir, args.method, args.scale, args.output_dir, args.catalog_loc)
+    main(args.data_dir, args.method, args.scale, args.output_dir, args.catalog_loc, args.mask)
