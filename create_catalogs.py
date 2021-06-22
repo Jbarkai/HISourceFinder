@@ -115,9 +115,9 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     spec_cube = (SpectralCube.read(hi_data)).spectral_axis
     hi_data.close()
     source_props_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in source_props_df['centroid-0'].astype(int)]
-    source_props_df["nx_mpc"] = 2*source_props_df.dist*np.tan(d_width*u.deg*source_props_df.nx/2)
+    source_props_df["nx_mpc"] = 2*source_props_df.dist*np.tan(d_width*source_props_df.nx/2)
     source_props_df['ny'] = source_props_df['bbox-5']-source_props_df['bbox-2']
-    source_props_df["ny_mpc"] = 2*source_props_df.dist*np.tan(d_width*u.deg*source_props_df.ny/2)
+    source_props_df["ny_mpc"] = 2*source_props_df.dist*np.tan(d_width*source_props_df.ny/2)
     print(len(source_props_df))
     return source_props_df
 
