@@ -30,19 +30,31 @@ def create_mask_catalog(mask_file, real_file):
     print("cataloging mask...")
     mask_df = pd.DataFrame(
         skmeas.regionprops_table(
-        mask_labels, orig_data, properties=['label','inertia_tensor_eigvals', 'centroid', 'bbox', 'area'],
+        mask_labels, orig_data, properties=['label', 'centroid', 'bbox', 'area'],
         extra_properties=(tot_flux, peak_flux))
     )
     max_locs = []
     brightest_pix = []
+    eg0s = []
+    eg1s = []
     for i, row in mask_df.iterrows():
         subcube = orig_data[
             int(row['bbox-0']):int(row['bbox-3']),
             int(row['bbox-1']):int(row['bbox-4']),
             int(row['bbox-2']):int(row['bbox-5'])]
+        mask_subcube = mask_data[
+            int(row['centroid-0']),
+            int(row['bbox-1']):int(row['bbox-4']),
+            int(row['bbox-2']):int(row['bbox-5'])]
+        eg0, eg1 = skmeas.inertia_tensor_eigvals(mask_subcube)
+        eg0s.append(eg0)
+        eg1s.append(eg1)
         xyz = [row['bbox-0'], row['bbox-1'], row['bbox-2']]
         brightest_pix.append(np.nanmax(subcube))
         max_locs.append([int(i)+k for i, k in zip(np.where(subcube == np.nanmax(subcube)), xyz)])
+    mask_df['eg0'] = eg0s
+    mask_df['eg1'] = eg1s
+    mask_df['elongation'] = mask_df.eg0/mask_df.eg1
     mask_df['brightest_pix'] = brightest_pix
     mask_df['max_loc'] = max_locs
     mask_df["file"] = mask_file
@@ -61,9 +73,9 @@ def create_mask_catalog(mask_file, real_file):
     spec_cube = (SpectralCube.read(hi_data)).spectral_axis
     hi_data.close()
     mask_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in mask_df['centroid-0'].astype(int)]
-    mask_df["nx_mpc"] = 2*mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.nx/2))
+    mask_df["nx_mpc"] = mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.nx))
     mask_df['ny'] = mask_df['bbox-5']-mask_df['bbox-2']
-    mask_df["ny_mpc"] = 2*mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.ny/2))
+    mask_df["ny_mpc"] = mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.ny))
     print(len(mask_df))
     return mask_df
 
@@ -80,7 +92,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     print("cataloging mask...")
     mask_df = pd.DataFrame(
         skmeas.regionprops_table(
-        mask_labels, orig_data, properties=['label','inertia_tensor_eigvals', 'centroid', 'bbox', 'area'],
+        mask_labels, orig_data, properties=['label', 'centroid', 'bbox', 'area'],
         extra_properties=(tot_flux, peak_flux))
     )
     mask_df["file"] = mask_file
@@ -100,13 +112,13 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     print("cataloging segmentation...")
     source_props_df = pd.DataFrame(
         skmeas.regionprops_table(seg_output, orig_data,
-        properties=['label','inertia_tensor_eigvals', 'centroid', 'bbox', 'area'],
+        properties=['label', 'centroid', 'bbox', 'area'],
         extra_properties=(tot_flux, peak_flux))
     )
-    source_props_df['elongation'] = source_props_df['inertia_tensor_eigvals-0']/source_props_df['inertia_tensor_eigvals-1']
-    source_props_df['flatness'] = source_props_df['inertia_tensor_eigvals-1']/source_props_df['inertia_tensor_eigvals-2']
     max_locs = []
     brightest_pix = []
+    eg0s = []
+    eg1s = []
     # masks = []
     # gt_masks = []
     for i, row in source_props_df.iterrows():
@@ -114,10 +126,13 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
             int(row['bbox-0']):int(row['bbox-3']),
             int(row['bbox-1']):int(row['bbox-4']),
             int(row['bbox-2']):int(row['bbox-5'])]
-        # mask_subcube = seg_output[
-        #     int(row['bbox-0']):int(row['bbox-3']),
-        #     int(row['bbox-1']):int(row['bbox-4']),
-        #     int(row['bbox-2']):int(row['bbox-5'])]
+        mask_subcube = seg_output[
+            int(row['centroid-0']),
+            int(row['bbox-1']):int(row['bbox-4']),
+            int(row['bbox-2']):int(row['bbox-5'])]
+        eg0, eg1 = skmeas.inertia_tensor_eigvals(mask_subcube)
+        eg0s.append(eg0)
+        eg1s.append(eg1)
         # gt_subcube = mask_labels[
         #     int(row['bbox-0']):int(row['bbox-3']),
         #     int(row['bbox-1']):int(row['bbox-4']),
@@ -129,6 +144,10 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
         max_locs.append([int(i)+k for i, k in zip(np.where(subcube == np.nanmax(subcube)), xyz)])
         # masks.append(mask_subcube)
         # gt_masks.append(gt_subcube)
+    source_props_df['eg0'] = eg0s
+    source_props_df['eg1'] = eg1s
+    source_props_df['elongation'] = source_props_df.eg0/source_props_df.eg1
+    # source_props_df['flatness'] = source_props_df['inertia_tensor_eigvals-1']/source_props_df['inertia_tensor_eigvals-2']
     source_props_df['brightest_pix'] = brightest_pix
     source_props_df['max_loc'] = max_locs
     # source_props_df['seg_mask'] = masks
@@ -153,7 +172,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     # Convert to physical values
     d_channels = 36621.09375*u.Hz
     rest_freq = 1.420405758000E+09*u.Hz
-    d_width = 0.065000001573*u.deg
+    d_width = 0.001666666707*u.deg
     source_props_df["n_vel"] = [(i*d_channels*const.c/rest_freq).to(u.km/u.s).value for i in source_props_df.n_channels]
     source_props_df['nx'] = source_props_df['bbox-4']-source_props_df['bbox-1']
     h_0 = 70*u.km/(u.Mpc*u.s)
@@ -208,10 +227,9 @@ def get_pixel_coords(cube_file, catalog_df):
 def main(data_dir, method, scale, out_dir, catalog_loc, mask):
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if ".fits" in i]
     if mask:
-        source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0',
-        'inertia_tensor_eigvals-1', 'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1',
+        source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1',
         'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
-        'flux', 'peak_flux', 'elongation', 'flatness', 'brightest_pix', 'max_loc',
+        'flux', 'peak_flux', 'eg0', 'eg1', 'elongation', 'brightest_pix', 'max_loc',
         'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'n_vel', 'nx',
         'dist', 'nx_mpc', 'ny', 'ny_mpc'])
         for cube_file in cube_files:
@@ -232,10 +250,9 @@ def main(data_dir, method, scale, out_dir, catalog_loc, mask):
     catalog_df["pixels_x"] = np.nan
     catalog_df["pixels_y"] = np.nan
     catalog_df["file_name"] = np.nan
-    source_props_df_full = pd.DataFrame(columns=['label', 'inertia_tensor_eigvals-0',
-    'inertia_tensor_eigvals-1', 'inertia_tensor_eigvals-2', 'centroid-0', 'centroid-1',
+    source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1',
     'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
-    'flux', 'peak_flux', 'elongation', 'flatness', 'brightest_pix', 'max_loc',
+    'flux', 'peak_flux', 'elongation', 'brightest_pix', 'max_loc',
     'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'n_vel', 'nx',
     'dist', 'nx_mpc', 'ny', 'ny_mpc'])
     for cube_file in cube_files:
