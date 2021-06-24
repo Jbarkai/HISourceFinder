@@ -99,10 +99,6 @@ linker.maxSizeXY           =  0
 linker.maxSizeZ            =  133
 linker.positivity          =  false
 linker.keepNegative        =  false
-linker.minFill             =  0
-linker.minPixels           =  0
-linker.maxFill             =  0
-linker.maxPixels           =  0
 
 
 # Reliability
