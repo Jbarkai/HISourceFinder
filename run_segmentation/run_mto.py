@@ -51,12 +51,12 @@ def anisotropic_diffusion(image, num_iters=10, K=2,
     return image
 
 
-def mto_eval(window, mto_dir, param_file, empty_arr, index, sofia_noise_file):
+def mto_eval(window, mto_dir, param_file, empty_arr, index):
     cube_files, x, y, z = window
     subcube = fits.getdata(cube_files[0])[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
     # Normalise localised noise
-    noisecube = fits.getdata(sofia_noise_file)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
-    subcube = subcube/noisecube
+    # noisecube = fits.getdata(sofia_noise_file)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
+    # subcube = subcube/noisecube
     # Save as fits file
     subcube_file = mto_dir + "/subcube_" + str(index) + cube_files[0].split("/")[-1]
     fits.writeto(subcube_file, subcube, overwrite=True)
@@ -89,13 +89,14 @@ def make_cube(f_in, mto_dir, param_file):
     arr_shape = (652, 1800, 2400)
     dims = [652, 200, 300]
     overlaps = [20, 15, 20]
-    sofia_noise_file = "data/sofia_output/sofia_" + f_in.split("/")[-1].replace(".fits", "_mask.fits")
+    # sofia_noise_file = "data/sofia_output/sofia_" + f_in.split("/")[-1].replace(".fits", "_mask.fits")
     cube_list = save_sliding_window(arr_shape, dims, overlaps, f_in)
     empty_arr = np.zeros(arr_shape)
     for index, window in enumerate(cube_list):
         print("\r", index*100/len(cube_list), "%", end="")
-        mto_eval(window, mto_dir, param_file, empty_arr, index, sofia_noise_file)
-    os.remove(sofia_noise_file)
+        mto_eval(window, mto_dir, param_file, empty_arr, index)
+        # mto_eval(window, mto_dir, param_file, empty_arr, index, sofia_noise_file)
+    # os.remove(sofia_noise_file)
     out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
     # nonbinary_im = skmeas.label(empty_arr)
     fits.writeto(out_cube_file, out_cube_file, overwrite=True)
