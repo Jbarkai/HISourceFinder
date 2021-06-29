@@ -12,10 +12,10 @@ def main(filename, scale):
     print(noise_file)
     hdul = fits.open("./data/mosaics/" + noise_file)
     hdr = hdul[0].header
+    noise_data = hdul[0].data
     hdul.close()
     dx = np.abs(hdr["CDELT1"]*u.deg)
     sigma_x = (dx/np.sqrt(8*np.log(2))).to(u.deg).value
-    noise_data = hdul[0].data
     # if scale == "soft":
     #     cube_data += noise_data*1e-1
     # elif scale == "loud":
