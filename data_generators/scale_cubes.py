@@ -8,7 +8,7 @@ import astropy.units as u
 def main(filename, scale):
     print(filename)
     cube_data = fits.getdata(filename)
-    noise_file = filename.split("/")[-1].split("_")[-1].split(".fits")[0]+".derip.fits"
+    noise_file = filename.split("/")[-1].split("_")[-1].split(".fits")[0]+".derip.norm.fits"
     print(noise_file)
     hdul = fits.open("./data/mosaics/" + noise_file)
     hdr = hdul[0].header
