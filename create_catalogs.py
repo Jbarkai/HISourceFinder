@@ -73,9 +73,9 @@ def create_mask_catalog(mask_file, real_file):
     spec_cube = (SpectralCube.read(hi_data)).spectral_axis
     hi_data.close()
     mask_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in mask_df['centroid-0'].astype(int)]
-    mask_df["nx_mpc"] = mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.nx))
+    mask_df["nx_mpc"] = np.tan(np.deg2rad(d_width*mask_df.nx))/mask_df.dist
     mask_df['ny'] = mask_df['bbox-5']-mask_df['bbox-2']
-    mask_df["ny_mpc"] = mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.ny))
+    mask_df["ny_mpc"] = np.tan(np.deg2rad(d_width*mask_df.ny))/mask_df.dist
     print(len(mask_df))
     return mask_df
 
@@ -183,9 +183,9 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     spec_cube = (SpectralCube.read(hi_data)).spectral_axis
     hi_data.close()
     source_props_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in source_props_df['centroid-0'].astype(int)]
-    source_props_df["nx_mpc"] = 2*source_props_df.dist*np.tan(np.deg2rad(d_width*source_props_df.nx/2))
+    source_props_df["nx_mpc"] = np.tan(np.deg2rad(d_width*source_props_df.nx))/source_props_df.dist
     source_props_df['ny'] = source_props_df['bbox-5']-source_props_df['bbox-2']
-    source_props_df["ny_mpc"] = 2*source_props_df.dist*np.tan(np.deg2rad(d_width*source_props_df.ny/2))
+    source_props_df["ny_mpc"] = np.tan(np.deg2rad(d_width*source_props_df.ny))/source_props_df.dist
     print(len(source_props_df))
     return source_props_df
 
