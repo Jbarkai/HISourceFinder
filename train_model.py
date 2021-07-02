@@ -64,7 +64,7 @@ def main(
         start_epoch = checkpoint['epoch']
         save = pretrained.split("/")[0] + "/"
     else:
-        start_epoch = 0
+        start_epoch = 1
         save = "./saved_models_%s_%s_%s/"%(date_str, scale, subsample)
         if not os.path.exists(save):
             os.mkdir(save)

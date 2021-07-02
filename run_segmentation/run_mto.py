@@ -99,7 +99,7 @@ def make_cube(f_in, mto_dir, param_file):
     # os.remove(sofia_noise_file)
     out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
     # nonbinary_im = skmeas.label(empty_arr)
-    fits.writeto(out_cube_file, out_cube_file, overwrite=True)
+    fits.writeto(out_cube_file, empty_arr, overwrite=True)
     return
 
 

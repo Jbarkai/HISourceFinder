@@ -19,7 +19,7 @@ def main(filename, scale):
     # if scale == "soft":
     #     cube_data += noise_data*1e-1
     # elif scale == "loud":
-    cube_data += noise_data*4e-1
+    cube_datacube_data*3e4 + noise_data
     noise_corner = np.random.normal(scale=sigma_x, size=cube_data.shape)
     cube_data[np.isnan(cube_data)] = noise_corner[np.isnan(cube_data)]
     fits.writeto("./data/training/"+scale+"Input/"+scale+"_"+filename.split("_")[-1], cube_data, header=hdr, overwrite=True)
