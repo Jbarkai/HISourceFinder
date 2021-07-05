@@ -12,14 +12,13 @@ def main(filename, scale):
     print(noise_file)
     hdul = fits.open("./data/mosaics/" + noise_file)
     hdr = hdul[0].header
-    noise_data = hdul[0].data
+    norm_noise = hdul[0].data
     hdul.close()
     dx = np.abs(hdr["CDELT1"]*u.deg)
     sigma_x = (dx/np.sqrt(8*np.log(2))).to(u.deg).value
-    # if scale == "soft":
-    #     cube_data += noise_data*1e-1
-    # elif scale == "loud":
-    cube_datacube_data*3e4 + noise_data
+    orig_noise = fits.open("./data/orig_mosaics/" + noise_file.replace(".norm", ""))
+    scale = np.mean(orig_noise[100, 400:-400, 400:-400]/norm_noise[100, 400:-400, 400:-400])
+    cube_data = cube_data*2e2 + norm_noise*scale
     noise_corner = np.random.normal(scale=sigma_x, size=cube_data.shape)
     cube_data[np.isnan(cube_data)] = noise_corner[np.isnan(cube_data)]
     fits.writeto("./data/training/"+scale+"Input/"+scale+"_"+filename.split("_")[-1], cube_data, header=hdr, overwrite=True)
