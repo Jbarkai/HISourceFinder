@@ -16,8 +16,8 @@ def main(filename, scale):
     hdul.close()
     dx = np.abs(hdr["CDELT1"]*u.deg)
     sigma_x = (dx/np.sqrt(8*np.log(2))).to(u.deg).value
-    orig_noise = fits.open("./data/orig_mosaics/" + noise_file.replace(".norm", ""))
-    scale = np.mean(orig_noise[100, 400:-400, 400:-400]/norm_noise[100, 400:-400, 400:-400])
+    orig_noise = fits.getdata("./data/orig_mosaics/" + noise_file.replace(".norm", ""))
+    scale = np.nanmean(orig_noise[100, 400:-400, 400:-400]/norm_noise[100, 400:-400, 400:-400])
     cube_data = cube_data*2e2 + norm_noise*scale
     noise_corner = np.random.normal(scale=sigma_x, size=cube_data.shape)
     cube_data[np.isnan(cube_data)] = noise_corner[np.isnan(cube_data)]
