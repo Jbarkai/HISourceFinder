@@ -18,7 +18,7 @@ def main(filename, scale):
     sigma_x = (dx/np.sqrt(8*np.log(2))).to(u.deg).value
     orig_noise = fits.getdata("./data/orig_mosaics/" + noise_file.replace(".norm", ""))
     scale_fac = np.nanmean(orig_noise[100, 400:-400, 400:-400]/norm_noise[100, 400:-400, 400:-400])
-    cube_data = cube_data*2e2 + norm_noise*scale_fac
+    cube_data = cube_data + norm_noise*scale_fac*0.05
     noise_corner = np.random.normal(scale=sigma_x, size=cube_data.shape)
     cube_data[np.isnan(cube_data)] = noise_corner[np.isnan(cube_data)]
     fits.writeto("./data/training/"+scale+"Input/"+scale+"_"+filename.split("_")[-1], cube_data, header=hdr, overwrite=True)
