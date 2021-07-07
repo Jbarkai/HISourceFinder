@@ -115,6 +115,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
         properties=['label', 'centroid', 'bbox', 'area'],
         extra_properties=(tot_flux, peak_flux))
     )
+    source_props_df["detection_size"] = (source_props_df['bbox-3']-source_props_df['bbox-0'])*(source_props_df['bbox-4']-source_props_df['bbox-1'])*(source_props_df['bbox-5']-source_props_df['bbox-2'])
     max_locs = []
     brightest_pix = []
     eg0s = []
@@ -154,6 +155,18 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     # source_props_df['gt_mask'] = gt_masks
     source_props_df["file"] = output_file
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
+    source_props_df["area_gt"] = [int(mask_df.loc[str(row.max_loc) == mask_df.max_loc.astype(str), "area"]) if row.true_positive_mocks else np.nan for i, row in source_props_df.iterrows()]
+    overlap_areas = []
+    for i, row in source_props_df.iterrows():
+        if row.true_positive_mocks:
+            mask_row = mask_df[mask_df.max_loc.astype(str) == str(row.max_loc)]
+            zp = [np.min([int(mask_row['bbox-0']), int(row['bbox-0'])]), np.max([int(mask_row['bbox-3']), int(row['bbox-3'])])]
+            xp = [np.min([int(mask_row['bbox-1']), int(row['bbox-1'])]), np.max([int(mask_row['bbox-4']), int(row['bbox-4'])])]
+            yp = [np.min([int(mask_row['bbox-2']), int(row['bbox-2'])]), np.max([int(mask_row['bbox-5']), int(row['bbox-5'])])]
+            overlap_areas.append(len(np.where((np.logical_and(seg_output[zp[0]:zp[1], xp[0]:xp[1], yp[0]:yp[1]], mask_labels[zp[0]:zp[1], xp[0]:xp[1], yp[0]:yp[1]]).astype(int))>0)[0]))
+        else:
+            overlap_areas.append(np.nan)
+    source_props_df['overlap_area'] = overlap_areas
     source_props_df['true_positive_real'] = False
     # Update real catalog with pixel values
     print("cross-referencing with real catalog")
@@ -230,8 +243,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc, mask):
         source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1',
         'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
         'flux', 'peak_flux', 'eg0', 'eg1', 'elongation', 'brightest_pix', 'max_loc',
-        'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'n_vel', 'nx',
-        'dist', 'nx_mpc', 'ny', 'ny_mpc'])
+        'file', 'n_channels', 'n_vel', 'nx', 'dist', 'nx_mpc', 'ny', 'ny_mpc'])
         for cube_file in cube_files:
             print(cube_file)
             target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
@@ -252,8 +264,8 @@ def main(data_dir, method, scale, out_dir, catalog_loc, mask):
     catalog_df["file_name"] = np.nan
     source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1',
     'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
-    'flux', 'peak_flux', 'elongation', 'brightest_pix', 'max_loc',
-    'file', 'true_positive_mocks', 'true_positive_real', 'n_channels', 'n_vel', 'nx',
+    'flux', 'peak_flux', 'detection_size', 'eg0', 'eg1', 'elongation', 'brightest_pix', 'max_loc',
+    'file', 'true_positive_mocks', 'area_gt', 'overlap_area', 'true_positive_real', 'n_channels', 'n_vel', 'nx',
     'dist', 'nx_mpc', 'ny', 'ny_mpc'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
