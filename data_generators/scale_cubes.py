@@ -23,7 +23,7 @@ def main(filename, scale):
     # Scale corner noise
     noise_corner_scaled = np.array([noise_corner[i]*scale_fac[i] for i in range(noise_corner.shape[0])])
     # Add corners to noise cube
-    norm_noise[np.isnan(norm_noise)] = noise_corner_scaled[np.isnan(noise_corner_scaled)]
+    norm_noise[np.isnan(norm_noise)] = noise_corner_scaled[np.isnan(norm_noise)]
     # Scale galaxies
     cube_data_scaled = np.array([cube_data[i]*scale_fac[i] for i in range(cube_data.shape[0])])
     # Add galaxies to cube
