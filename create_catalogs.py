@@ -155,18 +155,22 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     # source_props_df['gt_mask'] = gt_masks
     source_props_df["file"] = output_file
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
-    source_props_df["area_gt"] = [int(mask_df.loc[str(row.max_loc) == mask_df.max_loc.astype(str), "area"]) if row.true_positive_mocks else np.nan for i, row in source_props_df.iterrows()]
+    # source_props_df["area_gt"] = [int(mask_df.loc[str(row.max_loc) == mask_df.max_loc.astype(str), "area"]) if row.true_positive_mocks else np.nan for i, row in source_props_df.iterrows()]
     overlap_areas = []
+    area_gts = []
     for i, row in source_props_df.iterrows():
-        if row.true_positive_mocks:
-            mask_row = mask_df[mask_df.max_loc.astype(str) == str(row.max_loc)]
+        mask_row = mask_df[mask_df.max_loc.astype(str) == str(row.max_loc)]
+        if len(mask_row) > 0:
+            area_gts.append(mask_row.area)
             zp = [np.min([int(mask_row['bbox-0']), int(row['bbox-0'])]), np.max([int(mask_row['bbox-3']), int(row['bbox-3'])])]
             xp = [np.min([int(mask_row['bbox-1']), int(row['bbox-1'])]), np.max([int(mask_row['bbox-4']), int(row['bbox-4'])])]
             yp = [np.min([int(mask_row['bbox-2']), int(row['bbox-2'])]), np.max([int(mask_row['bbox-5']), int(row['bbox-5'])])]
             overlap_areas.append(len(np.where((np.logical_and(seg_output[zp[0]:zp[1], xp[0]:xp[1], yp[0]:yp[1]], mask_labels[zp[0]:zp[1], xp[0]:xp[1], yp[0]:yp[1]]).astype(int))>0)[0]))
         else:
             overlap_areas.append(np.nan)
+            area_gts.append(np.nan)
     source_props_df['overlap_area'] = overlap_areas
+    source_props_df['area_gt'] = area_gts
     source_props_df['true_positive_real'] = False
     # Update real catalog with pixel values
     print("cross-referencing with real catalog")
