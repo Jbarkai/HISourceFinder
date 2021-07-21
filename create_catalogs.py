@@ -76,7 +76,7 @@ def create_mask_catalog(mask_file, real_file):
     return mask_df[['label', 'centroid-0', 'centroid-1', 'centroid-2',
     'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
     'tot_flux', 'peak_flux', 'brightest_pix', 'max_loc', 'elongation',
-    'n_vel', 'nx_kpc', 'ny_kpc', 'file']]
+    'dist', 'nx', 'ny', 'n_vel', 'nx_kpc', 'ny_kpc', 'file']]
 
 
 def create_single_catalog(output_file, mask_file, real_file, catalog_df):
@@ -153,7 +153,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     return source_props_df[['label', 'centroid-0', 'centroid-1', 'centroid-2',
     'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
     'tot_flux', 'peak_flux', 'brightest_pix', 'max_loc', 'elongation',
-    'detection_size', 'n_vel', 'nx_kpc', 'ny_kpc', 'file', 'true_positive_mocks',
+    'detection_size', 'dist', 'nx', 'ny', 'n_vel', 'nx_kpc', 'ny_kpc', 'file', 'true_positive_mocks',
     'overlap_area', 'area_gt', 'true_positive_real']]
 
 
@@ -197,7 +197,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc, mask):
         source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1', 'centroid-2',
         'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
         'tot_flux', 'peak_flux', 'brightest_pix', 'max_loc', 'elongation',
-        'n_vel', 'nx_kpc', 'ny_kpc', 'file'])
+        'dist', 'nx', 'ny', 'n_vel', 'nx_kpc', 'ny_kpc', 'file'])
         for cube_file in cube_files:
             print(cube_file)
             target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
