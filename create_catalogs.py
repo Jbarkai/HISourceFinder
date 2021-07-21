@@ -15,8 +15,32 @@ from spectral_cube import SpectralCube
 def peak_flux(regionmask, intensity):
     return np.nanmax(np.nansum(intensity[regionmask], axis=0))
 
+def brightest_pix(regionmask, intensity):
+    return np.nanmax(intensity[regionmask])
+
+def max_loc(regionmask, intensity):
+    return np.where(intensity == np.nanmax(intensity[regionmask]))
+
 def tot_flux(regionmask, intensity):
     return np.nansum(intensity[regionmask])
+
+def elongation(regionmask, intensity):
+    eg0, eg1 = skmeas.inertia_tensor_eigvals(regionmask[int(regionmask.shape[0]/2)]) 
+    return eg0/eg1
+
+def detection_size(regionmask, intensity):
+    return np.prod(intensity.shape)
+
+def n_vel(regionmask, intensity):
+    d_channels = 36621.09375*u.Hz
+    rest_freq = 1.420405758000E+09*u.Hz
+    return (regionmask.shape[0]*d_channels*const.c/rest_freq).to(u.km/u.s).value
+
+def nx(regionmask, intensity):
+    return regionmask.shape[1]
+
+def ny(regionmask, intensity):
+    return regionmask.shape[2]
 
 
 def create_mask_catalog(mask_file, real_file):
@@ -31,40 +55,12 @@ def create_mask_catalog(mask_file, real_file):
     mask_df = pd.DataFrame(
         skmeas.regionprops_table(
         mask_labels, orig_data, properties=['label', 'centroid', 'bbox', 'area'],
-        extra_properties=(tot_flux, peak_flux))
+        extra_properties=(tot_flux, peak_flux, brightest_pix, max_loc, elongation, n_vel, nx, ny))
     )
-    max_locs = []
-    brightest_pix = []
-    eg0s = []
-    eg1s = []
-    for i, row in mask_df.iterrows():
-        subcube = orig_data[
-            int(row['bbox-0']):int(row['bbox-3']),
-            int(row['bbox-1']):int(row['bbox-4']),
-            int(row['bbox-2']):int(row['bbox-5'])]
-        mask_subcube = mask_data[
-            int(row['centroid-0']),
-            int(row['bbox-1']):int(row['bbox-4']),
-            int(row['bbox-2']):int(row['bbox-5'])]
-        eg0, eg1 = skmeas.inertia_tensor_eigvals(mask_subcube)
-        eg0s.append(eg0)
-        eg1s.append(eg1)
-        xyz = [row['bbox-0'], row['bbox-1'], row['bbox-2']]
-        brightest_pix.append(np.nanmax(subcube))
-        max_locs.append([int(i)+k for i, k in zip(np.where(subcube == np.nanmax(subcube)), xyz)])
-    mask_df['eg0'] = eg0s
-    mask_df['eg1'] = eg1s
-    mask_df['elongation'] = mask_df.eg0/mask_df.eg1
-    mask_df['brightest_pix'] = brightest_pix
-    mask_df['max_loc'] = max_locs
-    mask_df["file"] = mask_file
-    mask_df['n_channels'] = mask_df['bbox-3']-mask_df['bbox-0']
+    mask_df['max_loc'] = [[int(row['max_loc-0'] + row['bbox-0']), int(row['max_loc-1'] + row['bbox-1']), int(row['max_loc-2'] + row['bbox-2'])] for i, row in mask_df.iterrows()]
     # Convert to physical values
-    d_channels = 36621.09375*u.Hz
     rest_freq = 1.420405758000E+09*u.Hz
     d_width = 0.065000001573*u.deg
-    mask_df["n_vel"] = [(i*d_channels*const.c/rest_freq).to(u.km/u.s).value for i in mask_df.n_channels]
-    mask_df['nx'] = mask_df['bbox-4']-mask_df['bbox-1']
     h_0 = 70*u.km/(u.Mpc*u.s)
     # Load reference cube
     hi_data = fits.open(real_file)
@@ -73,11 +69,14 @@ def create_mask_catalog(mask_file, real_file):
     spec_cube = (SpectralCube.read(hi_data)).spectral_axis
     hi_data.close()
     mask_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in mask_df['centroid-0'].astype(int)]
-    mask_df["nx_mpc"] = np.tan(np.deg2rad(d_width*mask_df.nx))/mask_df.dist
-    mask_df['ny'] = mask_df['bbox-5']-mask_df['bbox-2']
-    mask_df["ny_mpc"] = np.tan(np.deg2rad(d_width*mask_df.ny))/mask_df.dist
+    mask_df["nx_kpc"] = mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.nx))*1e3
+    mask_df["ny_kpc"] = mask_df.dist*np.tan(np.deg2rad(d_width*mask_df.ny))*1e3
+    mask_df["file"] = mask_file
     print(len(mask_df))
-    return mask_df
+    return mask_df[['label', 'centroid-0', 'centroid-1', 'centroid-2',
+    'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
+    'tot_flux', 'peak_flux', 'brightest_pix', 'max_loc', 'elongation',
+    'n_vel', 'nx_kpc', 'ny_kpc', 'file']]
 
 
 def create_single_catalog(output_file, mask_file, real_file, catalog_df):
@@ -93,76 +92,39 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     mask_df = pd.DataFrame(
         skmeas.regionprops_table(
         mask_labels, orig_data, properties=['label', 'centroid', 'bbox', 'area'],
-        extra_properties=(tot_flux, peak_flux))
+        extra_properties=(tot_flux, peak_flux, brightest_pix, max_loc, elongation))
     )
     mask_df["file"] = mask_file
-    max_locs = []
-    brightest_pix = []
-    for i, row in mask_df.iterrows():
-        subcube = orig_data[
-            int(row['bbox-0']):int(row['bbox-3']),
-            int(row['bbox-1']):int(row['bbox-4']),
-            int(row['bbox-2']):int(row['bbox-5'])]
-        xyz = [row['bbox-0'], row['bbox-1'], row['bbox-2']]
-        brightest_pix.append(np.nanmax(subcube))
-        max_locs.append([int(i)+k for i, k in zip(np.where(subcube == np.nanmax(subcube)), xyz)])
-    mask_df['brightest_pix'] = brightest_pix
-    mask_df['max_loc'] = max_locs
+    mask_df['max_loc'] = [[int(row['max_loc-0'] + row['bbox-0']), int(row['max_loc-1'] + row['bbox-1']), int(row['max_loc-2'] + row['bbox-2'])] for i, row in mask_df.iterrows()]
     # Catalog segmentation
     print("cataloging segmentation...")
     source_props_df = pd.DataFrame(
         skmeas.regionprops_table(seg_output, orig_data,
         properties=['label', 'centroid', 'bbox', 'area'],
-        extra_properties=(tot_flux, peak_flux))
+        extra_properties=(tot_flux, peak_flux, brightest_pix, max_loc, elongation, detection_size, n_vel, nx, ny))
     )
-    source_props_df["detection_size"] = (source_props_df['bbox-3']-source_props_df['bbox-0'])*(source_props_df['bbox-4']-source_props_df['bbox-1'])*(source_props_df['bbox-5']-source_props_df['bbox-2'])
-    max_locs = []
-    brightest_pix = []
-    eg0s = []
-    eg1s = []
-    # masks = []
-    # gt_masks = []
-    for i, row in source_props_df.iterrows():
-        subcube = orig_data[
-            int(row['bbox-0']):int(row['bbox-3']),
-            int(row['bbox-1']):int(row['bbox-4']),
-            int(row['bbox-2']):int(row['bbox-5'])]
-        mask_subcube = seg_output[
-            int(row['centroid-0']),
-            int(row['bbox-1']):int(row['bbox-4']),
-            int(row['bbox-2']):int(row['bbox-5'])]
-        eg0, eg1 = skmeas.inertia_tensor_eigvals(mask_subcube)
-        eg0s.append(eg0)
-        eg1s.append(eg1)
-        # gt_subcube = mask_labels[
-        #     int(row['bbox-0']):int(row['bbox-3']),
-        #     int(row['bbox-1']):int(row['bbox-4']),
-        #     int(row['bbox-2']):int(row['bbox-5'])]
-        # mask_subcube[mask_subcube > 0] = 1
-        # gt_subcube[gt_subcube > 0] = 1
-        xyz = [row['bbox-0'], row['bbox-1'], row['bbox-2']]
-        brightest_pix.append(np.nanmax(subcube))
-        max_locs.append([int(i)+k for i, k in zip(np.where(subcube == np.nanmax(subcube)), xyz)])
-        # masks.append(mask_subcube)
-        # gt_masks.append(gt_subcube)
-    source_props_df['eg0'] = eg0s
-    source_props_df['eg1'] = eg1s
-    source_props_df['elongation'] = source_props_df.eg0/source_props_df.eg1
-    # source_props_df['flatness'] = source_props_df['inertia_tensor_eigvals-1']/source_props_df['inertia_tensor_eigvals-2']
-    source_props_df['brightest_pix'] = brightest_pix
-    source_props_df['max_loc'] = max_locs
-    # source_props_df['seg_mask'] = masks
-    # source_props_df['gt_mask'] = gt_masks
+    source_props_df['max_loc'] = [[int(row['max_loc-0'] + row['bbox-0']), int(row['max_loc-1'] + row['bbox-1']), int(row['max_loc-2'] + row['bbox-2'])] for i, row in source_props_df.iterrows()]
+    # Load reference cube
+    hi_data = fits.open(real_file)
+    hi_data[0].header['CTYPE3'] = 'FREQ'
+    hi_data[0].header['CUNIT3'] = 'Hz'
+    spec_cube = (SpectralCube.read(hi_data)).spectral_axis
+    hi_data.close()
+    # Convert to physical values
+    rest_freq = 1.420405758000E+09*u.Hz
+    d_width = 0.001666666707*u.deg
+    h_0 = 70*u.km/(u.Mpc*u.s)
+    source_props_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in source_props_df['centroid-0'].astype(int)]
+    source_props_df["nx_kpc"] = source_props_df.dist*np.tan(np.deg2rad(d_width*source_props_df.nx))*1e3
+    source_props_df["ny_kpc"] = source_props_df.dist*np.tan(np.deg2rad(d_width*source_props_df.ny))*1e3
+
     source_props_df["file"] = output_file
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
-    # source_props_df["area_gt"] = [int(mask_df.loc[str(row.max_loc) == mask_df.max_loc.astype(str), "area"]) if row.true_positive_mocks else np.nan for i, row in source_props_df.iterrows()]
     overlap_areas = []
     area_gts = []
     for i, row in source_props_df.iterrows():
         mask_row = mask_df[mask_df.max_loc.astype(str) == str([int(i) for i in row.max_loc])]
         if len(mask_row) > 0:
-            # Take brightest if two sources
-            mask_row = mask_row[mask_row.brightest_pix == np.max(mask_row.brightest_pix)]
             area_gts.append(int(mask_row.area))
             zp = [np.min([int(mask_row['bbox-0']), int(row['bbox-0'])]), np.max([int(mask_row['bbox-3']), int(row['bbox-3'])])]
             xp = [np.min([int(mask_row['bbox-1']), int(row['bbox-1'])]), np.max([int(mask_row['bbox-4']), int(row['bbox-4'])])]
@@ -187,26 +149,12 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
             & (row.pixels_y >= source_props_df[source_cat]['bbox-2']) & (row.pixels_y >= source_props_df[source_cat]['bbox-5'])
         )
         source_props_df.loc[source_cat, 'true_positive_real'] = source_cond
-    source_props_df['n_channels'] = source_props_df['bbox-3']-source_props_df['bbox-0']
-    # Convert to physical values
-    d_channels = 36621.09375*u.Hz
-    rest_freq = 1.420405758000E+09*u.Hz
-    d_width = 0.001666666707*u.deg
-    source_props_df["n_vel"] = [(i*d_channels*const.c/rest_freq).to(u.km/u.s).value for i in source_props_df.n_channels]
-    source_props_df['nx'] = source_props_df['bbox-4']-source_props_df['bbox-1']
-    h_0 = 70*u.km/(u.Mpc*u.s)
-    # Load reference cube
-    hi_data = fits.open(real_file)
-    hi_data[0].header['CTYPE3'] = 'FREQ'
-    hi_data[0].header['CUNIT3'] = 'Hz'
-    spec_cube = (SpectralCube.read(hi_data)).spectral_axis
-    hi_data.close()
-    source_props_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in source_props_df['centroid-0'].astype(int)]
-    source_props_df["nx_mpc"] = np.tan(np.deg2rad(d_width*source_props_df.nx))/source_props_df.dist
-    source_props_df['ny'] = source_props_df['bbox-5']-source_props_df['bbox-2']
-    source_props_df["ny_mpc"] = np.tan(np.deg2rad(d_width*source_props_df.ny))/source_props_df.dist
     print(len(source_props_df))
-    return source_props_df
+    return source_props_df[['label', 'centroid-0', 'centroid-1', 'centroid-2',
+    'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
+    'tot_flux', 'peak_flux', 'brightest_pix', 'max_loc', 'elongation',
+    'detection_size', 'n_vel', 'nx_kpc', 'ny_kpc', 'file', 'true_positive_mocks',
+    'overlap_area', 'area_gt', 'true_positive_real']]
 
 
 def get_pixel_coords(cube_file, catalog_df):
@@ -246,10 +194,10 @@ def get_pixel_coords(cube_file, catalog_df):
 def main(data_dir, method, scale, out_dir, catalog_loc, mask):
     cube_files = [data_dir + "training/" +scale+"Input/" + i for i in listdir(data_dir+"training/"+scale+"Input") if ".fits" in i]
     if mask:
-        source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1',
-        'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
-        'flux', 'peak_flux', 'eg0', 'eg1', 'elongation', 'brightest_pix', 'max_loc',
-        'file', 'n_channels', 'n_vel', 'nx', 'dist', 'nx_mpc', 'ny', 'ny_mpc'])
+        source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1', 'centroid-2',
+        'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
+        'tot_flux', 'peak_flux', 'brightest_pix', 'max_loc', 'elongation',
+        'n_vel', 'nx_kpc', 'ny_kpc', 'file'])
         for cube_file in cube_files:
             print(cube_file)
             target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
@@ -268,11 +216,11 @@ def main(data_dir, method, scale, out_dir, catalog_loc, mask):
     catalog_df["pixels_x"] = np.nan
     catalog_df["pixels_y"] = np.nan
     catalog_df["file_name"] = np.nan
-    source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1',
-    'centroid-2', 'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
-    'flux', 'peak_flux', 'detection_size', 'eg0', 'eg1', 'elongation', 'brightest_pix', 'max_loc',
-    'file', 'true_positive_mocks', 'area_gt', 'overlap_area', 'true_positive_real', 'n_channels', 'n_vel', 'nx',
-    'dist', 'nx_mpc', 'ny', 'ny_mpc'])
+    source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1', 'centroid-2',
+    'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
+    'tot_flux', 'peak_flux', 'brightest_pix', 'max_loc', 'elongation',
+    'detection_size', 'n_vel', 'nx_kpc', 'ny_kpc', 'file', 'true_positive_mocks',
+    'overlap_area', 'area_gt', 'true_positive_real'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
         print(mos_name)
@@ -284,6 +232,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc, mask):
             nonbinary_im = data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits"
         target_file = data_dir + "training/Target/mask_" + cube_file.split("/")[-1].split("_")[-1]
         source_props_df = create_single_catalog(nonbinary_im, target_file, cube_file, catalog_df)
+        source_props_df['mos_name'] = mos_name
         source_props_df_full = source_props_df_full.append(source_props_df)
     print("saving file...")
     out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
