@@ -159,9 +159,9 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     overlap_areas = []
     area_gts = []
     for i, row in source_props_df.iterrows():
-        mask_row = mask_df[mask_df.max_loc.astype(str) == str(row.max_loc)]
+        mask_row = mask_df[mask_df.max_loc.astype(str) == str([int(i) for i in row.max_loc])]
         if len(mask_row) > 0:
-            area_gts.append(mask_row.area)
+            area_gts.append(int(mask_row.area))
             zp = [np.min([int(mask_row['bbox-0']), int(row['bbox-0'])]), np.max([int(mask_row['bbox-3']), int(row['bbox-3'])])]
             xp = [np.min([int(mask_row['bbox-1']), int(row['bbox-1'])]), np.max([int(mask_row['bbox-4']), int(row['bbox-4'])])]
             yp = [np.min([int(mask_row['bbox-2']), int(row['bbox-2'])]), np.max([int(mask_row['bbox-5']), int(row['bbox-5'])])]
