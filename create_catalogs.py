@@ -161,6 +161,8 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     for i, row in source_props_df.iterrows():
         mask_row = mask_df[mask_df.max_loc.astype(str) == str([int(i) for i in row.max_loc])]
         if len(mask_row) > 0:
+            # Take brightest if two sources
+            mask_row = mask_row[mask_row.brightest_pix == np.max(mask_row.brightest_pix)]
             area_gts.append(int(mask_row.area))
             zp = [np.min([int(mask_row['bbox-0']), int(row['bbox-0'])]), np.max([int(mask_row['bbox-3']), int(row['bbox-3'])])]
             xp = [np.min([int(mask_row['bbox-1']), int(row['bbox-1'])]), np.max([int(mask_row['bbox-4']), int(row['bbox-4'])])]
