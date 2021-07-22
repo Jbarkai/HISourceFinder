@@ -7,6 +7,7 @@ import numpy as np
 from scipy import ndimage as ndi
 import skimage.measure as skmeas
 from datetime import datetime
+from astropy.visualization import ZScaleInterval
 
 
 def save_sliding_window(arr_shape, dims, overlaps, f_in):
@@ -52,6 +53,7 @@ def anisotropic_diffusion(image, num_iters=10, K=2,
 
 
 def mto_eval(window, mto_dir, param_file, empty_arr, index):
+    interval = ZScaleInterval()
     cube_files, x, y, z = window
     subcube = fits.getdata(cube_files[0])[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
     # Normalise localised noise
@@ -59,7 +61,7 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
     # subcube = subcube/noisecube
     # Save as fits file
     subcube_file = mto_dir + "/subcube_" + str(index) + cube_files[0].split("/")[-1]
-    fits.writeto(subcube_file, subcube, overwrite=True)
+    fits.writeto(subcube_file, interval(subcube), overwrite=True)
     # Smooth and clip
     smoothed = ndi.gaussian_filter(subcube, sigma=0.85)
     diffused = anisotropic_diffusion(smoothed)
