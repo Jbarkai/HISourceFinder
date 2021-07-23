@@ -56,6 +56,9 @@ def main(
     # input and target files
     model_name = model
     model, optimizer = create_model(args)
+    if args.cuda:
+        model = model.cuda()
+        print("Model transferred in GPU.....")
     if pretrained:
         # model.restore_checkpoint(pretrained)
         checkpoint = torch.load(pretrained)
