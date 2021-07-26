@@ -236,7 +236,10 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
     output_file = "data/mto_output/outputcube_" + str(index) + cube_files[0].split("/")[-1]
     fits.writeto(maskcube_file, diffused, overwrite=True)
     # Run MTO on subcube
-    bg_mean, bg_std = estimate_bg(subcube)
+    try:
+        bg_mean, bg_std = estimate_bg(subcube)
+    except:
+        bg_mean, bg_std = np.mean(subcube), np.std(subcube)
     fin = open(param_file, "rt")
     new_param_file = subcube_file.replace("fits", "txt")
     fout = open(new_param_file, "wt")
