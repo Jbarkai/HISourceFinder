@@ -224,7 +224,7 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
     subcube = fits.getdata(cube_files[0])[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
     # Save as fits file
     subcube_file = mto_dir + "/subcube_" + str(index) + cube_files[0].split("/")[-1]
-    # fits.writeto(subcube_file, subcube, overwrite=True)
+    fits.writeto(subcube_file, subcube, overwrite=True)
     try:
         bg_mean, bg_std = estimate_bg(subcube)
     except:
@@ -239,26 +239,26 @@ def mto_eval(window, mto_dir, param_file, empty_arr, index):
     fin.close()
     fout.close()
     # Smooth and clip
-    # smoothed = ndi.gaussian_filter(subcube, sigma=0.85)
-    # diffused = anisotropic_diffusion(smoothed)
-    # diffused[diffused < 0] = 0
-    # maskcube_file = mto_dir + "/masksubcube_" + str(index) + cube_files[0].split("/")[-1]
-    # output_file = "data/mto_output/outputcube_" + str(index) + cube_files[0].split("/")[-1]
-    # fits.writeto(maskcube_file, diffused, overwrite=True)
-    # # Run MTO on subcube
-    # success = os.system('%s/mtobjects %s %s %s %s >> data/mto_output/mto_output.log'%(mto_dir, subcube_file, maskcube_file, new_param_file, output_file))
-    # # Delete outputted fits file
-    # os.remove(subcube_file)
-    # os.remove(maskcube_file)
-    # os.remove(new_param_file)
-    # if success != 0:
-    #     return
-    # # Load MTO output
-    # mto_output = fits.getdata(output_file)
-    # os.remove(output_file)
-    # # Convert it to binary
-    # mto_output[mto_output > 0] = 1
-    # empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]] = np.nanmax(np.array([empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]], mto_output]), axis=0)
+    smoothed = ndi.gaussian_filter(subcube, sigma=0.85)
+    diffused = anisotropic_diffusion(smoothed)
+    diffused[diffused < 0] = 0
+    maskcube_file = mto_dir + "/masksubcube_" + str(index) + cube_files[0].split("/")[-1]
+    output_file = "data/mto_output/outputcube_" + str(index) + cube_files[0].split("/")[-1]
+    fits.writeto(maskcube_file, diffused, overwrite=True)
+    # Run MTO on subcube
+    success = os.system('%s/mtobjects %s %s %s %s >> data/mto_output/mto_output.log'%(mto_dir, subcube_file, maskcube_file, new_param_file, output_file))
+    # Delete outputted fits file
+    os.remove(subcube_file)
+    os.remove(maskcube_file)
+    os.remove(new_param_file)
+    if success != 0:
+        return
+    # Load MTO output
+    mto_output = fits.getdata(output_file)
+    os.remove(output_file)
+    # Convert it to binary
+    mto_output[mto_output > 0] = 1
+    empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]] = np.nanmax(np.array([empty_arr[x[0]:x[1], y[0]:y[1], z[0]:z[1]], mto_output]), axis=0)
     return
 
 def make_cube(f_in, mto_dir, param_file):
@@ -270,11 +270,9 @@ def make_cube(f_in, mto_dir, param_file):
     for index, window in enumerate(cube_list):
         print("\r", index*100/len(cube_list), "%", end="")
         mto_eval(window, mto_dir, param_file, empty_arr, index)
-        break
-    # os.remove(sofia_noise_file)
     out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
     # nonbinary_im = skmeas.label(empty_arr)
-    # fits.writeto(out_cube_file, empty_arr, overwrite=True)
+    fits.writeto(out_cube_file, empty_arr, overwrite=True)
     return
 
 
@@ -289,10 +287,9 @@ def main(mto_dir, param_file, input_dir):
         after = datetime.now()
         difference = (after - before).total_seconds()
         time_taken.update({f_in: difference})
-        # os.system("zip %s %s"%(out_cube_file.replace(".fits", ".zip"), out_cube_file))
     out_file = "mto_performance_" + input_dir.split("/")[-1] + ".txt"
-    # with open(out_file, "wb") as fp:
-    #     pickle.dump(time_taken, fp)
+    with open(out_file, "wb") as fp:
+        pickle.dump(time_taken, fp)
     return
 
 
