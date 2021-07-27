@@ -276,26 +276,22 @@ def make_cube(f_in, mto_dir, param_file):
     return
 
 
-# def main(mto_dir, param_file, input_dir):
-#     time_taken = {}
-#     # Load test data
-#     cubes = [input_dir + "/" + x for x in listdir(input_dir) if ".fits" in x]
-#     for f_in in cubes:
-#         before = datetime.now()
-#         print(f_in)
-#         make_cube(f_in, mto_dir, param_file)
-#         after = datetime.now()
-#         difference = (after - before).total_seconds()
-#         time_taken.update({f_in: difference})
-#     out_file = "mto_performance_" + input_dir.split("/")[-1] + ".txt"
-#     with open(out_file, "wb") as fp:
-#         pickle.dump(time_taken, fp)
-#     return
-
-def main(mto_dir, param_file, input_dir, filename):
-    f_in = input_dir + "/" + filename
-    make_cube(f_in, mto_dir, param_file)
+def main(mto_dir, param_file, input_dir):
+    time_taken = {}
+    # Load test data
+    cubes = [input_dir + "/" + x for x in listdir(input_dir) if ".fits" in x]
+    for f_in in cubes:
+        before = datetime.now()
+        print(f_in)
+        make_cube(f_in, mto_dir, param_file)
+        after = datetime.now()
+        difference = (after - before).total_seconds()
+        time_taken.update({f_in: difference})
+    out_file = "mto_performance_" + input_dir.split("/")[-1] + ".txt"
+    with open(out_file, "wb") as fp:
+        pickle.dump(time_taken, fp)
     return
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run MTO",
@@ -309,10 +305,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--input_dir', type=str, nargs='?', const='default', default="data/training/loudInput",
         help='The directory of the input data')
-    parser.add_argument(
-        '--filename', type=str, nargs='?', const='default', default="loud_1245mosC.fits",
-        help='The name of the input file')
     args = parser.parse_args()
 
-    main(args.mto_dir, args.param_file, args.input_dir, args.filename)
+    main(args.mto_dir, args.param_file, args.input_dir)
 
