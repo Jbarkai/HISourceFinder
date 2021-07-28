@@ -6,16 +6,8 @@ from torch.utils.data import DataLoader
 from random import sample
 from sklearn.model_selection import train_test_split
 from numpy.lib.stride_tricks import as_strided
-import pathlib
-import argparse
-from os import listdir
 import numpy as np
-import shutil
 import pickle
-import os
-import torch
-import tensorflow as tf
-import gc
 
 
 class SegmentationDataSet(Dataset):

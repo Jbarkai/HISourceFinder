@@ -1,21 +1,16 @@
 
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from data_generators.data_loader import SegmentationDataSet
 import argparse
 from os import listdir
 import os
 import torch
-import shutil
 from medzoo_imports import create_model, DiceLoss, Trainer
 from datetime import datetime
 from random import sample
 import random
 import copy
-from scipy import ndimage as ndi
-import gc
 import pickle
-import numpy as np
 
 
 def main(
