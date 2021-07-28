@@ -1,11 +1,6 @@
 import torch
-from skimage.io import imread
 from torch.utils.data import Dataset
 from astropy.io import fits
-from torch.utils.data import DataLoader
-from random import sample
-from sklearn.model_selection import train_test_split
-from numpy.lib.stride_tricks import as_strided
 import numpy as np
 import pickle
 
