@@ -6,11 +6,8 @@ Adapted from MedicalZooPytorch: https://github.com/black0017/MedicalZooPytorch
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from .dice import DiceLoss
 import os
 import shutil
-import csv   
-import skimage.measure as skmeas
 
 
 dict_class_names = {"hi_source": ["background", "galaxy"]}

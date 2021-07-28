@@ -7,13 +7,10 @@ import numpy as np
 from scipy.ndimage import zoom
 from astropy.convolution import convolve, Gaussian2DKernel
 from astropy.io import fits
-from astropy.wcs import WCS
 import astropy.units as u
 import astropy.constants as const
-from spectral_cube import SpectralCube
 import warnings
 import gc
-from tqdm import tqdm
 from datetime import datetime
 
 
