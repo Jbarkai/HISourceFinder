@@ -254,7 +254,7 @@ if __name__ == "__main__":
         '--subsample', type=int, nargs='?', const='default', default=10,
         help='The size of subset to train on')
     parser.add_argument(
-        '--cuda', type=bool, nargs='?', const='default', default=False,
+        '--cuda', type=bool, nargs='?', const='default', default=True,
         help='Memory allocation')
     parser.add_argument(
         '--k_folds', type=int, nargs='?', const='default', default=5,
