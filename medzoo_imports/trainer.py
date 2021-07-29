@@ -212,9 +212,11 @@ class Trainer:
         self.model.train()
 
         for batch_idx, input_tuple in enumerate(self.train_data_loader):
+            print("\r", batch_idx, end="")
             self.optimizer.zero_grad()
             if self.args.cuda:
                 # input_tensor, target = input_tensor.cuda(), target.cuda()
+                print("Using GPU...")
                 input_tensor, target = input_tuple.cuda()
             else:
                 input_tensor, target = input_tuple
