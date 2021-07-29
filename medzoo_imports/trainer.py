@@ -170,9 +170,7 @@ class Trainer:
         self.early_stop = False
 
     def training(self):
-        print("training...")
         for epoch in range(self.start_epoch, self.args.nEpochs):
-            print("epoch %s..."%epoch)
             self.train_epoch(epoch)
 
             if self.do_validation:
@@ -211,18 +209,15 @@ class Trainer:
             self.writer.reset('val')
 
     def train_epoch(self, epoch):
-        print("training epoch %s..."%epoch)
         self.model.train()
-        print("bacthing %s..."%epoch)
+        ##### THIS IS THE MEMORY MONSTER!!!!!!!!!!!!!! 
         for batch_idx, input_tuple in enumerate(self.train_data_loader):
             print("\r", batch_idx, end="")
             self.optimizer.zero_grad()
+            input_tensor, target = input_tuple
             if self.args.cuda:
-                # input_tensor, target = input_tensor.cuda(), target.cuda()
                 print("Using GPU...")
-                input_tensor, target = input_tuple.cuda()
-            else:
-                input_tensor, target = input_tuple
+                input_tensor, target = input_tensor.cuda(), target.cuda()
             input_tensor.requires_grad = True
             output = self.model(input_tensor)
 
@@ -269,11 +264,10 @@ class Trainer:
 
         for batch_idx, input_tuple in enumerate(self.valid_data_loader):
             with torch.no_grad():
+                input_tensor, target = input_tuple
                 if self.args.cuda:
-                    # input_tensor, target = input_tensor.cuda(), target.cuda()
-                    input_tensor, target = input_tuple.cuda()
-                else:
-                    input_tensor, target = input_tuple
+                    print("Using GPU...")
+                    input_tensor, target = input_tensor.cuda(), target.cuda()
                 input_tensor.requires_grad = False
 
                 output = self.model(input_tensor)
