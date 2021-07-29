@@ -170,7 +170,9 @@ class Trainer:
         self.early_stop = False
 
     def training(self):
+        print("training...")
         for epoch in range(self.start_epoch, self.args.nEpochs):
+            print("epoch %s..."%epoch)
             self.train_epoch(epoch)
 
             if self.do_validation:
@@ -209,8 +211,9 @@ class Trainer:
             self.writer.reset('val')
 
     def train_epoch(self, epoch):
+        print("training epoch %s..."%epoch)
         self.model.train()
-
+        print("bacthing %s..."%epoch)
         for batch_idx, input_tuple in enumerate(self.train_data_loader):
             print("\r", batch_idx, end="")
             self.optimizer.zero_grad()
