@@ -170,7 +170,7 @@ class Trainer:
         self.early_stop = False
 
     def training(self):
-        for epoch in range(self.start_epoch, self.args.nEpochs):
+        for epoch in range(int(self.start_epoch), self.args.nEpochs):
             self.train_epoch(epoch)
 
             if self.do_validation:

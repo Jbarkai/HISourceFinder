@@ -17,7 +17,7 @@ def main(
     batch_size, shuffle, num_workers, dims, overlaps, root,
     random_seed, train_size, model, opt, lr, inChannels,
     classes, log_dir, dataset_name, terminal_show_freq, nEpochs,
-    cuda, scale, subsample, k_folds, pretrained, load_data_loc):
+    cuda, scale, subsample, k_folds, pretrained, load_data_loc, jobid):
     """Create training and validation datasets
 
     Args:
@@ -63,7 +63,7 @@ def main(
         save = pretrained.split("/")[0] + "/"
     else:
         start_epoch = 1
-        save = "./saved_models_%s_%s_%s/"%(date_str, scale, subsample)
+        save = "./%s_saved_models_%s_%s_%s/"%(jobid, date_str, scale, subsample)
         if not os.path.exists(save):
             os.mkdir(save)
         with open(save+"params.txt", "wb") as fp:
@@ -265,6 +265,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--load_data_loc', type=str, nargs='?', const='default', default="",
         help='The location of the data windows')
+    parser.add_argument(
+        '--jobid', type=str, nargs='?', const='default', default="vnet_7",
+        help='The job ID')
     args = parser.parse_args()
 
     main(
@@ -273,4 +276,4 @@ if __name__ == "__main__":
         args.model, args.opt, args.lr, args.inChannels, args.classes,
         args.log_dir, args.dataset_name, args.terminal_show_freq,
         args.nEpochs, args.cuda, args.scale, args.subsample, args.k_folds,
-        args.pretrained, args.load_data_loc)
+        args.pretrained, args.load_data_loc, args.jobid)
