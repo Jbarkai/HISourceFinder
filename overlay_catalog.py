@@ -96,7 +96,7 @@ def overlay_hi(row, method, output_file="./optical_catalogs/"):
     plt.savefig(output_file + method + "_" + row.mos_name + "_" + str(row.label) + ".png")
 
 def main(method, output_file):
-    cat_df = pd.read_csv("../results/loud_%s_catalog.txt"%method, index_col=0)
+    cat_df = pd.read_csv("./results/loud_%s_catalog.txt"%method, index_col=0)
     for mos_name in cat_df.mos_name.unique():
         print(mos_name)
         hi_data = fits.open("../data/orig_mosaics/%s.derip.fits"%mos_name)
