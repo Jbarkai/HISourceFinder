@@ -1,4 +1,6 @@
 import numpy as np
+import socket
+import argparse
 import pandas as pd
 from astropy.io import fits
 from astropy.visualization import PercentileInterval, AsinhStretch
@@ -41,7 +43,6 @@ def geturl(ra, dec, size=240, output_size=None, filters="grizy", format="jpg", c
             Default is return a list of URLs for single-filter grayscale images.
     Returns a string with the URL
     """
-    
     if color and format == "fits":
         raise ValueError("color images are available only for jpg or png formats")
     if format not in ("jpg","png","fits"):
@@ -70,6 +71,7 @@ def geturl(ra, dec, size=240, output_size=None, filters="grizy", format="jpg", c
 
 def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
     ex_co_ords = utils.pixel_to_skycoord(ra_pix, dec_pix, new_wcs).to_string().split(" ")
+    d_width = 0.001666666707*u.deg
     pix_size = int((size_pix*d_width.to(u.arcsec))/(0.25*u.arcsec))
     fitsurl = geturl(float(ex_co_ords[0]), float(ex_co_ords[1]), size=pix_size, filters="i", format="fits")
     fh = fits.open(fitsurl[0])
@@ -82,10 +84,10 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
     fh[0].data = bfim
     return fh[0]
 
-def overlay_hi(row, method, output_file="./optical_catalogs/"):
+def overlay_hi(row, method, hi_wcs, moment_0, output_file="./optical_catalogs/"):
     ax = plt.subplot(projection=hi_wcs, slices=('x', 'y', int(row['centroid-0'])))
     ax.contour(moment_0, transform=ax.get_transform(moment_0.wcs), colors="white",
-                    levels=np.arange(-8000, 8000, 500), zorder=1)
+                    levels=np.arange(-8000, 8000, 100), zorder=1)
     ra_pix = row['centroid-1']
     dec_pix = row['centroid-2']
     size_pix = np.max(row[['nx', 'ny']])
@@ -99,7 +101,7 @@ def main(method, output_file):
     cat_df = pd.read_csv("./results/loud_%s_catalog.txt"%method, index_col=0)
     for mos_name in cat_df.mos_name.unique():
         print(mos_name)
-        hi_data = fits.open("../data/orig_mosaics/%s.derip.fits"%mos_name)
+        hi_data = fits.open("./data/orig_mosaics/%s.derip.fits"%mos_name)
         hi_data[0].header['CTYPE3'] = 'FREQ'
         hi_data[0].header['CUNIT3'] = 'Hz'
         hi_wcs = WCS(hi_data[0])
@@ -107,9 +109,9 @@ def main(method, output_file):
         hi_data.close()
 
         subset = cat_df[~cat_df.true_positive_mocks & (cat_df.mos_name==mos_name)]
-    for i, row in subset.iterrows():
-        overlay_hi(row, method, output_file)
-        print("\r", i*100/len(subset), "%", end="")
+        for i, row in subset.iterrows():
+            overlay_hi(row, method, hi_wcs, moment_0, output_file)
+            print("\r", i*100/len(subset), "%", end="")
 
 
 if __name__ == "__main__":
