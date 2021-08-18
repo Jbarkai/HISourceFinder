@@ -70,19 +70,23 @@ def geturl(ra, dec, size=240, output_size=None, filters="grizy", format="jpg", c
 
 
 def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
-    ex_co_ords = utils.pixel_to_skycoord(ra_pix, dec_pix, new_wcs).to_string().split(" ")
-    d_width = 0.001666666707*u.deg
-    pix_size = int((size_pix*d_width.to(u.arcsec))/(0.25*u.arcsec))
-    fitsurl = geturl(float(ex_co_ords[0]), float(ex_co_ords[1]), size=pix_size, filters="i", format="fits")
-    fh = fits.open(fitsurl[0])
-    fim = fh[0].data
-    # replace NaN values with zero for display
-    fim[np.isnan(fim)] = 0.0
-    # set contrast to something reasonable
-    transform = AsinhStretch() + PercentileInterval(99.5)
-    bfim = transform(fim)
-    fh[0].data = bfim
-    return fh[0]
+    try:
+        ex_co_ords = utils.pixel_to_skycoord(ra_pix, dec_pix, new_wcs).to_string().split(" ")
+        d_width = 0.001666666707*u.deg
+        pix_size = int((size_pix*d_width.to(u.arcsec))/(0.25*u.arcsec))
+        fitsurl = geturl(float(ex_co_ords[0]), float(ex_co_ords[1]), size=pix_size, filters="i", format="fits")
+        fh = fits.open(fitsurl[0])
+        fim = fh[0].data
+        # replace NaN values with zero for display
+        fim[np.isnan(fim)] = 0.0
+        # set contrast to something reasonable
+        transform = AsinhStretch() + PercentileInterval(99.5)
+        bfim = transform(fim)
+        fh[0].data = bfim
+        return fh[0]
+    except socket.timeout:
+        print("The read operation timed out")
+        return False
 
 def overlay_hi(row, method, hi_wcs, moment_0, output_file="./optical_catalogs/"):
     ax = plt.subplot(projection=hi_wcs, slices=('x', 'y', int(row['centroid-0'])))
@@ -92,10 +96,11 @@ def overlay_hi(row, method, hi_wcs, moment_0, output_file="./optical_catalogs/")
     dec_pix = row['centroid-2']
     size_pix = np.max(row[['nx', 'ny']])
     gal = get_opt(hi_wcs, ra_pix=ra_pix, dec_pix=dec_pix, size_pix=size_pix)
-    ax.imshow(gal.data, transform=ax.get_transform(WCS(gal.header)), zorder=0)
-    ax.set_xlim((row["bbox-1"], row["bbox-4"]))
-    ax.set_ylim((row["bbox-2"], row["bbox-5"]))
-    plt.savefig(output_file + method + "_" + row.mos_name + "_" + str(row.label) + ".png")
+    if type(gal) == fits.hdu.image.PrimaryHDU:
+        ax.imshow(gal.data, transform=ax.get_transform(WCS(gal.header)), zorder=0)
+        ax.set_xlim((row["bbox-1"], row["bbox-4"]))
+        ax.set_ylim((row["bbox-2"], row["bbox-5"]))
+        plt.savefig(output_file + method + "_" + row.mos_name + "_" + str(row.label) + ".png")
 
 def main(method, output_file):
     cat_df = pd.read_csv("./results/loud_%s_catalog.txt"%method, index_col=0)
