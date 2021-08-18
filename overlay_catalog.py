@@ -2,6 +2,7 @@ import numpy as np
 import socket
 import argparse
 import pandas as pd
+import os
 from astropy.io import fits
 from astropy.visualization import PercentileInterval, AsinhStretch
 from astropy.wcs import utils
@@ -115,8 +116,12 @@ def main(method, output_file):
 
         subset = cat_df[~cat_df.true_positive_mocks & (cat_df.mos_name==mos_name)]
         for i, row in subset.iterrows():
-            overlay_hi(row, method, hi_wcs, moment_0, output_file)
-            print("\r", i*100/len(subset), "%", end="")
+            file_name = output_file + method + "_" + row.mos_name + "_" + str(row.label) + ".png"
+            if os.path.isfile(path):
+                pass
+            else:
+                overlay_hi(row, method, hi_wcs, moment_0, output_file)
+                print("\r", i*100/len(subset), "%", end="")
 
 
 if __name__ == "__main__":
