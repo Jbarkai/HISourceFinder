@@ -116,7 +116,7 @@ def main(method, output_file):
         subset = cat_df[~cat_df.true_positive_mocks & (cat_df.mos_name==mos_name)]
         for i, row in subset.iterrows():
             file_name = output_file + method + "_" + row.mos_name + "_" + str(row.label) + ".png"
-            if os.path.isfile(path):
+            if os.path.isfile(file_name):
                 pass
             else:
                 overlay_hi(row, method, spec_cube, output_file)
