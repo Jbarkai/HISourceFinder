@@ -72,8 +72,8 @@ def geturl(ra, dec, size=240, output_size=None, filters="grizy", format="jpg", c
 
 def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
     try:
-        ex_co_ords = utils.pixel_to_skycoord(ra_pix, dec_pix, new_wcs).to_string().split(" ")
         d_width = 0.001666666707*u.deg
+        ex_co_ords = utils.pixel_to_skycoord(ra_pix, dec_pix, new_wcs).to_string().split(" ")
         pix_size = int((size_pix*d_width.to(u.arcsec))/(0.25*u.arcsec))
         fitsurl = geturl(float(ex_co_ords[0]), float(ex_co_ords[1]), size=pix_size, filters="i", format="fits")
         fh = fits.open(fitsurl[0])
@@ -89,18 +89,18 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
         print("The read operation timed out")
         return False
 
-def overlay_hi(row, method, hi_wcs, moment_0, output_file="./optical_catalogs/"):
-    ax = plt.subplot(projection=hi_wcs, slices=('x', 'y', int(row['centroid-0'])))
-    ax.contour(moment_0, transform=ax.get_transform(moment_0.wcs), colors="white",
-                    levels=np.arange(-8000, 8000, 100), zorder=1)
-    ra_pix = row['centroid-1']
-    dec_pix = row['centroid-2']
-    size_pix = np.max(row[['nx', 'ny']])
-    gal = get_opt(hi_wcs, ra_pix=ra_pix, dec_pix=dec_pix, size_pix=size_pix)
+def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/"):
+    subcube = spec_cube[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)]
+    masked = SpectralCube(subcube.unmasked_data[:]*sof_data[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)], wcs=subcube.wcs)
+    moment_0 = masked.with_spectral_unit(u.Hz).moment(order=0)
+    gal = get_opt(moment_0.wcs, ra_pix=moment_0.shape[0]/2, dec_pix=moment_0.shape[1]/2, size_pix=np.max(moment_0.shape))
+
     if type(gal) == fits.hdu.image.PrimaryHDU:
-        ax.imshow(gal.data, transform=ax.get_transform(WCS(gal.header)), zorder=0)
-        ax.set_xlim((row["bbox-1"], row["bbox-4"]))
-        ax.set_ylim((row["bbox-2"], row["bbox-5"]))
+        ax = plt.subplot(projection=moment_0.wcs)
+        ax.contour(moment_0, zorder=1, origin='lower')
+        ax.imshow(gal.data, transform=ax.get_transform(WCS(gal.header)), zorder=0, origin='lower')
+        ax.set_xlim((0,moment_0.shape[0]))
+        ax.set_ylim((0,moment_0.shape[1]))
         plt.savefig(output_file + method + "_" + row.mos_name + "_" + str(row.label) + ".png")
 
 def main(method, output_file):
@@ -110,8 +110,7 @@ def main(method, output_file):
         hi_data = fits.open("./data/orig_mosaics/%s.derip.fits"%mos_name)
         hi_data[0].header['CTYPE3'] = 'FREQ'
         hi_data[0].header['CUNIT3'] = 'Hz'
-        hi_wcs = WCS(hi_data[0])
-        moment_0 = SpectralCube.read(hi_data).with_spectral_unit(u.Hz).moment(order=0)
+        spec_cube = SpectralCube.read(hi_data)
         hi_data.close()
 
         subset = cat_df[~cat_df.true_positive_mocks & (cat_df.mos_name==mos_name)]
@@ -120,7 +119,7 @@ def main(method, output_file):
             if os.path.isfile(path):
                 pass
             else:
-                overlay_hi(row, method, hi_wcs, moment_0, output_file)
+                overlay_hi(row, method, spec_cube, output_file)
                 print("\r", i*100/len(subset), "%", end="")
 
 
