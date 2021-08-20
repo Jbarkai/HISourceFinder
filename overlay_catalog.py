@@ -13,6 +13,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from spectral_cube import SpectralCube
 
+
 def getimages(ra,dec,size=240,filters="grizy"):
     
     """Query ps1filenames.py service to get a list of images
@@ -106,7 +107,7 @@ def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/"):
 
 def main(method, output_file):
     cat_df = pd.read_csv("./results/loud_%s_catalog.txt"%method, index_col=0)
-    for mos_name in cat_df.mos_name.unique():
+    for mos_name in np.sort(cat_df.mos_name.unique()):
         print(mos_name)
         hi_data = fits.open("./data/orig_mosaics/%s.derip.fits"%mos_name)
         hi_data[0].header['CTYPE3'] = 'FREQ'
