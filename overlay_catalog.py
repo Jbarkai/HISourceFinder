@@ -24,13 +24,14 @@ def getimages(ra,dec,size=240,filters="grizy"):
     filters = string with filters to include
     Returns a table with the results
     """
-    
-    service = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
-    url = ("{service}?ra={ra}&dec={dec}&size={size}&format=fits"
-           "&filters={filters}").format(**locals())
-    table = Table.read(url, format='ascii')
-    return table
-
+    try:
+        service = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
+        url = ("{service}?ra={ra}&dec={dec}&size={size}&format=fits"
+            "&filters={filters}").format(**locals())
+        table = Table.read(url, format='ascii')
+        return table
+    except FileNotFoundError:
+        return False
 
 def geturl(ra, dec, size=240, output_size=None, filters="grizy", format="jpg", color=False):
     
@@ -52,6 +53,8 @@ def geturl(ra, dec, size=240, output_size=None, filters="grizy", format="jpg", c
     if format not in ("jpg","png","fits"):
         raise ValueError("format must be one of jpg, png, fits")
     table = getimages(ra,dec,size=size,filters=filters)
+    if type(table) == bool:
+        return False
     url = ("https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?"
            "ra={ra}&dec={dec}&size={size}&format={format}").format(**locals())
     if output_size:
@@ -78,6 +81,8 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100, d_width=0.00166666
         ex_co_ords = utils.pixel_to_skycoord(ra_pix, dec_pix, new_wcs).to_string().split(" ")
         pix_size = int((size_pix*d_width.to(u.arcsec))/(0.25*u.arcsec))
         fitsurl = geturl(float(ex_co_ords[0]), float(ex_co_ords[1]), size=pix_size, filters="i", format="fits")
+        if type(fitsurl) == bool:
+            return False, 0
         fh = fits.open(fitsurl[0])
     
         fim = fh[0].data
