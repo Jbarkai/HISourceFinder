@@ -78,6 +78,7 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
         ex_co_ords = utils.pixel_to_skycoord(ra_pix, dec_pix, new_wcs).to_string().split(" ")
         pix_size = int((size_pix*d_width.to(u.arcsec))/(0.25*u.arcsec))
         fitsurl = geturl(float(ex_co_ords[0]), float(ex_co_ords[1]), size=pix_size, filters="i", format="fits")
+        print(fitsurl[0])
         fh = fits.open(fitsurl[0])
         fim = fh[0].data
         # replace NaN values with zero for display
@@ -85,11 +86,11 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
         # set contrast to something reasonable
         transform = AsinhStretch() + PercentileInterval(99.5)
         bfim = transform(fim)
-        fh[0].data = bfim
-        return fh[0]
+        fh.close()
+        return bfim, fh[0].header
     except socket.timeout:
         print("The read operation timed out")
-        return False
+        return False, 0
 
 def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/"):
     d_width = 0.001666666707*u.deg
@@ -101,12 +102,11 @@ def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/"):
     sof_data = fits.getdata(row.file)
     masked = SpectralCube(subcube.unmasked_data[:]*sof_data[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)], wcs=subcube.wcs)
     moment_0 = masked.with_spectral_unit(u.Hz).moment(order=0)
-    gal = get_opt(moment_0.wcs, ra_pix=moment_0.shape[0]/2, dec_pix=moment_0.shape[1]/2, size_pix=np.max(moment_0.shape))
-    print(moment_0.shape)
-    if type(gal) == fits.hdu.image.PrimaryHDU:
+    gal, gal_header = get_opt(moment_0.wcs, ra_pix=moment_0.shape[0]/2, dec_pix=moment_0.shape[1]/2, size_pix=np.max(moment_0.shape))
+    if type(gal) != bool:
         ax = plt.subplot(projection=moment_0.wcs)
         ax.contour(moment_0, zorder=1, origin='lower')
-        ax.imshow(gal.data, transform=ax.get_transform(WCS(gal.header)), zorder=0, origin='lower')
+        ax.imshow(gal.data, transform=ax.get_transform(WCS(gal_header)), zorder=0, origin='lower')
         ax.set_xlim((0,moment_0.shape[0]))
         ax.set_ylim((0,moment_0.shape[1]))
         plt.savefig(output_file + method + "_" + row.mos_name + "_" + str(row.label) + ".png")
