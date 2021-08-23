@@ -90,6 +90,9 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100, d_width=0.00166666
     except socket.timeout:
         print("The read operation timed out")
         return False, 0
+    except OSError:
+        print("File too big")
+        return False, 0
 
 def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/", d_width=0.001666666707*u.deg):
     subcube = spec_cube[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)]
