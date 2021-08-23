@@ -92,10 +92,6 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100, d_width=0.00166666
         return False, 0
 
 def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/", d_width=0.001666666707*u.deg):
-    nx_kpc = row.dist*np.tan(np.deg2rad(d_width*row.nx))*1e3
-    ny_kpc = row.dist*np.tan(np.deg2rad(d_width*row.ny))*1e3
-    if (row.nx_kpc > 300) | (row.ny_kpc > 300):
-        pass
     subcube = spec_cube[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)]
     sof_data = fits.getdata(row.file)
     masked = SpectralCube(subcube.unmasked_data[:]*sof_data[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)], wcs=subcube.wcs)
@@ -115,8 +111,8 @@ def main(method, output_file):
     kpc_lim = [0, 300]
     n_vel_lim = [7, 750]
     d_width = 0.001666666707*u.deg
-    cat_df["nx_kpc"] = row.dist*np.tan(np.deg2rad(d_width*row.nx))*1e3
-    cat_df["ny_kpc"] = row.dist*np.tan(np.deg2rad(d_width*row.ny))*1e3
+    cat_df["nx_kpc"] = cat_df.dist*np.tan(np.deg2rad(d_width*cat_df.nx))*1e3
+    cat_df["ny_kpc"] = cat_df.dist*np.tan(np.deg2rad(d_width*cat_df.ny))*1e3
     cond = (
         (cat_df.nx*d_width < noise_res[0]) | (cat_df.ny*d_width < noise_res[1]) | 
         (cat_df.ny_kpc > kpc_lim[1]) | (cat_df.nx_kpc > kpc_lim[1]) |
