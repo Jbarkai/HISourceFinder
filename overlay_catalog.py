@@ -100,7 +100,7 @@ def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/", d_widt
     sof_data = fits.getdata(row.file)
     masked = SpectralCube(subcube.unmasked_data[:]*sof_data[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)], wcs=subcube.wcs)
     moment_0 = masked.with_spectral_unit(u.Hz).moment(order=0)
-    gal, gal_header = get_opt(moment_0.wcs, ra_pix=moment_0.shape[0]/2, dec_pix=moment_0.shape[1]/2, size_pix=np.max(moment_0.shape), d_width)
+    gal, gal_header = get_opt(moment_0.wcs, ra_pix=moment_0.shape[0]/2, dec_pix=moment_0.shape[1]/2, size_pix=np.max(moment_0.shape), d_width=d_width)
     if type(gal) != bool:
         ax = plt.subplot(projection=moment_0.wcs)
         ax.contour(moment_0, zorder=1, origin='lower')
