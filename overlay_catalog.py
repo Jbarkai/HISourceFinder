@@ -45,6 +45,7 @@ def geturl(ra, dec, size=240, output_size=None, filters="grizy", format="jpg", c
             Default is return a list of URLs for single-filter grayscale images.
     Returns a string with the URL
     """
+    print(size)
     if color and format == "fits":
         raise ValueError("color images are available only for jpg or png formats")
     if format not in ("jpg","png","fits"):
@@ -91,12 +92,17 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
         return False
 
 def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/"):
+    d_width = 0.001666666707*u.deg
+    nx_kpc = row.dist*np.tan(np.deg2rad(d_width*row.nx))*1e3
+    ny_kpc = row.dist*np.tan(np.deg2rad(d_width*row.ny))*1e3
+    if (row.nx_kpc > 300) | (row.ny_kpc > 300):
+        pass
     subcube = spec_cube[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)]
     sof_data = fits.getdata(row.file)
     masked = SpectralCube(subcube.unmasked_data[:]*sof_data[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)], wcs=subcube.wcs)
     moment_0 = masked.with_spectral_unit(u.Hz).moment(order=0)
     gal = get_opt(moment_0.wcs, ra_pix=moment_0.shape[0]/2, dec_pix=moment_0.shape[1]/2, size_pix=np.max(moment_0.shape))
-
+    print(moment_0.shape)
     if type(gal) == fits.hdu.image.PrimaryHDU:
         ax = plt.subplot(projection=moment_0.wcs)
         ax.contour(moment_0, zorder=1, origin='lower')
