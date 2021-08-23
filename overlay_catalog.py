@@ -72,9 +72,8 @@ def geturl(ra, dec, size=240, output_size=None, filters="grizy", format="jpg", c
     return url
 
 
-def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
+def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100, d_width=0.001666666707*u.deg):
     try:
-        d_width = 0.001666666707*u.deg
         ex_co_ords = utils.pixel_to_skycoord(ra_pix, dec_pix, new_wcs).to_string().split(" ")
         pix_size = int((size_pix*d_width.to(u.arcsec))/(0.25*u.arcsec))
         fitsurl = geturl(float(ex_co_ords[0]), float(ex_co_ords[1]), size=pix_size, filters="i", format="fits")
@@ -92,8 +91,7 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100):
         print("The read operation timed out")
         return False, 0
 
-def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/"):
-    d_width = 0.001666666707*u.deg
+def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/", d_width=0.001666666707*u.deg):
     nx_kpc = row.dist*np.tan(np.deg2rad(d_width*row.nx))*1e3
     ny_kpc = row.dist*np.tan(np.deg2rad(d_width*row.ny))*1e3
     if (row.nx_kpc > 300) | (row.ny_kpc > 300):
@@ -102,7 +100,7 @@ def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/"):
     sof_data = fits.getdata(row.file)
     masked = SpectralCube(subcube.unmasked_data[:]*sof_data[row['bbox-0']:row['bbox-3'], row['bbox-1']-int(row.nx*0.5):row['bbox-4']+int(row.nx*0.5), row['bbox-2']-int(row.ny*0.5):row['bbox-5']+int(row.ny*0.5)], wcs=subcube.wcs)
     moment_0 = masked.with_spectral_unit(u.Hz).moment(order=0)
-    gal, gal_header = get_opt(moment_0.wcs, ra_pix=moment_0.shape[0]/2, dec_pix=moment_0.shape[1]/2, size_pix=np.max(moment_0.shape))
+    gal, gal_header = get_opt(moment_0.wcs, ra_pix=moment_0.shape[0]/2, dec_pix=moment_0.shape[1]/2, size_pix=np.max(moment_0.shape), d_width)
     if type(gal) != bool:
         ax = plt.subplot(projection=moment_0.wcs)
         ax.contour(moment_0, zorder=1, origin='lower')
@@ -113,6 +111,18 @@ def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/"):
 
 def main(method, output_file):
     cat_df = pd.read_csv("./results/loud_%s_catalog.txt"%method, index_col=0)
+    noise_res = [(15*u.arcsec).to(u.deg), (25*u.arcsec).to(u.deg)]
+    kpc_lim = [0, 300]
+    n_vel_lim = [7, 750]
+    d_width = 0.001666666707*u.deg
+    cat_df["nx_kpc"] = row.dist*np.tan(np.deg2rad(d_width*row.nx))*1e3
+    cat_df["ny_kpc"] = row.dist*np.tan(np.deg2rad(d_width*row.ny))*1e3
+    cond = (
+        (cat_df.nx*d_width < noise_res[0]) | (cat_df.ny*d_width < noise_res[1]) | 
+        (cat_df.ny_kpc > kpc_lim[1]) | (cat_df.nx_kpc > kpc_lim[1]) |
+        (cat_df.n_vel > n_vel_lim[1]) | (cat_df.n_vel < n_vel_lim[0])
+    )
+    cat_df = cat_df[~cond]
     for mos_name in np.sort(cat_df.mos_name.unique()):
         print(mos_name)
         hi_data = fits.open("./data/orig_mosaics/%s.derip.fits"%mos_name)
@@ -127,7 +137,7 @@ def main(method, output_file):
             if os.path.isfile(file_name):
                 pass
             else:
-                overlay_hi(row, method, spec_cube, output_file)
+                overlay_hi(row, method, spec_cube, output_file, d_width)
                 print("\r", i*100/len(subset), "%", end="")
 
 
