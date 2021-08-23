@@ -6,6 +6,7 @@ import os
 from astropy.io import fits
 from astropy.visualization import PercentileInterval, AsinhStretch
 from astropy.wcs import utils
+from astropy.utils.data import clear_download_cache
 import matplotlib.pyplot as plt
 from astropy.table import Table
 from astropy.wcs import WCS
@@ -77,8 +78,8 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100, d_width=0.00166666
         ex_co_ords = utils.pixel_to_skycoord(ra_pix, dec_pix, new_wcs).to_string().split(" ")
         pix_size = int((size_pix*d_width.to(u.arcsec))/(0.25*u.arcsec))
         fitsurl = geturl(float(ex_co_ords[0]), float(ex_co_ords[1]), size=pix_size, filters="i", format="fits")
-        print(fitsurl[0])
         fh = fits.open(fitsurl[0])
+    
         fim = fh[0].data
         # replace NaN values with zero for display
         fim[np.isnan(fim)] = 0.0
@@ -86,6 +87,7 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100, d_width=0.00166666
         transform = AsinhStretch() + PercentileInterval(99.5)
         bfim = transform(fim)
         fh.close()
+        clear_download_cache(fitsurl[0])
         return bfim, fh[0].header
     except socket.timeout:
         print("The read operation timed out")
