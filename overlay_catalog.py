@@ -133,6 +133,7 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100, d_width=0.00166666
 def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/", d_width=0.001666666707*u.deg):
     max_size = np.max([row.nx, row.ny])
     dx = int(max_size*0.5)
+    det_data = fits.getdata(row.file)
     subcube = spec_cube[row['bbox-0']:row['bbox-3'], row['bbox-1']-dx:row['bbox-4']+dx, row['bbox-2']-dx:row['bbox-5']+dx]
     det_subcube = det_data[row['bbox-0']:row['bbox-3'], row['bbox-1']-dx:row['bbox-4']+dx, row['bbox-2']-dx:row['bbox-5']+dx]
     det_subcube[:, :dx] = 0
