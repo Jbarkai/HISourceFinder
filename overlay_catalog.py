@@ -130,7 +130,7 @@ def main(method, output_file):
         (cat_df.ny_kpc > kpc_lim[1]) | (cat_df.nx_kpc > kpc_lim[1]) |
         (cat_df.n_vel > n_vel_lim[1]) | (cat_df.n_vel < n_vel_lim[0])
     )
-    cat_df = cat_df[~cond & cat_df.mos_name.str.contains("1245")]
+    cat_df = cat_df[~cond & cat_df.mos_name.str.contains("1245") & ~cat_df.mos_name.str.contains("1245mosH")]
     for mos_name in np.sort(cat_df.mos_name.unique()):
         print(mos_name)
         hi_data = fits.open("./data/orig_mosaics/%s.derip.fits"%mos_name)
