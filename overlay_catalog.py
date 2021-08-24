@@ -154,7 +154,7 @@ def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/", d_widt
         fig = plt.figure(figsize=(5, 5))
         ax = fig.add_subplot(2, 2, 1, projection=masked_moment_0.wcs)
         ax.contour(masked_moment_0, zorder=2, origin='lower', cmap="Reds")
-        ax.imshow(gal.data, transform=ax.get_transform(WCS(gal.header)), zorder=0, origin='lower')
+        ax.imshow(gal.data, transform=ax.get_transform(WCS(gal_header)), zorder=0, origin='lower')
         ax.axis('off')
         ax.set_xlim((0,masked_moment_0.shape[0]))
         ax.set_ylim((0,masked_moment_0.shape[1]))
@@ -162,7 +162,7 @@ def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/", d_widt
         ax1 = fig.add_subplot(2, 2, 4, projection=unmasked_moment_0.wcs)
         ax1.axis('off')
         ax1.contour(unmasked_moment_0, zorder=1, origin='lower', cmap="Reds")
-        ax1.imshow(gal.data, transform=ax1.get_transform(WCS(gal.header)), zorder=0, origin='lower')
+        ax1.imshow(gal.data, transform=ax1.get_transform(WCS(gal_header)), zorder=0, origin='lower')
         ax1.set_xlim((0,unmasked_moment_0.shape[0]))
         ax1.set_ylim((0,unmasked_moment_0.shape[1]))
 
