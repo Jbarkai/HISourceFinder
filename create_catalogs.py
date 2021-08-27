@@ -122,6 +122,7 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
     source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
     overlap_areas = []
     area_gts = []
+    S_v = []
     for i, row in source_props_df.iterrows():
         mask_row = mask_df[mask_df.max_loc.astype(str) == str([int(i) for i in row.max_loc])]
         if len(mask_row) > 0:
@@ -133,6 +134,10 @@ def create_single_catalog(output_file, mask_file, real_file, catalog_df):
         else:
             overlap_areas.append(np.nan)
             area_gts.append(np.nan)
+        subcube = orig_data[row['bbox-0']:row['bbox-3'], row['bbox-1']:row['bbox-4'], row['bbox-2']:row['bbox-5']]
+        det_subcube = seg_output[row['bbox-0']:row['bbox-3'], row['bbox-1']:row['bbox-4'], row['bbox-2']:row['bbox-5']]
+        S_v.append(np.sum(subcube*det_subcube, axis=0))
+    source_props_df['S_v'] = S_v
     source_props_df['overlap_area'] = overlap_areas
     source_props_df['area_gt'] = area_gts
     source_props_df['true_positive_real'] = False
@@ -219,7 +224,7 @@ def main(data_dir, method, scale, out_dir, catalog_loc, mask):
     source_props_df_full = pd.DataFrame(columns=['label', 'centroid-0', 'centroid-1', 'centroid-2',
     'bbox-0', 'bbox-1', 'bbox-2', 'bbox-3', 'bbox-4', 'bbox-5', 'area',
     'tot_flux', 'peak_flux', 'brightest_pix', 'max_loc', 'elongation',
-    'detection_size', 'n_vel', 'nx_kpc', 'ny_kpc', 'file', 'true_positive_mocks',
+    'detection_size', 'n_vel', 'nx_kpc', 'ny_kpc', 'file', 'true_positive_mocks', 'S_v',
     'overlap_area', 'area_gt', 'true_positive_real'])
     for cube_file in cube_files:
         mos_name = cube_file.split("/")[-1].split("_")[-1].split(".fits")[0]
