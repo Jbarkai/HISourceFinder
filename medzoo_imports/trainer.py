@@ -1,8 +1,3 @@
-'''
-Model trainer
-Adapted from MedicalZooPytorch: https://github.com/black0017/MedicalZooPytorch
-'''
-
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter

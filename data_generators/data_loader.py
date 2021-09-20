@@ -3,6 +3,7 @@ from torch.utils.data import Dataset
 from astropy.io import fits
 import numpy as np
 import pickle
+from augment3D import RandomChoice, RandomRotation, RandomFlip, RandomShift
 
 
 class SegmentationDataSet(Dataset):
@@ -15,7 +16,8 @@ class SegmentationDataSet(Dataset):
                  arr_shape=(1800, 2400, 652),
                  mode="train_val",
                  save_name="../saved_models/",
-                 load=False
+                 load=False,
+                 augmentation=False
                  ):
         self.list = []
         self.inputs = inputs
@@ -27,6 +29,11 @@ class SegmentationDataSet(Dataset):
         self.root = root
         self.mode = mode
         self.arr_shape = arr_shape
+        self.augmentation = augmentation
+        if self.augmentation:
+            self.transform = RandomChoice(
+                transforms=[RandomRotation(), RandomFlip(),
+                            RandomShift(), "nothing"], p=0.5)
         if load:
             self.save_name = save_name
             ## load pre-generated data
@@ -52,6 +59,10 @@ class SegmentationDataSet(Dataset):
         # Get rid of nans in corners and Z scale normalise between 0 and 1 
         # dat = interval(np.nan_to_num(subcube, np.mean(subcube)))
         seg_dat = np.moveaxis(fits.getdata(cube_files[1]), 0, 2)[x[0]:x[1], y[0]:y[1], z[0]:z[1]]
+        if self.mode == 'train_val' and self.augmentation and (seg_dat > 0).any():
+            print('augmentation')
+            augmented_cube, augmented_seg = self.transform(subcube, seg_dat)
+            return torch.FloatTensor(augmented_cube.astype(self.inputs_dtype)).unsqueeze(0), torch.FloatTensor(augmented_seg.astype(self.targets_dtype)).unsqueeze(0)
         return torch.FloatTensor(subcube.astype(self.inputs_dtype)).unsqueeze(0), torch.FloatTensor(seg_dat.astype(self.targets_dtype)).unsqueeze(0)
 
 

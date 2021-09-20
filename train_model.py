@@ -11,6 +11,7 @@ from random import sample
 import random
 import copy
 import pickle
+import torch.optim as optim
 
 
 def main(
@@ -18,7 +19,7 @@ def main(
     random_seed, train_size, model, opt, lr, inChannels,
     classes, log_dir, dataset_name, terminal_show_freq, nEpochs,
     cuda, scale, subsample, k_folds, pretrained, retrain,
-    load_data_loc, jobid):
+    load_data_loc, jobid, feature_extraction=False, augmentation=False):
     """Create training and validation datasets
 
     Args:
@@ -56,7 +57,6 @@ def main(
         model = model.cuda()
         print("Model transferred in GPU.....")
     if pretrained:
-        # model.restore_checkpoint(pretrained)
         checkpoint = torch.load(pretrained)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -66,7 +66,15 @@ def main(
         if retrain:
             checkpoint = torch.load(retrain)
             model.load_state_dict(checkpoint['model_state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            if feature_extraction:
+                for param in model.parameters():
+                    param.requires_grad = False
+                for param in model.out_tr.parameters():
+                    param.requires_grad = True
+                weight_decay = 0.0000000001
+                optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr, weight_decay=weight_decay)
+            else:
+                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = 1
         save = "./%s_saved_models_%s_%s_%s/"%(jobid, date_str, scale, subsample)
         if not os.path.exists(save):
@@ -110,6 +118,14 @@ def main(
         cubes = sample(cubes, subsample)
     # For fold results
     results = {}
+    dataset_train_val = SegmentationDataSet(inputs=inputs,
+                                        targets=targets,
+                                        dims=dims,
+                                        overlaps=overlaps,
+                                        root=root,
+                                        mode="train_val",
+                                        save_name=save,
+                                        augmentation=augmentation)
     print('--------------------------------')
     for k in range(k_folds):
         print('FOLD %s'%k)
@@ -118,7 +134,7 @@ def main(
         if load_data_loc == "":
             train_list, val_list = [], []
             for cube in cubes:
-                file_list = [i for i in dataset_full.list if cube in i[0][0]]
+                file_list = [i for i in dataset_train_val.list if cube in i[0][0]]
                 random.shuffle(file_list)
                 print(len(file_list))
                 num_val = int(len(file_list)*(1 - train_size))
@@ -138,10 +154,10 @@ def main(
             with open(load_data_loc + '/val_windows.txt', "rb") as fp:
                 val_list = pickle.load(fp)
         # dataset training
-        dataset_train = copy.deepcopy(dataset_full)
+        dataset_train = copy.deepcopy(dataset_train_val)
         dataset_train.list = train_list
         # dataset validation
-        dataset_valid = copy.deepcopy(dataset_full)
+        dataset_valid = copy.deepcopy(dataset_train_val)
         dataset_valid.list = val_list
         # dataset_train.list = dataset_train.list[:10]
         # dataset_valid.list = dataset_valid.list[:10]
