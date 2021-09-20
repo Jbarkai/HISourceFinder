@@ -5,6 +5,7 @@ import argparse
 from os import listdir
 import os
 import torch
+import torch.nn as nn
 from medzoo_imports import create_model, DiceLoss, Trainer
 from datetime import datetime
 from random import sample
@@ -69,8 +70,7 @@ def main(
             if feature_extraction:
                 for param in model.parameters():
                     param.requires_grad = False
-                for param in model.out_tr.parameters():
-                    param.requires_grad = True
+                model.conv1 = nn.Conv3d(model.in_channels, model.num_features, kernel_size=5, padding=2)
                 weight_decay = 0.0000000001
                 optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr, weight_decay=weight_decay)
             else:
