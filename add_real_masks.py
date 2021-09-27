@@ -29,7 +29,10 @@ def insert_gals(row, sofia_data, mask_cube, mto_data=None, comb=False):
         mask_cube[z1:z2, x1:x2, y1:y2] = np.max([mask_cube[z1:z2, x1:x2, y1:y2], (sof_det | mto_det)], axis=0)
     else:
         z1, z2, x1, x2, y1, y2 = int(row['bbox-0']), int(row['bbox-3']), int(row['bbox-1']), int(row['bbox-4']), int(row['bbox-2']), int(row['bbox-5'])
-        mask_cube[z1:z2, x1:x2, y1:y2] = np.max([mask_cube[z1:z2, x1:x2, y1:y2], sofia_data[z1:z2, x1:x2, y1:y2]], axis=0)
+        sof_det = sofia_data[z1:z2, x1:x2, y1:y2].copy()
+        sof_det[sof_det == int(row.label_sof)] = 1
+        sof_det[sof_det != 1] = 0
+        mask_cube[z1:z2, x1:x2, y1:y2] = np.max([mask_cube[z1:z2, x1:x2, y1:y2], sof_det], axis=0)
     return
 
 
@@ -48,7 +51,7 @@ def main(args, data_dir="./data", scale="loud"):
     new_vnet = pd.merge(vnet_cat_df, real_catalog[real_catalog.method=="vnet"], on=["mos_name", "label"], how="left")
     new_mto = pd.merge(mto_cat_df, real_catalog[real_catalog.method=="mto"], on=["mos_name", "label"], how="left")
     # Take only real ones
-    real_gals = pd.merge(new_mto[~new_mto.type.isnull() & (new_mto.type!="notsure") & (new_mto.mos_name.str.contains("1245"))], pd.merge(new_sof[~new_sof.type.isnull() & (new_sof.type!="notsure") & (new_sof.mos_name.str.contains("1245"))], new_vnet[~new_vnet.type.isnull() & (new_vnet.type!="notsure") & (new_vnet.mos_name.str.contains("1245"))], on=['mos_name', 'max_loc'], how='outer', suffixes=("_sof", "_vnet")), on=['mos_name', 'max_loc'], how='outer', suffixes=("_mto", ""))
+    real_gals = pd.merge(new_mto[~new_mto.type.isnull() & (new_mto.type!="notsure")], pd.merge(new_sof[~new_sof.type.isnull() & (new_sof.type!="notsure")], new_vnet[~new_vnet.type.isnull() & (new_vnet.type!="notsure")], on=['mos_name', 'max_loc'], how='outer', suffixes=("_sof", "_vnet")), on=['mos_name', 'max_loc'], how='outer', suffixes=("_mto", ""))
     # for methods detected by only vnet and another method, take the other method
     # for methods only detected by a single method, take that mask
     sof_sources = real_gals[(~real_gals.type_sof.isnull() & real_gals.type.isnull())]
