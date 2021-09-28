@@ -33,6 +33,14 @@ def vnet_eval(cube_list, model, cuda):
 
 
 def main(args, test_file):
+    """Runs VNET on a list of subcubes from a sliding window,
+    contained in a file, and stitches them together to create
+    the final inference on a full cube.
+
+    Args:
+        args (argsClass): The model args that were used to train it
+        test_file (str): The file containing the list of subcubes to test on
+    """
     time_taken = {}
     with open(test_file, "rb") as fp:
         test_list = pickle.load(fp)
@@ -61,7 +69,7 @@ def main(args, test_file):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="INFERENCE VNET",
+    parser = argparse.ArgumentParser(description="Inference with VNET",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--model', type=str, nargs='?', const='default', default='VNET',

@@ -7,8 +7,6 @@ import numpy as np
 from scipy import ndimage as ndi
 import sys
 sys.path.insert(0,'..')
-import skimage.measure as skmeas
-from datetime import datetime
 import pandas as pd
 
 
@@ -30,13 +28,24 @@ def insert_gals(row, sofia_data, mask_cube, mto_data=None, comb=False):
     else:
         z1, z2, x1, x2, y1, y2 = int(row['bbox-0']), int(row['bbox-3']), int(row['bbox-1']), int(row['bbox-4']), int(row['bbox-2']), int(row['bbox-5'])
         sof_det = sofia_data[z1:z2, x1:x2, y1:y2].copy()
-        sof_det[sof_det == int(row.label_sof)] = 1
+        sof_det[sof_det == int(row.label)] = 1
         sof_det[sof_det != 1] = 0
         mask_cube[z1:z2, x1:x2, y1:y2] = np.max([mask_cube[z1:z2, x1:x2, y1:y2], sof_det], axis=0)
     return
 
 
-def main(args, data_dir="./data", scale="loud"):
+def main(data_dir, scale, real_cat):
+    """Create new ground truths with the real galaxies detected
+
+    Args:
+        data_dir (str): The directory containing the data
+        scale (str): The scale of the inserted galaxies
+        real_cat (str): The location of file containing flagged real sources
+    Outputs:
+        For each cube, a ground truth mask of the real galaxies only
+        as well as a mask of the real galaxies added to that of the
+        mock galaxies are created.
+    """
     mto_cat_df = pd.read_csv("./results/loud_MTO_catalog.txt", index_col=0)
     vnet_cat_df = pd.read_csv("./results/loud_VNET_catalog.txt", index_col=0)
     sofia_cat_df = pd.read_csv("./results/loud_SOFIA_catalog.txt", index_col=0)
@@ -46,7 +55,7 @@ def main(args, data_dir="./data", scale="loud"):
     mto_cat_df["mos_name"] = mto_cat_df.file.str.split("_", expand=True)[3].str.replace(".fits", "")
     vnet_cat_df["mos_name"] = vnet_cat_df.file.str.split("_", expand=True)[4].str.replace(".fits", "")
     # Label real sources
-    real_catalog = pd.read_csv("./fp_to_drop.csv")
+    real_catalog = pd.read_csv(real_cat)
     new_sof = pd.merge(sofia_cat_df, real_catalog[real_catalog.method=="sofia"], on=["mos_name", "label"], how="left")
     new_vnet = pd.merge(vnet_cat_df, real_catalog[real_catalog.method=="vnet"], on=["mos_name", "label"], how="left")
     new_mto = pd.merge(mto_cat_df, real_catalog[real_catalog.method=="mto"], on=["mos_name", "label"], how="left")
@@ -80,7 +89,10 @@ def main(args, data_dir="./data", scale="loud"):
             insert_gals(row, vnet_data, mask_cube)  
         for i, row in mto_sof_sources[mto_sof_sources.mos_name == "mos_name"].iterrows():
             insert_gals(row, sofia_data, mask_cube, mto_data, comb=True)
-        fits.writeto("data/training/TargetReal/mask_%s.fits"%mos_name, mask_cube)
+        fits.writeto(data_dir + "training/TargetReal/mask_%s.fits"%mos_name, mask_cube)
+        both_mask = fits.getdata(data_dir + "training/Target/mask_%s.fits"%mos_name) + mask_cube
+        both_mask[both_mask > 0] = 1
+        fits.writeto(data_dir + "training/TargetBoth/mask_%s.fits"%mos_name, both_mask)
     return
 
 
@@ -88,8 +100,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Add real masks to GT",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--cuda', type=bool, nargs='?', const='default', default=True,
-        help='Memory allocation')
+        '--data_dir', type=str, nargs='?', const='default', default="./data/",
+        help='The directory containing the data')
+    parser.add_argument(
+        '--scale', type=str, nargs='?', const='default', default="loud",
+        help='The scale of the inserted galaxies')
+    parser.add_argument(
+        '--real_cat', type=str, nargs='?', const='default', default="./fp_to_drop.csv",
+        help='The location of file containing flagged real sources')
     args = parser.parse_args()
-    main(args)
+    main(args.data_dir, args.scale, args.real_cat)
 

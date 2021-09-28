@@ -271,12 +271,25 @@ def make_cube(f_in, mto_dir, param_file):
         print("\r", index*100/len(cube_list), "%", end="")
         mto_eval(window, mto_dir, param_file, empty_arr, index)
     out_cube_file = "data/mto_output/mtocubeout_" + f_in.split("/")[-1]
-    # nonbinary_im = skmeas.label(empty_arr)
-    fits.writeto(out_cube_file, empty_arr, overwrite=True)
+    nonbinary_im = skmeas.label(empty_arr)
+    fits.writeto(out_cube_file, nonbinary_im, overwrite=True)
     return
 
 
 def main(mto_dir, param_file, input_dir):
+    """Runs MTO on a list of subcubes from a sliding window,
+    contained in a file, and stitches them together to create
+    the final detections on a full cube.
+
+    Args:
+        mto_dir (str): The location of the MTO executable
+        param_file (str): The location of the MTO parameter file
+        input_dir (str): The directory of the input data
+    Outputs:
+        For each cube, a masked output of the detections found by MTO
+        is outputted, with each source given a different label. In
+        addition, the time taken to create the detections is outputted.
+    """
     time_taken = {}
     # Load test data
     cubes = [input_dir + "/" + x for x in listdir(input_dir) if ".fits" in x]

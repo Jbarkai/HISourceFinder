@@ -216,8 +216,8 @@ optional arguments:
   --test_file [TEST_FILE]
                         The file listing the test sliding window pieces (default: ./notebooks/loud_1245mosC-slidingwindowindices.txt)
 ```
-### Add real sources to mask
-1. Create a catalog for the results of each method and cross-reference it with the mask of the inserted galaxies and a catalog of known sources (to mark true or false positives):
+### Investigate Results
+1. Create a catalog for the results of each method and cross-reference it with the mask of the inserted galaxies (to mark true or false positives):
 ```bash
 usage: create_catalogs.py [-h] [--data_dir [DATA_DIR]] [--method [METHOD]] [--scale [SCALE]] [--output_dir [OUTPUT_DIR]] [--catalog_loc [CATALOG_LOC]]
 
@@ -231,36 +231,42 @@ optional arguments:
   --scale [SCALE]       The scale of the inserted galaxies (default: loud)
   --output_dir [OUTPUT_DIR]
                         The output directory for the results (default: results/)
-  --catalog_loc [CATALOG_LOC]
-                        The real catalog file (default: PP_redshifts_8x8.csv)
 ```
-2. Once run for each method, combine the false positives of each result, matching them based on the location of the brightest voxel and taking that with the largest area. These segmented masks are then added to the original masks containing only the mock galaxies.
+2. Overlay the false detections on optical images to see if they are real sources:
 ```bash
-usage: combine_catalogs.py [-h] [--scale [SCALE]] [--output_dir [OUTPUT_DIR]]
+usage: overlay_catalog.py [-h] [--method [METHOD]] [--output_file [OUTPUT_FILE]]
 
-Combine catalogs and add to masks
+Overlay HI moment 0 map on optical cross-matched catalog
 
 optional arguments:
   -h, --help            show this help message and exit
-  --scale [SCALE]       The scale of the inserted galaxies (default: loud)
-  --output_dir [OUTPUT_DIR]
-                        The output directory for the results (default: results/)
+  --method [METHOD]     The method to extract catalogs from (default: SOFIA)
+  --output_file [OUTPUT_FILE]
+                        The output file for the images (default: ./optical_catalogs/)
 ```
-3. Re-train V-Net with newly labelled masks
-4. Train machine learning algorithms with true and false positives from combined catalog.
-### Evaluate results
-Evaluate each method one by one and output a csv of the evaluation metrics to compare later:
-```bash
-usage: compare_methods.py [-h] [--data_dir [DATA_DIR]] [--method [METHOD]] [--scale [SCALE]] [--output_dir [OUTPUT_DIR]]
+Manually flag the detected sources that have an tical counterpart by creating a csv with the following columns:
+`method,mos_name,label,type`
 
-Compare Methods
+This also now allows for an evaluation and comparison of all the methods. For this follow the `notebooks/Results.ipynb` notebook. This notebook also includes the addition of shallow machine learning as a post-processing method on all the source finding tools to improve their purity.
+### Improve V-Net with newly labelled masks
+1. Add the masks of the now deemed real detections (those with optical counterparts) to the ground truth cubes:
+```bash
+usage: add_real_masks.py [-h] [--data_dir [DATA_DIR]] [--scale [SCALE]]
+                         [--real_cat [REAL_CAT]]
+
+Add real masks to GT
 
 optional arguments:
   -h, --help            show this help message and exit
   --data_dir [DATA_DIR]
-                        The directory containing the data (default: data/)
-  --method [METHOD]     The segmentation method being evaluated (default: MTO)
+                        The directory containing the data (default: ./data/)
   --scale [SCALE]       The scale of the inserted galaxies (default: loud)
-  --output_dir [OUTPUT_DIR]
-                        The output directory for the results (default: results/)
+  --real_cat [REAL_CAT]
+                        The location of file containing flagged real sources (default:
+                        ./fp_to_drop.csv)
 ```
+2. Re-train V-Net with newly labelled masks
+This can be done in three ways:
+- Take ground truth with both real and mock sources and train from scratch
+- Take only real sources and continue training VNET from previous point
+- Take only real sources and use feature extraction to freeze all the lower layers and only update a new one

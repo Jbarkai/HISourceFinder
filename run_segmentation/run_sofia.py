@@ -9,6 +9,17 @@ from datetime import datetime
 
 
 def main(sofia_loc, cube_dir, param_dir):
+    """Runs SoFiA on a list of cubes to create detections
+
+    Args:
+        sofia_loc (str): The location of the SoFiA executable
+        cube_dir (str): The directory of the input data
+        param_dir (str): The location of the SoFiA parameter files
+    Outputs:
+        For each cube, a masked output of the detections found by SoFiA
+        is outputted, with each source given a different label. In
+        addition, the time taken to create the detections is outputted.
+    """
     cubes = listdir(cube_dir)
     time_taken = {}
     for cube in cubes:

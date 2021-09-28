@@ -218,7 +218,8 @@ class SegmentationDataSet(Dataset):
             print('augmentation')
             augmented_cube, augmented_seg = self.transform(subcube, seg_dat)
             return torch.FloatTensor(augmented_cube.astype(self.inputs_dtype)).unsqueeze(0), torch.FloatTensor(augmented_seg.astype(self.targets_dtype)).unsqueeze(0)
-        return torch.FloatTensor(subcube.astype(self.inputs_dtype)).unsqueeze(0), torch.FloatTensor(seg_dat.astype(self.targets_dtype)).unsqueeze(0)
+        else:
+            return torch.FloatTensor(subcube.astype(self.inputs_dtype)).unsqueeze(0), torch.FloatTensor(seg_dat.astype(self.targets_dtype)).unsqueeze(0)
 
 
 def save_sliding_window(arr_shape, dims, overlaps, f_in, f_tar):
