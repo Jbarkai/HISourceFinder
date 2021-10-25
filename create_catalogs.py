@@ -154,7 +154,7 @@ def create_single_catalog(output_file, mask_file, real_file, cols, mask=False):
     source_props_df["asymmetry"] = np.nan
     source_props_df["true_positive_mocks"] = False
     for i, row in source_props_df.reset_index(drop=True).iterrows():
-        mask_row = mask_df[(mask_df.mos_name == row.mos_name) & (mask_df.max_loc == row.max_loc)]
+        mask_row = mask_df[mask_df.max_loc.astype(str) == str(row.max_loc)]
         if len(mask_row) > 0:
             source_props_df.loc[i, "true_positive_mocks"] = True
             source_props_df.loc[i, "area_gt"] = int(mask_row.area)
