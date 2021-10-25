@@ -93,6 +93,7 @@ def get_asymmetry(row, orig_data, seg_output):
     return asymmetry
 
 def create_single_catalog(output_file, mask_file, real_file, cols, mask=False):
+    mos_name = real_file.split("/")[-1].split("_")[-1].split(".fits")[0]
     rest_freq = 1.420405758000E+09*u.Hz
     d_width = 0.001666666707*u.deg
     h_0 = 70*u.km/(u.Mpc*u.s)
@@ -117,6 +118,7 @@ def create_single_catalog(output_file, mask_file, real_file, cols, mask=False):
         extra_properties=(tot_flux, peak_flux, brightest_pix, max_loc, elongation, n_vel, nx, ny))
     )
     mask_df["file"] = mask_file
+    mask_df['mos_name'] = mos_name
     mask_df['max_loc'] = [[int(row['max_loc-0'] + row['bbox-0']), int(row['max_loc-1'] + row['bbox-1']), int(row['max_loc-2'] + row['bbox-2'])] for i, row in mask_df.iterrows()]
     if mask:
         mask_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in mask_df['centroid-0'].astype(int)]
@@ -139,34 +141,31 @@ def create_single_catalog(output_file, mask_file, real_file, cols, mask=False):
         properties=['label', 'centroid', 'bbox', 'area'],
         extra_properties=(tot_flux, peak_flux, brightest_pix, max_loc, elongation, detection_size, n_vel, nx, ny))
     )
+    source_props_df['mos_name'] = mos_name
     source_props_df['max_loc'] = [[int(row['max_loc-0'] + row['bbox-0']), int(row['max_loc-1'] + row['bbox-1']), int(row['max_loc-2'] + row['bbox-2'])] for i, row in source_props_df.iterrows()]
     # Convert to physical values
     source_props_df["dist"] = [((const.c*((rest_freq/spec_cube[i])-1)/h_0).to(u.Mpc)).value for i in source_props_df['centroid-0'].astype(int)]
     source_props_df["nx_kpc"] = source_props_df.dist*np.tan(np.deg2rad(d_width*source_props_df.nx))*1e3
     source_props_df["ny_kpc"] = source_props_df.dist*np.tan(np.deg2rad(d_width*source_props_df.ny))*1e3
     source_props_df["file"] = output_file
-    source_props_df['true_positive_mocks'] = [i in list(mask_df.max_loc.values) for i in source_props_df.max_loc]
-    overlap_areas = []
-    area_gts = []
+    source_props_df["overlap_areas"] = np.nan
+    source_props_df["area_gts"] = np.nan
     source_props_df["hi_mass"] = np.nan
     source_props_df["asymmetry"] = np.nan
-    for i, row in source_props_df.iterrows():
-        mask_row = mask_df[mask_df.max_loc.astype(str) == str([int(i) for i in row.max_loc])]
+    source_props_df["true_positive_mocks"] = False
+    for i, row in source_props_df.reset_index(drop=True).iterrows():
+        mask_row = mask_df[(mask_df.mos_name == row.mos_name) & (mask_df.max_loc == row.max_loc)]
         if len(mask_row) > 0:
-            area_gts.append(int(mask_row.area))
+            source_props_df.loc[i, "true_positive_mocks"] = True
+            source_props_df.loc[i, "area_gt"] = int(mask_row.area)
             zp = [np.min([int(mask_row['bbox-0']), int(row['bbox-0'])]), np.max([int(mask_row['bbox-3']), int(row['bbox-3'])])]
             xp = [np.min([int(mask_row['bbox-1']), int(row['bbox-1'])]), np.max([int(mask_row['bbox-4']), int(row['bbox-4'])])]
             yp = [np.min([int(mask_row['bbox-2']), int(row['bbox-2'])]), np.max([int(mask_row['bbox-5']), int(row['bbox-5'])])]
-            overlap_areas.append(len(np.where((np.logical_and(seg_output[zp[0]:zp[1], xp[0]:xp[1], yp[0]:yp[1]], mask_labels[zp[0]:zp[1], xp[0]:xp[1], yp[0]:yp[1]]).astype(int))>0)[0]))
-        else:
-            overlap_areas.append(np.nan)
-            area_gts.append(np.nan)
+            source_props_df.loc[i, "overlap_area"] = len(np.where((np.logical_and(seg_output[zp[0]:zp[1], xp[0]:xp[1], yp[0]:yp[1]], mask_labels[zp[0]:zp[1], xp[0]:xp[1], yp[0]:yp[1]]).astype(int))>0)[0])
         # Calculate HI mass
         source_props_df.loc[i, "hi_mass"] = hi_mass(row, orig_data, seg_output)
         # Calculate asymmetry
         source_props_df.loc[i, "asymmetry"] = get_asymmetry(row, orig_data, seg_output)
-    source_props_df['overlap_area'] = overlap_areas
-    source_props_df['area_gt'] = area_gts
     return source_props_df[cols]
 
 
