@@ -11,7 +11,9 @@ import astropy.units as u
 import astropy.constants as const
 import warnings
 import gc
+import pandas as pd
 from datetime import datetime
+import math
 
 
 # Ignore warning about header
@@ -19,7 +21,7 @@ warnings.filterwarnings("ignore", message="Could not parse unit W.U.")
 
 
 
-def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, verbose=False):
+def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, inserted_gals_df, verbose=False):
     """Load, smooth, regrid and insert mock galaxies
 
     Args:
@@ -41,7 +43,9 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         noise_res = [15*u.arcsec, 25*u.arcsec]
         # Load Galaxy
         print("load")
-        orig_mass, dx, dy, dF, rest_freq, orig_scale, gal_data = load_cube(filename, orig_d, h_0)
+        mass_df = pd.read_csv("original_masses.csv")
+        orig_mass = mass_df.loc[mass_df["filename"] == filename.split("/")[-1].split(".")[0], "mass"].values[0]
+        dx, dy, dF, rest_freq, orig_scale, gal_data = load_cube(filename, orig_d, h_0)
         # Choose channel
         print("choose freq")
         chosen_f, new_z, new_dist, z_pos = choose_freq(
@@ -59,24 +63,39 @@ def add_to_cube(i, no_gals, filename, noise_header, noise_spectral, noise_data, 
         # Randomly place galaxy in x and y direction and fill whole z
         x_pos = randint(0, noise_data.shape[1]-resampled.shape[1])
         y_pos = randint(0, noise_data.shape[2]-resampled.shape[2])
-        # Rescale flux
+        # Rescale flux to distance
         print("scale")
-        scaled_flux = rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, new_dF)
+        scaled_flux = rescale_cube(resampled, orig_d, new_dist)
         del resampled
         gc.collect()
+        new_mass = hi_mass(scaled_flux.value, chosen_f, new_dist.value, new_dF, new_z.value)
         # Insert galaxy
         print("insert")
         insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data)
+        inserted_gals_df = inserted_gals_df.append({
+            "gal_file": filename,
+            "z_pos": z_pos,
+            "x_pos": x_pos,
+            "y_pos": y_pos,
+            "orig_mass": orig_mass,
+            "new_mass": np.log10(new_mass)
+        }, ignore_index=True)
         if verbose:
             print(z_pos, x_pos, y_pos)
         print("\r Inserted galaxy ", i, "out of ", no_gals, end="")
         print(datetime.now() - now)
-        return True
+        return inserted_gals_df, True
     except ValueError as e:
         print("Galaxy %s was unable to be inserted"%filename)
         print(e)
-        return False
+        return inserted_gals_df, False
 
+def hi_mass(scaled_flux, chosen_f, new_dist, dF, new_z):
+    Iv = np.sum(scaled_flux)*u.Jy*const.c.to(u.km/u.s)*dF/chosen_f
+    sigma_beam = (np.pi*5*25/(4*np.log(2)))*(1+new_z)**2
+    tot_flux = (6**2)*Iv/sigma_beam
+    mass = 2.35e5*tot_flux*(float(new_dist)*u.Mpc)**2/((1+new_z)**2)
+    return mass.value
 
 def load_cube(filename, orig_d, h_0):
     """Load fits Cube
@@ -89,17 +108,14 @@ def load_cube(filename, orig_d, h_0):
     rest_freq = gal_header['FREQ0']*u.Hz
     redshift = h_0*orig_d/const.c
     # Convert from W.U. to JY/BEAM
-    gal_data = gal_cube_hdulist[0].data #*5e-3
+    gal_data = gal_cube_hdulist[0].data*5e-3
     gal_cube_hdulist.close()
     # Get spatial pixel sizes
     dx = np.abs(gal_header["CDELT1"]*u.deg)
     dy = gal_header["CDELT2"]*u.deg
     dF = gal_header["CDELT3"]*u.Hz
     orig_scale = orig_d*np.tan(np.deg2rad(dx.to(u.deg)))
-    deltaV = (dF*const.c/rest_freq).to(u.km/u.s)
-    S_v = np.sum(gal_data, axis=0)*u.Jy*deltaV
-    orig_mass = np.sum(2.36e5*S_v*orig_d**2)/(1+redshift)
-    return orig_mass, dx, dy, dF, rest_freq, orig_scale, gal_data
+    return dx, dy, dF, rest_freq, orig_scale, gal_data
 
 
 def choose_freq(noise_spectral, noise_shape, gal_shape, rest_freq, h_0, orig_d):
@@ -164,7 +180,7 @@ def regrid_cube(smoothed_gal, noise_header, new_dist, dx, dy, dF, orig_scale, ch
     resampled = zoom(smoothed_gal, (dF_scale, dx_scale, dy_scale))
     return resampled, dF*dF_scale
 
-def rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_z, orig_mass, new_dF):
+def rescale_cube(resampled, orig_d, new_dist):
     """Rescale flux of galaxy cube to primary beam
 
     Args:
@@ -172,12 +188,8 @@ def rescale_cube(resampled, noise_header, orig_d, rest_freq, new_dist, h_0, new_
     """
     flux_scale = (orig_d/new_dist)**2
     scaled_flux = flux_scale*resampled
-    deltaV = (new_dF*const.c/rest_freq).to(u.km/u.s)
-    S_v = np.sum(scaled_flux, axis=0)*u.Jy*deltaV
-    new_mass = np.sum(2.36e5*S_v*new_dist**2)/(1+new_z)
-    scale_fac = (orig_mass/new_mass)
-    corrected_scaled_flux = (scaled_flux*scale_fac).value
-    return corrected_scaled_flux
+    return scaled_flux
+    
 
 def insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data):
     """Inserts galaxy randomly into given cube
@@ -186,17 +198,15 @@ def insert_gal(scaled_flux, x_pos, y_pos, z_pos, noise_data):
         noise_data (numpy.array): 3D array of noise cube to insert it to
     """
     masked_bin = (scaled_flux > np.mean(scaled_flux) + np.std(scaled_flux)).astype(int)
-    masked = masked_bin*scaled_flux*5e-3
-    if z_pos + scaled_flux.shape[0] > noise_data.shape[0]:
-        noise_data[
-            z_pos:noise_data.shape[0],
-            x_pos:scaled_flux.shape[1]+x_pos,
-            y_pos:scaled_flux.shape[2]+y_pos
-            ] += masked[:noise_data.shape[0]-z_pos]
-    else:
-        noise_data[
-            z_pos:scaled_flux.shape[0]+z_pos,
-            x_pos:scaled_flux.shape[1]+x_pos,
-            y_pos:scaled_flux.shape[2]+y_pos
-            ] += masked
+    masked = masked_bin*scaled_flux
+    z1, z2, z3, z4 = find_bounds(z_pos, scaled_flux.shape[0], noise_data.shape[0])
+    x1, x2, x3, x4 = find_bounds(x_pos, scaled_flux.shape[1], noise_data.shape[1])
+    y1, y2, y3, y4 = find_bounds(y_pos, scaled_flux.shape[2], noise_data.shape[2])
+    noise_data[z1:z2, x1:x2, y1:y2] += masked[z3:z4, x3:x4, y3:y4].value
 
+def find_bounds(pos, gal_shape, max_shape):
+    a1 = pos-math.floor(gal_shape/2) if pos-math.floor(gal_shape/2) > 0 else 0
+    a2 = pos+math.ceil(gal_shape/2) if pos+math.ceil(gal_shape/2) < max_shape else max_shape
+    b1 = 0 if pos-math.floor(gal_shape/2) > 0 else math.floor(gal_shape/2) - pos
+    b2 = gal_shape if pos+math.ceil(gal_shape/2) < max_shape else -(pos+math.ceil(gal_shape/2)-max_shape)
+    return a1, a2, b1, b2
