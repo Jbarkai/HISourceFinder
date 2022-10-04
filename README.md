@@ -77,46 +77,15 @@ data
 ```
 ## Usage
 ### Create Mock Cubes (all scripts in data_generators/)
-1. Create the noise-free cubes and their masks by inserting 200-500 random smoothed and resampled mock galaxies randomly into a random noise-free equivalent of the mosaiced cubes.
+1. Create the noise-free cubes and their masks by inserting 300 random smoothed and resampled mock galaxies randomly into a random noise-free equivalent of the mosaiced cubes.
 ```bash
-usage: make_cubes.py [-h] [--mos_dir [MOS_DIR]] [--gal_dir [GAL_DIR]] [--out_dir [OUT_DIR]] [--cube_file [CUBE_FILE]] [--min_gal [MIN_GAL]] [--max_gal [MAX_GAL]]
-
-Insert mock galaxies into HI cubes
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --mos_dir [MOS_DIR]   The directory of the noise cubes to insert the mock galaxies into (default: data/mosaics)
-  --gal_dir [GAL_DIR]   The directory of the mock galaxy cubes (default: data/mock_gals)
-  --out_dir [OUT_DIR]   The output directory of the synthetic cubes (default: data/training)
-  --cube_file [CUBE_FILE]
-                        The noise cube to insert into (default: data/mosaics/1245mosC.derip.fits)
-  --min_gal [MIN_GAL]   The minimum number of galaxies to insert (default: 200)
-  --max_gal [MAX_GAL]   The maximum number of galaxies to insert (default: 500)
+src/data_generatores/insert_mock_galaxies_to_noisefree_cubes.py
 ```
-2. Summarize galaxies in resulting noise-free cubes with exploratory plots:
+2. Add noise-free cubes to the mosaiced noise cubes:
 ```bash
-usage: explore_data.py [-h] [--output_dir [OUTPUT_DIR]] [--root [ROOT]]
-
-Create exploratory plots of noise-free cubes
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --output_dir [OUTPUT_DIR]
-                        Directory to output plots to (default: ../plots/)
-  --root [ROOT]         The root directory of the data (default: ../data/training/)
+src/data_generatores/insert_noisefree_galaxy_cubes_to_mosaics.py
 ```
-3. Scale noise-free cubes, add to noise cubes and replace missing values with gaussian noise:
-```bash
-usage: scale_cubes.py [-h] [--filename [FILENAME]] [--scale [SCALE]]
 
-Scale cubes
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --filename [FILENAME]
-                        Filename (default: noisefree_1245mosB.fits)
-  --scale [SCALE]       Scaling amount (default: loud)
-```
 ### Run SoFiA on cubes
 1. Install SoFiA from [here](https://github.com/SoFiA-Admin/SoFiA-2), the installation guide can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki).
 2. Make sure to edit the parameter files accordingly for each cube, an explanation of the parameters can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki/SoFiA-2-Control-Parameters).
@@ -126,7 +95,7 @@ sofia <parameter_file>
 ```
 or if you want to store the time taken:
 ```bash
-usage: run_sofia.py [-h] [--sofia_loc [SOFIA_LOC]] [--cube_dir [CUBE_DIR]] [--param_dir [PARAM_DIR]]
+usage: src/run_segmentation/run_sofia.py [-h] [--sofia_loc [SOFIA_LOC]] [--cube_dir [CUBE_DIR]] [--param_dir [PARAM_DIR]]
 
 Run SoFiA
 
@@ -142,7 +111,7 @@ optional arguments:
 ### Run MTObjects
 Run MTO with sliding window on all cubes (for memory purposes):
 ```bash
-usage: run_mto.py [-h] [--mto_dir [MTO_DIR]] [--param_file [PARAM_FILE]] [--input_dir [INPUT_DIR]]
+usage: src/run_segmentation/run_mto.py [-h] [--mto_dir [MTO_DIR]] [--param_file [PARAM_FILE]] [--input_dir [INPUT_DIR]]
 
 Run MTO
 
@@ -157,7 +126,7 @@ optional arguments:
 ### Run V-Net
 1. Train model on subcubes created from sliding windows, each of dimension 128x128x64.
 ```bash
-usage: train_model.py [-h] [--loaded [LOADED]] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
+usage: src/train_vnet_model.py [-h] [--loaded [LOADED]] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
                       [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--log_dir [LOG_DIR]]
                       [--dataset_name [DATASET_NAME]] [--terminal_show_freq [TERMINAL_SHOW_FREQ]] [--nEpochs [NEPOCHS]] [--scale [SCALE]] [--subsample [SUBSAMPLE]] [--cuda [CUDA]]
                       [--k_folds [K_FOLDS]] [--load_test [LOAD_TEST]]
@@ -199,7 +168,7 @@ optional arguments:
 ```
 2. Run now trained V-Net on images with sliding window:
 ```bash
-usage: run_vnet.py [-h] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--pretrained [PRETRAINED]] [--test_file [TEST_FILE]]
+usage: src/run_segmentation/run_vnet.py [-h] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--pretrained [PRETRAINED]] [--test_file [TEST_FILE]]
 
 INFERENCE VNET
 
@@ -251,7 +220,7 @@ This also now allows for an evaluation and comparison of all the methods. For th
 ### Improve V-Net with newly labelled masks
 1. Add the masks of the now deemed real detections (those with optical counterparts) to the ground truth cubes:
 ```bash
-usage: add_real_masks.py [-h] [--data_dir [DATA_DIR]] [--scale [SCALE]]
+usage: add_masks_of_real_sources_to_ground_truth.py [-h] [--data_dir [DATA_DIR]] [--scale [SCALE]]
                          [--real_cat [REAL_CAT]]
 
 Add real masks to GT
