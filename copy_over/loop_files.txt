@@ -1,0 +1,11 @@
+data/mosaics/1245mosD.derip.norm.fits
+data/mosaics/1245mosE.derip.norm.fits
+data/mosaics/1245mosF.derip.norm.fits
+data/mosaics/1245mosG.derip.norm.fits
+data/mosaics/1245mosH.derip.norm.fits
+data/mosaics/1353mosC.derip.norm.fits
+data/mosaics/1353mosD.derip.norm.fits
+data/mosaics/1353mosE.derip.norm.fits
+data/mosaics/1353mosF.derip.norm.fits
+data/mosaics/1353mosG.derip.norm.fits
+data/mosaics/1353mosH.derip.norm.fits
