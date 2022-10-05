@@ -32,7 +32,7 @@ def hi_mass(row, tot_flux):
     return mass.value
 
 
-catalogs = ["loud_VNET_catalog.txt"]
+catalogs = ["VNET_catalog.txt"]
 
 for catalog in catalogs:
     print(catalog)

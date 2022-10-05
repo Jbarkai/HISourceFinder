@@ -37,10 +37,10 @@ def insert_gals(row, sofia_data, mask_cube, mto_data=None, comb=False):
 
 
 def main(args, data_dir="./data/", scale="loud"):
-    mto_cat_df = pd.read_csv("./results/loud_MTO_catalog.txt", index_col=0)
-    vnet_cat_df = pd.read_csv("./results/loud_VNET_catalog.txt", index_col=0)
-    sofia_cat_df = pd.read_csv("./results/loud_SOFIA_catalog.txt", index_col=0)
-    mask_cat_df = pd.read_csv("./results/loud_MASK_catalog.txt", index_col=0)
+    mto_cat_df = pd.read_csv("./results/MTO_catalog.txt", index_col=0)
+    vnet_cat_df = pd.read_csv("./results/VNET_catalog.txt", index_col=0)
+    sofia_cat_df = pd.read_csv("./results/SOFIA_catalog.txt", index_col=0)
+    mask_cat_df = pd.read_csv("./results/MASK_catalog.txt", index_col=0)
     mask_cat_df["mos_name"] = mask_cat_df.file.str.split("_", expand=True)[1].str.replace(".fits", "")
     sofia_cat_df["mos_name"] = sofia_cat_df.file.str.split("_", expand=True)[3]
     mto_cat_df["mos_name"] = mto_cat_df.file.str.split("_", expand=True)[3].str.replace(".fits", "")
