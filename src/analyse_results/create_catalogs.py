@@ -263,3 +263,34 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.data_dir, args.method, args.scale, args.output_dir)
+
+
+def connect_detections_to_ground_truth(detection_catalogue, gt_catalgue):
+
+    mto_and_gt_df = pd.DataFrame()
+    k = 0
+    for mos_name in mos_names:
+        overlap_df = pd.merge(mto_cat_df[mto_cat_df.type=='mock'], mock_cat_df, on=["mos_name", "max_loc", "type"], suffixes=("_mto", "_mask"), how='outer', indicator=True)
+        left_only = overlap_df[overlap_df._merge == 'left_only']
+        right_only = overlap_df[overlap_df._merge == 'right_only']
+        both = overlap_df[overlap_df._merge == 'both'][overlap_df.columns[:-1]]
+        nearest_overlap_df = pd.DataFrame()
+        for i, row in right_only.iterrows():
+            max_loc_z, max_loc_x, max_loc_y = [int(m) for m in row.max_loc.replace("]", "").replace("[", "").split(", ")]
+            max_locs = left_only.max_loc.str.replace("]", "").str.replace("[", "").str.split(", ", expand=True).astype(int)
+            max_locs.columns = ["max_loc_z", "max_loc_x", "max_loc_y"]
+            distances = np.sqrt((max_locs.max_loc_z-max_loc_z)**2 + (max_locs.max_loc_x-max_loc_x)**2 + (max_locs.max_loc_y-max_loc_y)**2)
+            mapped_row = left_only[distances == distances.min()]
+            if mapped_row.area_gt.values[0] == row.area_mask:
+                joined_df = mapped_row[mapped_row.columns[:36]].reset_index(drop=True).join(pd.DataFrame([row[right_only.columns[36:-1]]]).reset_index(drop=True))
+                joined_df["overlap"] = distances.min()
+                nearest_overlap_df = nearest_overlap_df.append(joined_df)
+        # Take closest if 2
+    #     nearest_overlap_df.loc[nearest_overlap_df.groupby('label')['overlap'].transform('min').eq(nearest_overlap_df['overlap'])].reset_index(drop=True)
+        nearest_overlap_df = nearest_overlap_df[nearest_overlap_df.columns[:-1]]
+        all_mapped_df = nearest_overlap_df.append(both).reset_index(drop=True)
+        all_mapped_df["mos_name"] == mos_name
+        mto_and_gt_df = mock_galaxy_gt_df.append(all_mapped_df)
+        print(mos_name)
+        if (len(all_mapped_df[all_mapped_df.label_mto.isnull()]), len(all_mapped_df[all_mapped_df.new_mass.isnull()])) != (0, 0):
+            break
