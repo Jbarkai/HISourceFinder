@@ -1,6 +1,6 @@
 # MedicalZooPytorch Imports
 
-The code within this directory was taken from https://github.com/black0017/MedicalZooPytorch and adapted for this data.
+The code within this directory was adapted from https://github.com/black0017/MedicalZooPytorch.
 
 CREDIT:
 @MastersThesis{adaloglou2019MRIsegmentation,
