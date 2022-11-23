@@ -58,7 +58,7 @@ data
 │   │   sofia_loud_1245mosC_rel.eps
 │   │   ...
 └───training
-│   └───Input
+│   └───NoiseFree
 │       │   noisefree_1245mosB.fits
 │       │   noisefree_1245mosC.fits
 │       │   ...
@@ -66,13 +66,9 @@ data
 │       │   mask_1245mosB.fits
 │       │   mask_1245mosC.fits
 │       │   ...
-│   └───loudInput
-│       │   loud_1245mosB.fits
-│       │   loud_1245mosC.fits
-│       │   ...
-│   └───softInput
-│       │   soft_1245mosB.fits
-│       │   soft_1245mosC.fits
+│   └───Input
+│       │   1245mosB.fits
+│       │   1245mosC.fits
 │       │   ...
 ```
 ## Usage
