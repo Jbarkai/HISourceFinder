@@ -7,6 +7,7 @@ A comparative study of source-finding techniques in HI emission line cubes using
 Corresponding Authors: J.A. Barkai, M.A.W. Verheijen, E.T. Martínez, M.H.F. Wilkinson
 
 The published paper produced using this code can be found [here](https://www.aanda.org/component/article?access=doi&doi=10.1051/0004-6361/202244708).
+Please cite this linked work if it was used to inform your research.
 
 ## Project Description
 **Context**: The 21 cm spectral line emission of atomic neutral hydrogen (HI) is one of the primary wavelengths observed in radio
