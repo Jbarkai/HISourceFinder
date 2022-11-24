@@ -20,8 +20,10 @@ from scipy.optimize import curve_fit
 def Gauss(x, a, x0, sigma):
     return a * np.exp(-(x - x0)**2 / (2 * sigma**2))
 
+
 def two_gaussians(x, h1, c1, w1, h2, c2, w2):
     return Gauss(x, h1, c1, w1) + Gauss(x, h2, c2, w2)
+
 
 def fit_gauss(subcube, ax):
     x = np.arange(subcube.shape[0])
@@ -64,6 +66,7 @@ def getimages(ra,dec,size=240,filters="grizy"):
         return table
     except FileNotFoundError:
         return False
+
 
 def geturl(ra, dec, size=240, output_size=None, filters="grizy", format="jpg", color=False):
     
@@ -130,6 +133,7 @@ def get_opt(new_wcs, ra_pix=1030, dec_pix=1030, size_pix=100, d_width=0.00166666
         print("The read operation timed out")
         return False, 0
 
+
 def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/", d_width=0.001666666707*u.deg):
     max_size = np.max([row.nx, row.ny])
     dx = int(max_size*0.5)
@@ -180,8 +184,9 @@ def overlay_hi(row, method, spec_cube, output_file="./optical_catalogs/", d_widt
         fig.tight_layout(pad=0)
         plt.savefig(output_file + method + "_" + row.mos_name + "_" + str(row.label) + ".png")
 
-def main(method, output_file):
-    cat_df = pd.read_csv("./results/loud_%sexp5_2_catalog.txt"%method, index_col=0)
+
+def main(method, output_file, catalogue_dir):
+    cat_df = pd.read_csv(catalogue_dir + "%catalog.txt"%method, index_col=0)
     noise_res = [(15*u.arcsec).to(u.deg), (25*u.arcsec).to(u.deg)]
     kpc_lim = [0, 300]
     n_vel_lim = [7, 750]
@@ -221,6 +226,9 @@ if __name__ == "__main__":
     parser.add_argument(
         '--output_file', type=str, nargs='?', const='default', default='./',
         help='The output file for the images')
+    parser.add_argument(
+        '--catalogue_dir', type=str, nargs='?', const='default', default='./results/',
+        help='The file containing the catalogue of found sources')
     args = parser.parse_args()
 
-    main(args.method, args.output_file)
+    main(args.method, args.output_file, args.catalogue_dir)

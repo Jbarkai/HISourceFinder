@@ -208,13 +208,12 @@ def create_single_catalog(output_file, mock_mask_file, real_mask_file, real_file
     return source_props_df
 
 
-def main(data_dir, method, scale, out_dir):
+def main(data_dir, method, out_dir):
     """Creates a catalog of the source detections
 
     Args:
         data_dir (str): The location of the data
         method (str): The detection method used
-        scale (str): The scale of the inserted galaxies
         out_dir (str): The output directory for the results
     Outputs:
         A catalog of all the detected sources and their properties,
@@ -230,43 +229,22 @@ def main(data_dir, method, scale, out_dir):
         target_file_real = data_dir + "training/TargetReal/mask_" + mos_name+  ".fits"
         mask = True if method == "MASK" else False
         if method == "MTO":
-            nonbinary_im = data_dir + "mto_output/mtocubeout_" + scale + "_" + mos_name+  ".fits"
+            nonbinary_im = data_dir + "mto_output/mtocubeout_" + mos_name+  ".fits"
         elif method == "VNET":
-            nonbinary_im = data_dir + "vnet_output/vnet_cubeout_" + scale + "_" + mos_name+  ".fits"
+            nonbinary_im = data_dir + "vnet_output/vnet_cubeout_" + mos_name+  ".fits"
         elif method == "SOFIA":
-            nonbinary_im = data_dir + "sofia_output/sofia_" + scale + "_" + mos_name+  "_mask.fits"
+            nonbinary_im = data_dir + "sofia_output/sofia_" + mos_name+  "_mask.fits"
         elif method == "MASK":
-            nonbinary_im = data_dir + "training/target_" + scale + "_" + mos_name+  "_mask.fits"
+            nonbinary_im = data_dir + "training/target_" + mos_name+  "_mask.fits"
         source_props_df = create_single_catalog(output_file=nonbinary_im, mock_mask_file=target_file_mock, real_mask_file=target_file_real, real_file=cube_file, mask=mask)
         source_props_df_full = source_props_df_full.append(source_props_df)
     print("saving file...")
-    out_file = out_dir + "/" + scale + "_" + method + "_catalog.txt"
+    out_file = out_dir + "/" + method + "_catalog.txt"
     source_props_df_full.to_csv(out_file, index=False)
     return
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Create catalog from output",
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        '--data_dir', type=str, nargs='?', const='default', default="data/",
-        help='The directory containing the data')
-    parser.add_argument(
-        '--method', type=str, nargs='?', const='default', default='SOFIA',
-        help='The segmentation method being evaluated')
-    parser.add_argument(
-        '--scale', type=str, nargs='?', const='default', default='loud',
-        help='The scale of the inserted galaxies')
-    parser.add_argument(
-        '--output_dir', type=str, nargs='?', const='default', default="results/",
-        help='The output directory for the results')
-    args = parser.parse_args()
-
-    main(args.data_dir, args.method, args.scale, args.output_dir)
-
-
 def connect_detections_to_ground_truth(detection_catalogue, gt_catalgue):
-
     mto_and_gt_df = pd.DataFrame()
     k = 0
     for mos_name in mos_names:
@@ -294,3 +272,21 @@ def connect_detections_to_ground_truth(detection_catalogue, gt_catalgue):
         print(mos_name)
         if (len(all_mapped_df[all_mapped_df.label_mto.isnull()]), len(all_mapped_df[all_mapped_df.new_mass.isnull()])) != (0, 0):
             break
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Create catalog from output",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        '--data_dir', type=str, nargs='?', const='default', default="data/",
+        help='The directory containing the data')
+    parser.add_argument(
+        '--method', type=str, nargs='?', const='default', default='SOFIA',
+        help='The segmentation method being evaluated')
+    parser.add_argument(
+        '--output_dir', type=str, nargs='?', const='default', default="results/",
+        help='The output directory for the results')
+    args = parser.parse_args()
+
+    main(args.data_dir, args.method, args.output_dir)
+

@@ -221,13 +221,14 @@ def find_bounds(pos, gal_shape, max_shape):
     return a1, a2, b1, b2
 
 
-def main(noise_file, gal_dir, out_dir):
+def main(noise_file, gal_dir, out_dir, no_gals):
     """Create fake noise cube and outputs fits files
 
     Args:
         noise_file (str): The file of the noise cube
         gal_dir (str): The directory of the galaxy cubes
         out_dir (str): Output directory of created cube
+        no_gals (int): The number of galaxies to insert
 
     Returns:
         The return value. True for success, False otherwise.
@@ -250,7 +251,6 @@ def main(noise_file, gal_dir, out_dir):
         del noise_cube
         gc.collect()
         # Choose a random sample of mock galaxies and insert them
-        no_gals = 300
         print("Inserting %s galaxies"%no_gals)
         gals = sample([f for f in listdir(gal_dir) if ".fits" in f], no_gals)
         inserted_gals_df = pd.DataFrame(columns=["gal_file", "z_pos", "x_pos", "y_pos", "orig_mass", "new_mass"])
@@ -296,7 +296,10 @@ if __name__ == "__main__":
         help='The output directory of the synthetic cubes')
     parser.add_argument(
         '--cube_file', type=str, nargs='?', const='default', default="data/mosaics/1245mosC.derip.norm.fits",
-        help='The noise cube to insert into')
+        help='The HI emission cube to insert into')
+    parser.add_argument(
+        '--no_gals', type=int, nargs='?', const='default', default=300,
+        help='The number of galaxies to insert')
     args = parser.parse_args()
 
-    main(args.cube_file, args.gal_dir, args.out_dir)
+    main(args.cube_file, args.gal_dir, args.out_dir, args.no_gals)

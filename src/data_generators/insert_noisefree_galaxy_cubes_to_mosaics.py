@@ -5,15 +5,12 @@ import argparse
 import astropy.units as u
 
 
-def main(filename):
+def main(filename, orig_file, noise_file, out_dir):
     print(filename)
     cube_data = fits.getdata(filename)
-    mos_name = filename.split("/")[-1].split("_")[-1].split(".fits")[0]
-    noise_file = mos_name + ".derip.norm.fits"
-    print(noise_file)
-    orig_data = fits.getdata("./data/orig_mosaics/%s.derip.fits"%mos_name)[:, 400:-400, 400:-400]
+    orig_data = fits.getdata(orig_file)[:, 400:-400, 400:-400]
     
-    hdul = fits.open("./data/mosaics/" + noise_file)
+    hdul = fits.open(noise_file)
     hdr = hdul[0].header
     norm_noise = hdul[0].data[:, 400:-400, 400:-400]
     rms = np.sqrt(np.nanmean(orig_data**2, axis=0))
@@ -21,15 +18,24 @@ def main(filename):
     cube_data_scaled = np.array([cube_data[i]/rms for i in range(cube_data.shape[0])])
     # Add galaxies to cube
     norm_noise += cube_data_scaled
-    fits.writeto("./data/training/InputBoth/"+filename.split("_")[-1], norm_noise, header=hdr, overwrite=True)
+    fits.writeto(out_dir+filename.split("_")[-1], norm_noise, header=hdr, overwrite=True)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Scale cubes",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        '--filename', type=str, nargs='?', const='default', default='./data/training/Input/noisefree_1245mosC.fits',
-        help='Filename')
+        '--noise_free_file', type=str, nargs='?', const='default', default='./data/training/Input/noisefree_1245mosC.fits',
+        help='The file name of the noise free cube with inserted galaxies')
+    parser.add_argument(
+        '--orig_file', type=str, nargs='?', const='default', default='./data/orig_mosaics/1245mosC.derip.fits',
+        help='The file name of the original, un-normalised HI emission cube')
+    parser.add_argument(
+        '--noise_file', type=str, nargs='?', const='default', default='./data/mosaics/1245mosC.derip.norm.fits',
+        help='The file name of the normalised HI emission cube')
+    parser.add_argument(
+        '--out_dir', type=str, nargs='?', const='default', default="data/training/",
+        help='The output directory of the created cubes')
     args = parser.parse_args()
 
-    main(args.filename)
+    main(args.noise_free_file, args.orig_file, args.noise_file, args.out_dir)

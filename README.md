@@ -3,124 +3,105 @@
   <img src="https://github.com/Jbarkai/HISourceFinder/blob/master/cover_pic.png" width="500" />
 </p>
 
-A comparison of object segmentation techniques for optimal source finding in HI 3D data cubes.
-Corresponding Author: Jordan A. Barkai, University of Groningen
+A comparative study of source-finding techniques in HI emission line cubes using SoFiA, MTObjects, and supervised deep learning
+Corresponding Authors: J.A. Barkai, M.A.W. Verheijen, E.T. Martínez, M.H.F. Wilkinson
 
-Contributors (in alphabetical order): Jordan A. Barkai, Estefanía Talavera Martínez, Marc A.W. Verheijen, Michael H. F. Wilkinson
+The published paper produced using this code can be found [here](https://www.aanda.org/component/article?access=doi&doi=10.1051/0004-6361/202244708).
+
 ## Project Description
-Astronomical surveys map the skies without a specific target, resulting in images containing many astronomical objects. As the technology used to create these surveys improves with projects like the SKA, an unprecedented amount of data will become available. Besides the time that it would require, manually detecting sources in data-sets of this volume would be unfeasible due tothe low intensities of many sources, increasing their proximity to the level of noise. Hence the need for fast and accurate techniques to detect and locate sources in astronomical survey data.
+**Context**: The 21 cm spectral line emission of atomic neutral hydrogen (HI) is one of the primary wavelengths observed in radio
+astronomy. However, the signal is intrinsically faint and the HI content of galaxies depends on the cosmic environment, requiring
+large survey volumes and survey depth to investigate the HI Universe. As the amount of data coming from these surveys continues to
+increase with technological improvements, so does the need for automatic techniques for identifying and characterising HI sources
+while considering the tradeoff between completeness and purity.
 
-The problem at hand can be seen as an overlap between fields, where existing advances in computer vision could be used to solve the struggle of source finding in astronomy. In computer vision object recognition encompasses a collection of tasks, including object segmentation, which we will refer to as source finding. Object segmentation can be defined as drawing a mask around identified objects in an image and assigning them class labels. This is done by highlighting pixels (or voxels in the case of 3D data cubes) belonging to different objects such as astronomical sources and noise or background.
+**Aims**: This study aimed to find the optimal pipeline for finding and masking the most sources with the best mask quality and the fewest
+artefacts in 3D neutral hydrogen cubes. Various existing methods were explored, including the traditional statistical approaches and
+machine learning techniques, in an attempt to create a pipeline to optimally identify and mask the sources in 3D neutral hydrogen
+(HI) 21 cm spectral line data cubes.
 
-The challenge lies in the lack of clarity in the boundaries of sources, with many having intensities very close to the noise, especially in the case of radio data. Additionally, as the sensitivity and depth in astronomical surveys will increase, so will the number of overlapping sources as fainter and more extended sources are observed. This concept is known as blending. Having this foresight, many astronomers have explored source finding and deblending solutions using simple statistical techniques. However, these approaches are very sensitive to the input parameters and have been found to struggle with differentiating between faint sources and noise, resulting in a trade-off between accepting false sources and excluding true sources. While object segmentationin 2D images is considered a “solved” problem these days, the same task in 3D data cubes is still very new and unexplored in both astronomy and computer vision. 
+**Methods**: Two traditional source-finding methods were tested first: the well-established HI source-finding software SoFiA and one
+of the most recent, best performing optical source-finding pieces of software, MTObjects. A new supervised deep learning approach
+was also tested, in which a 3D convolutional neural network architecture, known as V-Net, which was originally designed for medical
+imaging, was used. These three source-finding methods were further improved by adding a classical machine learning classifier as a
+post-processing step to remove false positive detections. The pipelines were tested on HI data cubes from the Westerbork Synthesis
+Radio Telescope with additional inserted mock galaxies.
 
-In this project we will explore the various existing methods, including the traditional statistical approaches as well as machine learning techniques in attempt to create a pipeline to optimally mask and label the sources in 3D neutral hydrogen (HI) data cubes.
+**Results**: Following what has been learned from work in other fields, such as medical imaging, it was expected that the best pipeline
+would involve the V-Net network combined with a random forest classifier. This, however, was not the case: SoFiA combined with a
+random forest classifier provided the best results, with the V-Net–random forest combination a close second. We suspect this is due to
+the fact that there are many more mock sources in the training set than real sources. There is, therefore, room to improve the quality
+of the V-Net network with better-labelled data such that it can potentially outperform SoFiA
 
+## Quickstart
 
-## Setup
-Clone repository.
+### Setup
+1. Clone the repository.
 ```bash
 git clone https://github.com/Jbarkai/HISourceFinder.git
 cd HISourceFinder
 ```
-Create and activate a Python 3.7 environment.
+2. Create and activate a Python 3.7 environment.
 ```bash
 conda create -n hisources python=3.7
 source activate hisources
 ```
-Install the required packages.
+3. Install the required packages.
 ```bash
 pip --cache-dir /tmp/pipcache install -r requirements.txt
 ```
-## Data Directory Structure
-The data directories need to be created as follows, but only the fits files of the synthetic galaxies under `mock_gals` and the noisy mosaic fits files under `mosaics` need to be there to start, the rest will be created by the scripts below.
-```
-data 
-│
-└───mock_gals
-│   │   g1_model474.fits
-│   │   g1_model475.fits
-│   │   ...
-└───mosaics
-│   │   1245mosB.derip.fits
-│   │   1245mosC.derip.fits
-│   │   ...
-└───mto_output
-│   │   mtocubeout_loud_1245mosB.fits
-│   │   mtocubeout_loud_1245mosC.fits
-│   │   ...
-└───vnet_output
-│   │   vnet_cubeout_loud_1245mosB.fits
-│   │   vnet_cubeout_loud_1245mosC.fits
-│   │   ...
-└───sofia_ouput
-│   │   sofia_loud_1245mosC_mask.fits
-│   │   sofia_loud_1245mosC_rel.eps
-│   │   ...
-└───training
-│   └───NoiseFree
-│       │   noisefree_1245mosB.fits
-│       │   noisefree_1245mosC.fits
-│       │   ...
-│   └───Target
-│       │   mask_1245mosB.fits
-│       │   mask_1245mosC.fits
-│       │   ...
-│   └───Input
-│       │   1245mosB.fits
-│       │   1245mosC.fits
-│       │   ...
-```
-## Usage
-### Create Mock Cubes (all scripts in data_generators/)
-1. Create the noise-free cubes and their masks by inserting 300 random smoothed and resampled mock galaxies randomly into a random noise-free equivalent of the mosaiced cubes.
-```bash
-src/data_generatores/insert_mock_galaxies_to_noisefree_cubes.py
-```
-2. Add noise-free cubes to the mosaiced noise cubes:
-```bash
-src/data_generatores/insert_noisefree_galaxy_cubes_to_mosaics.py
-```
 
-### Run SoFiA on cubes
-1. Install SoFiA from [here](https://github.com/SoFiA-Admin/SoFiA-2), the installation guide can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki).
-2. Make sure to edit the parameter files accordingly for each cube, an explanation of the parameters can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki/SoFiA-2-Control-Parameters).
-3. Run sofia on data cubes
-```bash
-sofia <parameter_file>
-```
-or if you want to store the time taken:
-```bash
-usage: src/run_segmentation/run_sofia.py [-h] [--sofia_loc [SOFIA_LOC]] [--cube_dir [CUBE_DIR]] [--param_dir [PARAM_DIR]]
+### Requirements
+- A library of mock galaxy fits files
+- A library of HI emission cube fits files
+- A library of noise normalised HI emission cube fits files
+- An empty directory for each of the following:
+  - The noise free files containing mock galaxies
+  - The HI emission cubes containing the mock galaxies
+  - The ground truth mask for the mock galaxies
 
-Run SoFiA
+### Inserting the mock galaxies into the HI emisison cubes
+1. Create the noise-free cubes and their masks by inserting n random smoothed and resampled mock galaxies randomly into a noise-free equivalent of the HI emission cubes.
+```bash
+usage: src/data_generatores/insert_mock_galaxies_to_noisefree_cubes.py [-h] [--gal_dir] [--out_dir] [--cube_file] [--no_gals]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --sofia_loc [SOFIA_LOC]
-                        The sofia executable location (default: /net/blaauw/data2/users/vdhulst/SoFiA-2/sofia)
-  --cube_dir [CUBE_DIR]
-                        The directory of the cubes (default: ./data/training/loudInput)
-  --param_dir [PARAM_DIR]
-                        The directory containing the parameter files (default: ./run_segmentation/params)
+  --gal_dir
+    The directory of the mock galaxy cubes (default: data/mock_gals)
+  --out_dir
+    The output directory of the synthetic cubes (default: data/training)
+  --cube_file
+    The HI emission cube to insert into (default: data/mosaics/1245mosC.derip.norm.fits)
+  --no_gals
+    The number of galaxies to insert (default: 300)
 ```
-### Run MTObjects
-Run MTO with sliding window on all cubes (for memory purposes):
+2. Add the noise-free cubes to the HI emission cubes:
 ```bash
-usage: src/run_segmentation/run_mto.py [-h] [--mto_dir [MTO_DIR]] [--param_file [PARAM_FILE]] [--input_dir [INPUT_DIR]]
-
-Run MTO
+usage: src/data_generatores/insert_noisefree_galaxy_cubes_to_mosaics.py [-h] [--noise_free_file] [--orig_file] [--noise_file] [--out_dir]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --mto_dir [MTO_DIR]   The directory of the MTO executable (default: ../mtobjects)
-  --param_file [PARAM_FILE]
-                        The parameter file (default: ../mtobjects/radio_smoothed-00_F.txt)
-  --input_dir [INPUT_DIR]
-                        The directory of the input data (default: data/training/loudInput)
+  --noise_free_file
+    The file name of the noise free cube with inserted galaxies (default: ./data/training/Input/noisefree_1245mosC.fits)
+  --orig_file
+    The file name of the original, un-normalised HI emission cube (default: ./data/orig_mosaics/1245mosC.derip.fits)
+  --noise_file
+    The file name of the normalised HI emission cube (default: ./data/mosaics/1245mosC.derip.norm.fits)
+  --out_dir
+    The output directory of the created cubes (default: data/training/)
 ```
-### Run V-Net
-1. Train model on subcubes created from sliding windows, each of dimension 128x128x64.
+
+### Train V-Net
+V-Net is originally designed for locating and masking objects in medical images (Milletari et al. 2016) and was chosen due to its ability to take full
+data volumes as its input as opposed to slices of 3D images. VNet is a fully volumetric CNN built following the well-known
+architecture of U-Net (Christ et al. 2016).
+
+The code for V-Net was adapted from [MedicalZooPytorch](https://github.com/black0017/MedicalZooPytorch)(Nikolaos 2019),
+an open-source 3D medical segmentation library. Access to the trained V-Net model (with weights) can be requested by
+emailing: jordan.barkai@gmail.com
+
+The model needs to be trained on sub-cubes created from a sliding window, each of dimension 128x128x64.
 ```bash
 usage: src/train_vnet_model.py [-h] [--loaded [LOADED]] [--batch_size [BATCH_SIZE]] [--shuffle [SHUFFLE]] [--num_workers [NUM_WORKERS]] [--dims [DIMS]] [--overlaps [OVERLAPS]] [--root [ROOT]]
                       [--random_seed [RANDOM_SEED]] [--train_size [TRAIN_SIZE]] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--log_dir [LOG_DIR]]
@@ -162,7 +143,55 @@ optional arguments:
   --cuda [CUDA]         Memory allocation (default: False)
   --k_folds [K_FOLDS]   Number of folds for k folds cross-validations (default: 5)
 ```
-2. Run now trained V-Net on images with sliding window:
+
+### Run the all the source finders on the cubes
+#### SoFiA
+SoFiA (Serra et al. 2015; Westmeier et al. 2021). SoFiA is designed to be independent of the source of HI
+emission line data used and is currently the most used pipeline for source-finding in HI emission cubes.
+
+1. Install SoFiA from [here](https://github.com/SoFiA-Admin/SoFiA-2), the installation guide can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki).
+2. Make sure to edit the parameter files accordingly for each cube, an explanation of the parameters can be found [here](https://github.com/SoFiA-Admin/SoFiA-2/wiki/SoFiA-2-Control-Parameters).
+3. Run sofia on data cubes
+```bash
+sofia <parameter_file>
+```
+or if you want to store the time taken:
+```bash
+usage: src/run_segmentation/run_sofia.py [-h] [--sofia_loc [SOFIA_LOC]] [--cube_dir [CUBE_DIR]] [--param_dir [PARAM_DIR]]
+
+Run SoFiA
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --sofia_loc [SOFIA_LOC]
+                        The sofia executable location (default: /net/blaauw/data2/users/vdhulst/SoFiA-2/sofia)
+  --cube_dir [CUBE_DIR]
+                        The directory of the cubes (default: ./data/training/loudInput)
+  --param_dir [PARAM_DIR]
+                        The directory containing the parameter files (default: ./run_segmentation/params)
+```
+#### MTObjects
+MTObjects (Teeninga et al. 2013, 2016) is region-based source-finding software that makes use of max-trees.
+This software was originally designed for 2D optical data. However, since diffuse optical sources similarly
+suffer from the tradeoff between completeness and purity, MTO has been extended further for HI emission cubes
+by Arnoldus (2015). Access to this version can be requested by emailing: m.h.f.wilkinson@rug.nl
+
+To run MTO using a sliding window on all cubes, storing the time taken:
+```bash
+usage: src/run_segmentation/run_mto.py [-h] [--mto_dir [MTO_DIR]] [--param_file [PARAM_FILE]] [--input_dir [INPUT_DIR]]
+
+Run MTO
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --mto_dir [MTO_DIR]   The directory of the MTO executable (default: ../mtobjects)
+  --param_file [PARAM_FILE]
+                        The parameter file (default: ../mtobjects/radio_smoothed-00_F.txt)
+  --input_dir [INPUT_DIR]
+                        The directory of the input data (default: data/training/loudInput)
+```
+#### V-Net
+Once trained, the V-Net model can be ran on the HI emission cubes with a sliding window:
 ```bash
 usage: src/run_segmentation/run_vnet.py [-h] [--model [MODEL]] [--opt [OPT]] [--lr [LR]] [--inChannels [INCHANNELS]] [--classes [CLASSES]] [--pretrained [PRETRAINED]] [--test_file [TEST_FILE]]
 
@@ -182,9 +211,9 @@ optional arguments:
                         The file listing the test sliding window pieces (default: ./notebooks/loud_1245mosC-slidingwindowindices.txt)
 ```
 ### Investigate Results
-1. Create a catalog for the results of each method and cross-reference it with the mask of the inserted galaxies (to mark true or false positives):
+A catalog for the results of each method can be created and cross-referenceed with the mask of the inserted galaxies (to mark true or false positives):
 ```bash
-usage: create_catalogs.py [-h] [--data_dir [DATA_DIR]] [--method [METHOD]] [--scale [SCALE]] [--output_dir [OUTPUT_DIR]] [--catalog_loc [CATALOG_LOC]]
+usage: create_catalogs.py [-h] [--data_dir [DATA_DIR]] [--method [METHOD]] [--output_dir [OUTPUT_DIR]] [--catalog_loc [CATALOG_LOC]]
 
 Create catalog from output
 
@@ -192,14 +221,14 @@ optional arguments:
   -h, --help            show this help message and exit
   --data_dir [DATA_DIR]
                         The directory containing the data (default: data/)
-  --method [METHOD]     The segmentation method being evaluated (default: MTO)
-  --scale [SCALE]       The scale of the inserted galaxies (default: loud)
+  --method [METHOD]     The segmentation method being evaluated (default: SOFIA)
   --output_dir [OUTPUT_DIR]
                         The output directory for the results (default: results/)
 ```
-2. Overlay the false detections on optical images to see if they are real sources:
+Overlay the false detections on optical images, taken from the Panoramic Survey Telescope and Rapid Response System
+(Pan-STARRS) survey (Flewelling et al. 2020), to see if they are real sources:
 ```bash
-usage: overlay_catalog.py [-h] [--method [METHOD]] [--output_file [OUTPUT_FILE]]
+usage: overlay_catalog.py [-h] [--method [METHOD]] [--output_file [OUTPUT_FILE]] [--catalogue_dir [CATALOGU_DIR]]
 
 Overlay HI moment 0 map on optical cross-matched catalog
 
@@ -208,30 +237,35 @@ optional arguments:
   --method [METHOD]     The method to extract catalogs from (default: SOFIA)
   --output_file [OUTPUT_FILE]
                         The output file for the images (default: ./optical_catalogs/)
+  --catalogue_dir [CATALOGU_DIR]
+                        The file containing the catalogue of found sources (default: ./results/)
 ```
-Manually flag the detected sources that have an tical counterpart by creating a csv with the following columns:
-`method,mos_name,label,type`
 
-This also now allows for an evaluation and comparison of all the methods. For this follow the `notebooks/Results.ipynb` notebook. This notebook also includes the addition of shallow machine learning as a post-processing method on all the source finding tools to improve their purity.
-### Improve V-Net with newly labelled masks
-1. Add the masks of the now deemed real detections (those with optical counterparts) to the ground truth cubes:
-```bash
-usage: add_masks_of_real_sources_to_ground_truth.py [-h] [--data_dir [DATA_DIR]] [--scale [SCALE]]
-                         [--real_cat [REAL_CAT]]
+### References
+Arnoldus, C. (2015), A max-tree-based astronomical source finder, Master’s thesis, University of Groningen.
 
-Add real masks to GT
+Christ, P. et al. (2016), Automatic liver and lesion segmentation in CT using cascaded fully convolutional neural networks and 3D conditional random fields,
+in S. Ourselin, L. Joskowicz, M. Sabuncu, G. Unal and W. Wells, eds, ‘Medical Image Computing and Computer-Assisted Intervention – MICCAI 2016’,
+Springer International Publishing, Cham, pp. 415–423.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --data_dir [DATA_DIR]
-                        The directory containing the data (default: ./data/)
-  --scale [SCALE]       The scale of the inserted galaxies (default: loud)
-  --real_cat [REAL_CAT]
-                        The location of file containing flagged real sources (default:
-                        ./fp_to_drop.csv)
-```
-2. Re-train V-Net with newly labelled masks
-This can be done in three ways:
-- Take ground truth with both real and mock sources and train from scratch
-- Take only real sources and continue training VNET from previous point
-- Take only real sources and use feature extraction to freeze all the lower layers and only update a new one
+Flewelling, H. et al. (2020), ‘The Pan-STARRS1 database and data products’,
+The Astrophysical Journal Supplement Series 251(1), 7.
+
+Milletari, F., Navab, N. and Ahmadi, S. (2016), ‘V-Net: Fully convolutional neural networks for volumetric medical image segmentation’, Proceedings - 2016
+4th International Conference on 3D Vision pp. 565–571.
+
+Nikolaos, A. (2019), Deep learning in medical image analysis: a comparative
+analysis of multi-modal brain-MRI segmentation with 3D deep neural networks, Master’s thesis, University of Patras.
+
+Serra, P. et al. (2015), ‘SoFiA: A flexible source finder for 3D spectral line data’,
+Monthly Notices of the Royal Astronomical Society 448(2), 1922–1929.
+
+Teeninga, P., Moschini, U., Trager, S. C. and Wilkinson, M. H. F. (2013), Bivariate statistical attribute filtering: A tool for robust detection of faint objects,
+in ‘11th International Conference "Pattern Recognition and Image Analysis:
+New Information Technologies" (PRIA-11-2013)’, pp. 746–749
+
+Westmeier, T., Kitaeff, S., Pallot, D., Serra, P., van der Hulst, J. M., Jurek, R. J.,
+Elagali, A., For, B. Q., Kleiner, D., Koribalski, B. S., Lee-Waddell, K., Mould,
+J. R., Reynolds, T. N., Rhee, J. and Staveley-Smith, L. (2021), ‘SOFIA 2 - An
+automated, parallel HI source finding pipeline for the WALLABY survey’,
+MNRAS 506(3), 3962–3976
