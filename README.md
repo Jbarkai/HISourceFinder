@@ -8,6 +8,7 @@ Corresponding Authors: J.A. Barkai, M.A.W. Verheijen, E.T. Martínez, M.H.F. Wil
 
 The published paper produced using this code can be found [here](https://www.aanda.org/component/article?access=doi&doi=10.1051/0004-6361/202244708).
 Please cite this linked work as follows:
+
 J.A. Barkai, M.A.W. Verheijen, E.T. Martínez, M.H.F. Wilkinson (2022), ‘A comparative study of source-finding techniques
 in HI emission line cubes using SoFiA, MTObjects, and supervised deep learning’, Astronomy & Astrophysics.
 
