@@ -1,9 +1,9 @@
-# 3D HI Source Finder
+# A comparative study of source-finding techniques in HI emission line cubes using SoFiA, MTObjects, and supervised deep learning
+
 <p align="center">
   <img src="https://github.com/Jbarkai/HISourceFinder/blob/master/cover_pic.png" width="500" />
 </p>
 
-A comparative study of source-finding techniques in HI emission line cubes using SoFiA, MTObjects, and supervised deep learning
 Corresponding Authors: J.A. Barkai, M.A.W. Verheijen, E.T. Martínez, M.H.F. Wilkinson
 
 The published paper produced using this code can be found [here](https://www.aanda.org/component/article?access=doi&doi=10.1051/0004-6361/202244708).
